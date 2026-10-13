@@ -4469,7 +4469,7 @@
 
     ### In the real world
 
-    - Remotion's [`spring()`](https://www.remotion.dev/docs/spring) takes the same config names with the same defaults. Instead of simulating in 1 ms steps, it uses the exact formula for a damped spring, borrowed from React Native, and lands within about 0.001 of your answer.
+    - Remotion's [`spring()`](https://www.remotion.dev/docs/spring) takes the same config names with the same defaults. Instead of simulating in 1 ms steps, it uses the exact formula for a damped spring, one frame at a time, and lands within about 0.001 of your answer.
     - Apple's SwiftUI describes springs by their *damping fraction*, which is the damping ratio, and CSS can fake a spring by listing many points in a [`linear()`](https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function/linear) easing function.
     - Game engines step their physics in small, fixed time steps for exactly the stability reasons in this chapter, whatever the screen's frame rate: see Glenn Fiedler's ["Fix Your Timestep!"](https://gafferongames.com/post/fix_your_timestep/).
 
