@@ -15,7 +15,7 @@
     <div class="pegbar" aria-hidden="true"><i></i><i></i><i></i></div>
     <span class="eyebrow">Motion from Scratch · tests</span>
     <h1>Your work, checked</h1>
-    <p class="lede">Every test and picture below runs your code from <code>src/</code>. Save a file, then reload this page. The same tests run in a terminal with <code>node tests/run.js</code>.</p>
+    <p class="lede">Every test and picture below runs your code. Working in an editor? Save a file, then reload this page, or run <code>node tests/run.js</code> in a terminal.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn" id="rerun" type="button">Reload and re-run</button>
       <a class="btn ghost" href="index.html" style="text-decoration:none">Course home</a>
@@ -73,7 +73,7 @@
       fig.appendChild(cap); vis.appendChild(fig);
     }
     const cp = MS.runCheckpoint(l.id, results);
-    MS.showCheckpoint(sec.querySelector(".checkpoint"), cp, MS.COURSE.files(l).checkpoint);
+    MS.showCheckpoint(sec.querySelector(".checkpoint"), cp, fromGuide.includes(l.id) ? "the guide" : MS.COURSE.files(l).checkpoint);
     if (cp.complete) sec.classList.add("complete");
     root.appendChild(sec);
   }

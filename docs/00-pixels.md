@@ -191,7 +191,7 @@ Your layer is **complete** when three things are true:
 
 1. **All 11 tests pass.** That unlocks the checkpoint.
 2. **The mystery picture comes out right.** The checkpoint runs your functions on a scrambled list of drawing commands full of this chapter's traps: fractional coordinates, pixels one step past the right edge, colors out of range. Get every rule right and a hidden word appears. Get one wrong and the picture shows it, with a hint about which rule to look at (never the fix).
-3. **Three questions are answered correctly** in `checkpoints/00-pixels.js`. You may type an expression instead of a number, like `10 * 10`, or compute an answer with your own functions.
+3. **Three questions are answered correctly** below. You may type an expression instead of a number, like `10 * 10`, or compute an answer with your own functions.
 
 ```js checkpoint
 // Checkpoint 00 · Pixels. Replace each null with your answer.

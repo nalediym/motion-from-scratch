@@ -61,12 +61,11 @@ function withCodeCells(l, pushMd, pushBlock, pushCode) {
   }
   if (!inserted) pushCode();
 }
-// One line above each runnable block: its name and study-buddy links. The
-// chapter and the block's own comments already say what to do.
+// One line above each runnable block: study-buddy links for it. The chapter
+// and the block's own comments already say what to do.
 const blockLinks = (l, s) => {
   const ask = s.kind === "checkpoint" ? C.checkpointAsk : C.blockAsk(s.kind, s.title);
-  const label = s.kind === "checkpoint" ? `Checkpoint ${l.id}` : s.kind === "predict" ? `Predict ${s.n}` : `Break it ${s.n}`;
-  return `**${label}** · Stuck? [Ask Claude](${C.claudeLink(l, ask)}) · [Ask ChatGPT](${C.chatgptLink(l, ask)})`;
+  return `Stuck? [Ask Claude](${C.claudeLink(l, ask)}) · [Ask ChatGPT](${C.chatgptLink(l, ask)})`;
 };
 const lines = s => s.split("\n").map((x, i, a) => (i < a.length - 1 ? x + "\n" : x)).filter((x, i, a) => !(i === a.length - 1 && x === ""));
 const md = text => ({ cell_type: "markdown", metadata: {}, source: lines(text) });

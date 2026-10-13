@@ -137,8 +137,6 @@ body { padding-block: 24px 80px; }
 .bench .visuals canvas { max-width: 100%; }
 .tryit { border: 1px solid var(--line); border-left: 3px solid var(--pencil); background: var(--paper); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; max-width: 100%; min-width: 0; }
 .tryit[data-kind="break"] { border-left-color: var(--key); }
-.tryit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 0.88rem; color: var(--muted); }
-.tryit-tag { font-family: var(--pixel); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); }
 .tryit-code { width: 100%; resize: vertical; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; tab-size: 2; color: var(--code-ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; white-space: pre; overflow: auto; }
 .tryit-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .tryit-ask { font-size: 0.82rem; color: var(--muted); margin-left: auto; }
@@ -147,6 +145,7 @@ body { padding-block: 24px 80px; }
 .cpcell.complete { border-color: var(--pass); }
 .cp-result { display: flex; flex-direction: column; gap: 8px; }
 .tab.complete .num { background: var(--pass); }
+.tab.complete::after { content: "★"; color: var(--pass); }
 .howto { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; max-width: 760px; }
 .howto summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .howto ol { margin: 10px 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
@@ -264,14 +263,13 @@ body { padding-block: 24px 80px; }
 <p>You don't need to write that part. The important idea is that the screen only ever shows what's in memory, and drawing just means changing numbers.</p>
 <h3 data-anchor="your-turn">Your turn</h3>
 <p>Work through <code>src/00-pixels.js</code> top to bottom. Each function's comment is its spec. Some questions to guide you, in order:</p>
-<ol><li><strong>createFrame.</strong> How many bytes does a <code>width × height</code> frame need? What does a brand-new typed array contain? What counts as a "positive whole number", and is <code>2.5</code> one? (<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isInteger" target="_blank" rel="noopener"><code>Number.isInteger</code></a> may help.)</li><li><strong>pixelIndex.</strong> Use the grid above. What do you multiply <code>y</code> by to skip whole rows? Why the final <code>× 4</code>?</li><li><strong>setPixel.</strong> What order do you do things in: round (<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/floor" target="_blank" rel="noopener"><code>Math.floor</code></a>), check bounds, compute index, write? What happens if you compute the index before checking bounds? What should alpha be when the color only has three numbers?</li><li><strong>getPixel.</strong> Why return a *new* array instead of a piece of <code>frame.data</code>? (Hint: what happens if the caller changes it?)</li><li><strong>clearFrame.</strong> You could call <code>setPixel</code> for every pixel. That works. Is there a way that touches <code>frame.data</code> directly with a single loop? Which is faster, and why?</li></ol>
+<ol><li><strong>createFrame.</strong> How many bytes does a <code>width × height</code> frame need? What does a brand-new typed array contain? What counts as a "positive whole number", and is <code>2.5</code> one? (<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isInteger" target="_blank" rel="noopener"><code>Number.isInteger</code></a> may help.)</li><li><strong>pixelIndex.</strong> Use the grid above. What do you multiply <code>y</code> by to skip whole rows? Why the final <code>× 4</code>?</li><li><strong>setPixel.</strong> What order do you do things in: round (<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/floor" target="_blank" rel="noopener"><code>Math.floor</code></a>), check bounds, compute index, write? What happens if you compute the index before checking bounds? What should alpha be when the color only has three numbers?</li><li><strong>getPixel.</strong> Why return a <em>new</em> array instead of a piece of <code>frame.data</code>? (Hint: what happens if the caller changes it?)</li><li><strong>clearFrame.</strong> You could call <code>setPixel</code> for every pixel. That works. Is there a way that touches <code>frame.data</code> directly with a single loop? Which is faster, and why?</li></ol>
 <p>Run the tests after each function. A failing test tells you exactly which pixel was wrong.</p>
 <p>Once it works, the test pictures show a checkerboard and a blue-and-orange XOR pattern.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Here's my setPixel. Don't fix it. Tell me which test case would break it, and let me find the bug." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20setPixel.%20Don%27t%20fix%20it.%20Tell%20me%20which%20test%20case%20would%20break%20it%2C%20and%20let%20me%20find%20the%20bug." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20setPixel.%20Don%27t%20fix%20it.%20Tell%20me%20which%20test%20case%20would%20break%20it%2C%20and%20let%20me%20find%20the%20bug." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h3 data-anchor="predict-then-run">Predict, then run</h3>
 <p>Guess before you run: the point is to catch the places where your mental model and the machine disagree.</p>
 <div class="tryit" data-kind="predict" data-layer="00" data-key="00-p1">
-<div class="tryit-head"><span class="tryit-tag">Predict 1</span></div>
 <textarea class="tryit-code" rows="5" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 1 code">// Predict 1: how many bytes does one full-size video frame need?
 const myGuess = null; // TODO: your guess, a single number
 const frame = MS.createFrame(1080, 1920);
@@ -280,7 +278,6 @@ MS.reveal("data.length of a 1080 × 1920 frame", myGuess, frame.data.length);</t
 <pre class="tryit-out" hidden></pre>
 </div>
 <div class="tryit" data-kind="predict" data-layer="00" data-key="00-p2">
-<div class="tryit-head"><span class="tryit-tag">Predict 2</span></div>
 <textarea class="tryit-code" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 2 code">// Predict 2: what comes back after writing out-of-range numbers?
 const myGuess = null; // TODO: your guess as [r, g, b, a]
 const f = MS.createFrame(1, 1);
@@ -290,7 +287,6 @@ MS.reveal("getPixel after setPixel([300, -5, 127.6])", myGuess, MS.getPixel(f, 0
 <pre class="tryit-out" hidden></pre>
 </div>
 <div class="tryit" data-kind="predict" data-layer="00" data-key="00-p3">
-<div class="tryit-head"><span class="tryit-tag">Predict 3</span></div>
 <textarea class="tryit-code" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 3 code">// Predict 3: what happens when you write to slot 1.5? (None of your code is involved.)
 const myGuess = null; // TODO: your guess as an array of 4 numbers
 const a = new Uint8ClampedArray(4);
@@ -307,7 +303,6 @@ MS.reveal("the array after a[1.5] = 200", myGuess, a);</textarea>
 <p>Once your tests pass, break things on purpose. Each <strong>TODO</strong> says what to change in your own code; run the experiment before and after, and explain the difference. Then undo the change and check your tests pass again.</p>
 <h4 data-anchor="1-swap-x-and-y">1. Swap x and y</h4>
 <div class="tryit" data-kind="break" data-layer="00" data-key="00-b1">
-<div class="tryit-head"><span class="tryit-tag">Break it 1</span></div>
 <textarea class="tryit-code" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 1 code">// Break it 1: where do two pixels start, before and after the swap?
 // TODO(break-it), in src/00-pixels.js → pixelIndex:
 //   swap x and y in your formula. Change nothing else.
@@ -322,7 +317,6 @@ console.log("pixelIndex(0, 1) =", MS.pixelIndex(f, 0, 1));
 <p>Then run the tests and look at the XOR pattern. Which tests catch the swap, and what happened to the picture?</p>
 <h4 data-anchor="2-delete-the-bounds-check">2. Delete the bounds check</h4>
 <div class="tryit" data-kind="break" data-layer="00" data-key="00-b2">
-<div class="tryit-head"><span class="tryit-tag">Break it 2</span></div>
 <textarea class="tryit-code" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 2 code">// Break it 2: draw one pixel just past the right edge.
 // TODO(break-it), in src/00-pixels.js → setPixel:
 //   comment out your check that (x, y) is inside the frame.
@@ -336,7 +330,6 @@ console.log(MS.asciiFrame(f));
 </div>
 <h4 data-anchor="3-lose-the-clamping">3. Lose the clamping</h4>
 <div class="tryit" data-kind="break" data-layer="00" data-key="00-b3">
-<div class="tryit-head"><span class="tryit-tag">Break it 3</span></div>
 <textarea class="tryit-code" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 3 code">// Break it 3: out-of-range values, with and without clamping.
 // TODO(break-it), in src/00-pixels.js → createFrame:
 //   use Uint8Array instead of Uint8ClampedArray.
@@ -351,9 +344,8 @@ console.log(MS.getPixel(f, 0, 0));
 <p>Which test fails with <code>Uint8Array</code>, and why would wrapping be a disaster for colors?</p>
 <h3 data-anchor="checkpoint">Checkpoint</h3>
 <p>Your layer is <strong>complete</strong> when three things are true:</p>
-<ol><li><strong>All 11 tests pass.</strong> That unlocks the checkpoint.</li><li><strong>The mystery picture comes out right.</strong> The checkpoint runs your functions on a scrambled list of drawing commands full of this chapter's traps: fractional coordinates, pixels one step past the right edge, colors out of range. Get every rule right and a hidden word appears. Get one wrong and the picture shows it, with a hint about which rule to look at (never the fix).</li><li><strong>Three questions are answered correctly</strong> in <code>checkpoints/00-pixels.js</code>. You may type an expression instead of a number, like <code>10 * 10</code>, or compute an answer with your own functions.</li></ol>
+<ol><li><strong>All 11 tests pass.</strong> That unlocks the checkpoint.</li><li><strong>The mystery picture comes out right.</strong> The checkpoint runs your functions on a scrambled list of drawing commands full of this chapter's traps: fractional coordinates, pixels one step past the right edge, colors out of range. Get every rule right and a hidden word appears. Get one wrong and the picture shows it, with a hint about which rule to look at (never the fix).</li><li><strong>Three questions are answered correctly</strong> below. You may type an expression instead of a number, like <code>10 * 10</code>, or compute an answer with your own functions.</li></ol>
 <div class="cpcell" data-layer="00">
-<div class="tryit-head"><span class="tryit-tag">Checkpoint 00</span></div>
 <textarea class="tryit-code" rows="11" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint 00 answers">// Checkpoint 00 · Pixels. Replace each null with your answer.
 MS.answers("00", {
   // 1. In a frame 12 pixels wide, at which index of data does pixel (7, 3) start?
@@ -433,7 +425,7 @@ MS.answers("00", {
           · · ■ ■ ■ ■ ■ · ·
           · · · ■ ■ ■ · · ·         ┌─────────┐  only test pixels
           · · · · · · · · ·         └─────────┘  inside this box</code></pre>
-<p>You *could* test every pixel in the frame. For a small circle on a 1080 × 1920 frame that's 2 million tests to draw maybe 300 pixels. Instead, only visit the circle's <strong>bounding box</strong>: from <code>cx − r</code> to <code>cx + r</code> in each direction.</p>
+<p>You <em>could</em> test every pixel in the frame. For a small circle on a 1080 × 1920 frame that's 2 million tests to draw maybe 300 pixels. Instead, only visit the circle's <strong>bounding box</strong>: from <code>cx − r</code> to <code>cx + r</code> in each direction.</p>
 <p>Jagged edges like these are called <strong>aliasing</strong>. Real renderers soften them with <strong><a href="https://en.wikipedia.org/wiki/Spatial_anti-aliasing" target="_blank" rel="noopener">antialiasing</a></strong>: a pixel that's 40% covered gets 40% of the color. See <strong>Going further</strong>.</p>
 <h4 data-anchor="alpha-blending-painting-with-see-through-paint">Alpha blending: painting with see-through paint</h4>
 <p>Here's the big one. When you paint a half-transparent red over a blue pixel, the result is a mix. When you paint it over an empty, fully transparent pixel, it should still be red, just see-through.</p>
@@ -461,12 +453,11 @@ MS.answers("00", {
                   └rx  ry┘   └cx  cy┘   inner     outer
   on a 1080 × 1920 frame:  rx = 756   ry = 1152   cx = 540   cy = 729.6</code></pre>
 <h3 data-anchor="your-turn">Your turn</h3>
-<ol><li><strong>hex.</strong> What should happen with <code>"#FFF"</code>, <code>"blue"</code>, or <code>"#12345G"</code>? A <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions" target="_blank" rel="noopener">regular expression</a> like <code>/^#?[0-9a-f]{6}$/i</code> is one way to check. Can you explain each part of it?</li><li><strong>blendPixel.</strong> Turn both alphas into 0–1 first. Handle the case where <code>outAlpha</code> is 0. What would dividing by 0 put in the pixel?</li><li><strong>fillRect.</strong> Round the four edges, then clip them to the frame *before* looping. Why is clipping first better than letting <code>blendPixel</code> ignore off-screen pixels?</li><li><strong>fillCircle.</strong> What does your bounding box look like when the circle hangs off the frame?</li><li><strong>mixColor, fillVerticalGradient, fillRadialGradient.</strong> Where is the middle of row <code>y</code>? Why sample there instead of at its top edge?</li></ol>
+<ol><li><strong>hex.</strong> What should happen with <code>"#FFF"</code>, <code>"blue"</code>, or <code>"#12345G"</code>? A <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions" target="_blank" rel="noopener">regular expression</a> like <code>/^#?[0-9a-f]{6}$/i</code> is one way to check. Can you explain each part of it?</li><li><strong>blendPixel.</strong> Turn both alphas into 0–1 first. Handle the case where <code>outAlpha</code> is 0. What would dividing by 0 put in the pixel?</li><li><strong>fillRect.</strong> Round the four edges, then clip them to the frame <em>before</em> looping. Why is clipping first better than letting <code>blendPixel</code> ignore off-screen pixels?</li><li><strong>fillCircle.</strong> What does your bounding box look like when the circle hangs off the frame?</li><li><strong>mixColor, fillVerticalGradient, fillRadialGradient.</strong> Where is the middle of row <code>y</code>? Why sample there instead of at its top edge?</li></ol>
 <p>Once it works, the test pictures show overlapping blended shapes and KineticIntro's exact background: the first real piece of the recreation.</p>
 <h3 data-anchor="predict-then-run">Predict, then run</h3>
 <p>Guess first, then run.</p>
 <div class="tryit" data-kind="predict" data-layer="01" data-key="01-p1">
-<div class="tryit-head"><span class="tryit-tag">Predict 1</span></div>
 <textarea class="tryit-code" rows="8" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 1 code">// Predict 1: how many pixels does each rectangle cover?
 const myGuess = null; // TODO: your guess as [first, second]
 const count = f =&gt; { let n = 0; for (let i = 3; i &lt; f.data.length; i += 4) if (f.data[i]) n++; return n; };
@@ -478,7 +469,6 @@ MS.reveal("pixels covered by each 2-wide rectangle", myGuess, [count(a), count(b
 <pre class="tryit-out" hidden></pre>
 </div>
 <div class="tryit" data-kind="predict" data-layer="01" data-key="01-p2">
-<div class="tryit-head"><span class="tryit-tag">Predict 2</span></div>
 <textarea class="tryit-code" rows="8" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 2 code">// Predict 2: a circle of radius 5 has area πr² ≈ 78.5. How many pixels does it fill?
 const myGuess = null; // TODO: your guess, a whole number
 const f = MS.createFrame(21, 21);
@@ -490,7 +480,6 @@ MS.reveal("pixels in a radius-5 circle", myGuess, n);</textarea>
 <pre class="tryit-out" hidden></pre>
 </div>
 <div class="tryit" data-kind="predict" data-layer="01" data-key="01-p3">
-<div class="tryit-head"><span class="tryit-tag">Predict 3</span></div>
 <textarea class="tryit-code" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 3 code">// Predict 3: half-transparent red painted onto an empty, transparent pixel.
 const myGuess = null; // TODO: your guess as [r, g, b, a]
 const f = MS.createFrame(1, 1);
@@ -506,7 +495,6 @@ MS.reveal("the pixel after blending", myGuess, MS.getPixel(f, 0, 0));</textarea>
 <p>Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.</p>
 <h4 data-anchor="1-forget-the-division">1. Forget the division</h4>
 <div class="tryit" data-kind="break" data-layer="01" data-key="01-b1">
-<div class="tryit-head"><span class="tryit-tag">Break it 1</span></div>
 <textarea class="tryit-code" rows="15" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 1 code">// Break it 1: blend onto nothing, then layer the result over white.
 // TODO(break-it), in src/01-shapes.js → blendPixel:
 //   remove the "divide by outAlpha" step from the color math.
@@ -527,7 +515,6 @@ console.log("...then over white:", MS.getPixel(bg, 0, 0));
 <p>Which tests fail? Dark halos around cut-out images in real software are this exact bug.</p>
 <h4 data-anchor="2-make-the-right-edge-inclusive">2. Make the right edge inclusive</h4>
 <div class="tryit" data-kind="break" data-layer="01" data-key="01-b2">
-<div class="tryit-head"><span class="tryit-tag">Break it 2</span></div>
 <textarea class="tryit-code" rows="13" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 2 code">// Break it 2: two half-transparent rectangles that share an edge at x = 10.
 // TODO(break-it), in src/01-shapes.js → fillRect:
 //   make the rectangle also cover the pixel at x = right.
@@ -545,7 +532,6 @@ console.log("x = 11:", MS.getPixel(f, 11, 0));
 </div>
 <h4 data-anchor="3-skip-the-bounding-box">3. Skip the bounding box</h4>
 <div class="tryit" data-kind="break" data-layer="01" data-key="01-b3">
-<div class="tryit-head"><span class="tryit-tag">Break it 3</span></div>
 <textarea class="tryit-code" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 3 code">// Break it 3: how long do 20 small circles take on a full-size frame?
 // TODO(break-it), in src/01-shapes.js → fillCircle:
 //   loop over every pixel in the frame instead of the circle's bounding box.
@@ -559,9 +545,8 @@ console.log("20 circles of radius 8:", Date.now() - start, "ms");
 <pre class="tryit-out" hidden></pre>
 </div>
 <h3 data-anchor="checkpoint">Checkpoint</h3>
-<p>When all 17 tests pass, the checkpoint unlocks (layer 00 explains how it works). This mystery picture's traps: squares that share edges, see-through ink painted onto nothing, then composited over a gradient. Then answer the three questions below.</p>
+<p>When all 17 tests pass, the checkpoint unlocks (layer 00 explains how it works). Its traps: squares that share edges, see-through ink painted onto nothing, then everything composited over a gradient. The three questions are below.</p>
 <div class="cpcell" data-layer="01">
-<div class="tryit-head"><span class="tryit-tag">Checkpoint 01</span></div>
 <textarea class="tryit-code" rows="13" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint 01 answers">// Checkpoint 01 · Shapes &amp; blending. Replace each null with your answer.
 MS.answers("01", {
   // 1. You blend [255, 255, 255, 128] (half-transparent white) over an opaque black pixel.
@@ -582,7 +567,7 @@ MS.answers("01", {
 <h3 data-anchor="read-the-originals">Read the originals</h3>
 <ul><li><a href="http://alvyray.com/Memos/CG/Microsoft/7_alpha.pdf" target="_blank" rel="noopener">Alvy Ray Smith, "Alpha and the History of Digital Compositing" (1995)</a>: how the alpha channel was invented, by one of its inventors.</li></ul>
 <h3 data-anchor="going-further-optional">Going further (optional)</h3>
-<ul><li><strong>Antialiased circles.</strong> Instead of in-or-out, use coverage <code>clamp(r − distance + 0.5, 0, 1)</code> and multiply it into the color's alpha before blending. Compare the edges at scale in <code>tests.html</code>.</li><li><strong>Premultiplied mode.</strong> Write <code>blendPremultiplied</code> where colors are stored already multiplied by alpha. Show that the formula no longer needs a division, and find which test values it can't reproduce exactly after 8-bit rounding.</li></ul>
+<ul><li><strong>Antialiased circles.</strong> Instead of in-or-out, use coverage <code>clamp(r − distance + 0.5, 0, 1)</code> and multiply it into the color's alpha before blending. Compare the edges at scale in the test pictures.</li><li><strong>Premultiplied mode.</strong> Write <code>blendPremultiplied</code> where colors are stored already multiplied by alpha. Show that the formula no longer needs a division, and find which test values it can't reproduce exactly after 8-bit rounding.</li></ul>
   </div>
   <aside class="bench" aria-label="Layer 01 workbench">
     <div class="bench-head">
@@ -641,7 +626,7 @@ MS.answers("01", {
    │   H   │   │   I   │   │   !   │                    width = 3 × 5 + 2 × 1 = 17 cells
    └───────┘   └───────┘   └───────┘                          (× scale for pixels)
    ◄──────────── measureText = 17 ───────────►</code></pre>
-<ul><li><strong>Advance</strong> is how far you move right after each glyph: its width plus the tracking.</li><li><strong>Tracking</strong> is uniform extra space *between* glyphs, so none after the last one (CSS calls it <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/letter-spacing" target="_blank" rel="noopener"><code>letter-spacing</code></a>). <a href="https://en.wikipedia.org/wiki/Kerning" target="_blank" rel="noopener">Kerning</a>, which tightens specific pairs like "AV", is different; our font skips it.</li></ul>
+<ul><li><strong>Advance</strong> is how far you move right after each glyph: its width plus the tracking.</li><li><strong>Tracking</strong> is uniform extra space <em>between</em> glyphs, so none after the last one (CSS calls it <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/letter-spacing" target="_blank" rel="noopener"><code>letter-spacing</code></a>). <a href="https://en.wikipedia.org/wiki/Kerning" target="_blank" rel="noopener">Kerning</a>, which tightens specific pairs like "AV", is different; our font skips it.</li></ul>
 <p class="meta"><strong>Alignment needs measuring first.</strong> To center text on <code>x</code>, you need its total width before drawing the first glyph, so the left edge is <code>x − width / 2</code>. Real layout engines work in the same two passes: measure everything, then place everything. KineticIntro centers every word, so you'll use this constantly.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain the difference between advance, tracking and kerning. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20the%20difference%20between%20advance%2C%20tracking%20and%20kerning.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20the%20difference%20between%20advance%2C%20tracking%20and%20kerning.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="characters-are-trickier-than-they-look">Characters are trickier than they look</h4>
@@ -649,13 +634,12 @@ MS.answers("01", {
 <h4 data-anchor="sizing-for-the-real-video">Sizing for the real video</h4>
 <p>KineticIntro sets its words at a font size of 150 px in a 1080 px wide frame. Font size is the height of the font's whole design box (the "em"), not of a capital letter (<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-size" target="_blank" rel="noopener"><code>font-size</code></a>). In Inter, the font it uses, capitals are about 73% of that, so roughly 110 px tall. Our capitals are 7 cells tall, so a scale of about 16 matches. Can <strong>ANIMATE.</strong> fit across 1080 pixels at scale 16 with tracking 1? How large can the scale get before it doesn't? Work it out with <code>measureText</code> once it passes.</p>
 <h3 data-anchor="your-turn">Your turn</h3>
-<ol><li><strong>measureText.</strong> Start here: it's pure arithmetic and has the clearest tests. What should it return for the empty string? For one glyph?</li><li><strong>drawGlyph.</strong> Uppercase first, and tofu if it's still missing. The loop is in *The font file* above.</li><li><strong>drawText.</strong> Measure once, work out the starting x from <code>align</code>, then walk the characters, advancing by one glyph plus tracking each time.</li></ol>
+<ol><li><strong>measureText.</strong> Start here: it's pure arithmetic and has the clearest tests. What should it return for the empty string? For one glyph?</li><li><strong>drawGlyph.</strong> Uppercase first, and tofu if it's still missing. The loop is in <em>The font file</em> above.</li><li><strong>drawText.</strong> Measure once, work out the starting x from <code>align</code>, then walk the characters, advancing by one glyph plus tracking each time.</li></ol>
 <p>Once it works, the test pictures show <strong>DESIGN.</strong> in big pixel letters, plus an alignment test with a pink center line and one tofu box.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Here's my measureText. Don't fix it; give me one input where it's wrong and let me work out why." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20measureText.%20Don%27t%20fix%20it%3B%20give%20me%20one%20input%20where%20it%27s%20wrong%20and%20let%20me%20work%20out%20why." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20measureText.%20Don%27t%20fix%20it%3B%20give%20me%20one%20input%20where%20it%27s%20wrong%20and%20let%20me%20work%20out%20why." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h3 data-anchor="predict-then-run">Predict, then run</h3>
 <p>Guess first, then run.</p>
 <div class="tryit" data-kind="predict" data-layer="02" data-key="02-p1">
-<div class="tryit-head"><span class="tryit-tag">Predict 1</span></div>
 <textarea class="tryit-code" rows="4" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 1 code">// Predict 1: how wide is "DESIGN." at scale 4 with tracking 1?
 const myGuess = null; // TODO: your guess in pixels
 MS.reveal('measureText("DESIGN.", 4)', myGuess, MS.measureText("DESIGN.", 4));</textarea>
@@ -663,7 +647,6 @@ MS.reveal('measureText("DESIGN.", 4)', myGuess, MS.measureText("DESIGN.", 4));</
 <pre class="tryit-out" hidden></pre>
 </div>
 <div class="tryit" data-kind="predict" data-layer="02" data-key="02-p2">
-<div class="tryit-head"><span class="tryit-tag">Predict 2</span></div>
 <textarea class="tryit-code" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 2 code">// Predict 2: "Ä" isn't in the font. How many of its 35 cells get ink?
 const myGuess = null; // TODO: a number from 0 to 35
 const f = MS.createFrame(5, 7);
@@ -676,7 +659,6 @@ console.log(MS.asciiFrame(f));</textarea>
 <pre class="tryit-out" hidden></pre>
 </div>
 <div class="tryit" data-kind="predict" data-layer="02" data-key="02-p3">
-<div class="tryit-head"><span class="tryit-tag">Predict 3</span></div>
 <textarea class="tryit-code" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 3 code">// Predict 3: centered on x = 20, "II" is 11 wide, so its left edge is 14.5.
 // Which column gets the first ink?
 const myGuess = null; // TODO: a column number
@@ -695,7 +677,6 @@ MS.reveal("first inked column", myGuess, first);</textarea>
 <p>Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.</p>
 <h4 data-anchor="1-tracking-after-every-glyph">1. Tracking after every glyph</h4>
 <div class="tryit" data-kind="break" data-layer="02" data-key="02-b1">
-<div class="tryit-head"><span class="tryit-tag">Break it 1</span></div>
 <textarea class="tryit-code" rows="12" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 1 code">// Break it 1: is centered text still centered?
 // TODO(break-it), in src/02-glyphs.js → measureText:
 //   count tracking after every glyph, including the last one.
@@ -713,7 +694,6 @@ console.log(MS.asciiFrame(f));
 <p>Real UI text that looks "slightly off-center" is often this bug.</p>
 <h4 data-anchor="2-loop-by-index">2. Loop by index</h4>
 <div class="tryit" data-kind="break" data-layer="02" data-key="02-b2">
-<div class="tryit-head"><span class="tryit-tag">Break it 2</span></div>
 <textarea class="tryit-code" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 2 code">// Break it 2: one emoji, drawn by your drawText.
 // TODO(break-it), in src/02-glyphs.js → drawText:
 //   walk the text with for (let i = 0; i &lt; text.length; i++) and text[i].
@@ -727,7 +707,6 @@ console.log(MS.asciiFrame(f));
 </div>
 <h4 data-anchor="3-skip-the-uppercase-step">3. Skip the uppercase step</h4>
 <div class="tryit" data-kind="break" data-layer="02" data-key="02-b3">
-<div class="tryit-head"><span class="tryit-tag">Break it 3</span></div>
 <textarea class="tryit-code" rows="8" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 3 code">// Break it 3: mixed-case text.
 // TODO(break-it), in src/02-glyphs.js → drawGlyph:
 //   look the character up exactly as given, without uppercasing it.
@@ -739,9 +718,8 @@ console.log(MS.asciiFrame(f));
 <pre class="tryit-out" hidden></pre>
 </div>
 <h3 data-anchor="checkpoint">Checkpoint</h3>
-<p>When all 11 tests pass, the checkpoint unlocks (layer 00 explains how it works). This mystery picture's traps: lowercase text, an emoji, middle dots, and three lines that must all be centered. Then answer the three questions below.</p>
+<p>When all 11 tests pass, the checkpoint unlocks (layer 00 explains how it works). Its traps: lowercase text, an emoji, middle dots, and three lines that must all be centered. The three questions are below.</p>
 <div class="cpcell" data-layer="02">
-<div class="tryit-head"><span class="tryit-tag">Checkpoint 02</span></div>
 <textarea class="tryit-code" rows="11" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint 02 answers">// Checkpoint 02 · Glyphs. Replace each null with your answer.
 MS.answers("02", {
   // 1. How wide, in pixels, is "HELLO, WORLD!" at scale 2 with tracking 1?
@@ -756,7 +734,7 @@ MS.answers("02", {
 <div class="cp-result" data-cp-out hidden></div>
 </div>
 <h3 data-anchor="in-the-real-world">In the real world</h3>
-<ul><li>Canvas's <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/measureText" target="_blank" rel="noopener"><code>measureText</code></a> and <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/textAlign" target="_blank" rel="noopener"><code>textAlign</code></a> do what you just did, for outline fonts, with kerning and shaping on top.</li><li>Text shaping engines like <a href="https://harfbuzz.github.io/" target="_blank" rel="noopener">HarfBuzz</a> handle what our font ignores: kerning, ligatures, scripts that join letters, and right-to-left text.</li><li>In Motion Studio's <code>KineticIntro.tsx</code>, each word is centered with flexbox and drawn by the browser at a 150 px font size.</li></ul>
+<ul><li>Canvas's <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/measureText" target="_blank" rel="noopener"><code>measureText</code></a> and <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/textAlign" target="_blank" rel="noopener"><code>textAlign</code></a> do what you just did, for outline fonts, with kerning and shaping on top.</li><li>Text shaping engines like <a href="https://harfbuzz.github.io/" target="_blank" rel="noopener">HarfBuzz</a> handle what our font ignores: kerning, ligatures, scripts that join letters, and right-to-left text.</li></ul>
 <h3 data-anchor="going-further-optional">Going further (optional)</h3>
 <ul><li><strong>Design your own glyphs.</strong> Add lowercase letters or symbols to a copy of the font. What's the smallest grid where lowercase "g" still has a readable descender?</li><li><strong>Outlines.</strong> Draw text with a 1-cell dark outline by drawing it shifted in 8 directions, then on top. Count how many <code>fillRect</code> calls that costs, and think about why real renderers don't do it this way.</li></ul>
   </div>
@@ -1099,12 +1077,13 @@ MS.answers("02", {
   };
 
   // "·" for empty pixels, then darker-to-brighter characters for ink.
-  MS.asciiFrame = function (frame) {
+  // step > 1 samples every step-th pixel, for frames too wide for a terminal.
+  MS.asciiFrame = function (frame, step = 1) {
     const ramp = ":-=+*#%@█";
     const rows = [];
-    for (let y = 0; y < frame.height; y++) {
+    for (let y = 0; y < frame.height; y += step) {
       let row = "";
-      for (let x = 0; x < frame.width; x++) {
+      for (let x = 0; x < frame.width; x += step) {
         const i = (y * frame.width + x) * 4, d = frame.data;
         if (d[i + 3] === 0) { row += "·"; continue; }
         const light = ((0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255) * (d[i + 3] / 255);
@@ -1362,7 +1341,8 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     if (!report.available) return "";
     if (report.locked) return "  " + locked(report);
     const lines = ["  " + headline(report, file), "    " + picture(report)];
-    if (report.mystery.frame && MS.asciiFrame) lines.push(MS.asciiFrame(report.mystery.frame).split("\n").map(l => "      " + l).join("\n"));
+    const f = report.mystery.frame;
+    if (f && MS.asciiFrame && !report.complete) lines.push(MS.asciiFrame(f, f.width > 120 ? 2 : 1).split("\n").map(l => "      " + l).join("\n"));
     for (const h of report.mystery.hints) lines.push("    → " + h);
     lines.push("    Questions: " + report.questions.map(q => `${q.n} ${MARK[q.status]}`).join("   "));
     return lines.join("\n");

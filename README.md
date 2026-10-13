@@ -44,13 +44,6 @@ You don't need Node to take the course; the browser runs everything. Node lets y
 
 **Predict, then run and Break it, in a terminal:** `node tools/try.js 00` lists a layer's blocks, and `node tools/try.js 00 p1` or `node tools/try.js 00 b2` runs one against your code. To fill in a guess, copy the block into `scratch.js`, replace `null`, and run `node tools/try.js --file scratch.js`. In the guide and the notebooks every block is already an editable cell with a Run button.
 
-<details><summary>Notebook setup: Jupyter and Observable</summary>
-
-**Jupyter / VS Code:** install [Deno](https://docs.deno.com/runtime/getting_started/installation/), run `deno jupyter --install`, then open `notebooks/jupyter-deno.ipynb` and pick the Deno kernel.
-
-**Observable:** download `notebooks/observable.html`, then in its folder run `npx -p @observablehq/notebook-kit notebooks preview --root .` and edit the file in any editor; the page reloads as you save. [Observable Desktop](https://observablehq.com/notebook-kit/desktop) (macOS) can open it too.
-
-</details>
 
 ## How each layer works
 

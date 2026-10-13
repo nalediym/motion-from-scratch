@@ -167,7 +167,7 @@ console.log(MS.asciiFrame(f));
 
 ## Checkpoint
 
-When all 11 tests pass, the checkpoint unlocks (layer 00 explains how it works). This mystery picture's traps: lowercase text, an emoji, middle dots, and three lines that must all be centered. Then answer the three questions below.
+When all 11 tests pass, the checkpoint unlocks (layer 00 explains how it works). Its traps: lowercase text, an emoji, middle dots, and three lines that must all be centered. The three questions are below.
 
 ```js checkpoint
 // Checkpoint 02 · Glyphs. Replace each null with your answer.
@@ -186,7 +186,6 @@ MS.answers("02", {
 
 - Canvas's [`measureText`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/measureText) and [`textAlign`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/textAlign) do what you just did, for outline fonts, with kerning and shaping on top.
 - Text shaping engines like [HarfBuzz](https://harfbuzz.github.io/) handle what our font ignores: kerning, ligatures, scripts that join letters, and right-to-left text.
-- In Motion Studio's `KineticIntro.tsx`, each word is centered with flexbox and drawn by the browser at a 150 px font size.
 
 ## Going further (optional)
 

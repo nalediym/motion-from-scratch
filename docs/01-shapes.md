@@ -215,7 +215,7 @@ console.log("20 circles of radius 8:", Date.now() - start, "ms");
 
 ## Checkpoint
 
-When all 17 tests pass, the checkpoint unlocks (layer 00 explains how it works). This mystery picture's traps: squares that share edges, see-through ink painted onto nothing, then composited over a gradient. Then answer the three questions below.
+When all 17 tests pass, the checkpoint unlocks (layer 00 explains how it works). Its traps: squares that share edges, see-through ink painted onto nothing, then everything composited over a gradient. The three questions are below.
 
 ```js checkpoint
 // Checkpoint 01 · Shapes & blending. Replace each null with your answer.
@@ -244,5 +244,5 @@ MS.answers("01", {
 
 ## Going further (optional)
 
-- **Antialiased circles.** Instead of in-or-out, use coverage `clamp(r − distance + 0.5, 0, 1)` and multiply it into the color's alpha before blending. Compare the edges at scale in `tests.html`.
+- **Antialiased circles.** Instead of in-or-out, use coverage `clamp(r − distance + 0.5, 0, 1)` and multiply it into the color's alpha before blending. Compare the edges at scale in the test pictures.
 - **Premultiplied mode.** Write `blendPremultiplied` where colors are stored already multiplied by alpha. Show that the formula no longer needs a division, and find which test values it can't reproduce exactly after 8-bit rounding.

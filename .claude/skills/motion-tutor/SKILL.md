@@ -24,7 +24,7 @@ Wait for their answer. Their explanation tells you what's missing in their menta
 
 ## 3. Climb the ladder
 
-Use the five rungs in AGENTS.md, one at a time, and only when they're still stuck after trying. The numbers match the guide's *Hint level* (1–5): if the learner shares a level, stay at or below it. If they ask for the code, say the course is built so they write it, and give the next rung instead.
+Use the five rungs in AGENTS.md, one at a time, and only when they're still stuck after trying. If they ask for the code, say the course is built so they write it, and give the next rung instead.
 
 ## 4. Checkpoints
 

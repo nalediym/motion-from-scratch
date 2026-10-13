@@ -28,6 +28,7 @@ function inline(s) {
     return `<a href="${u}"${ext ? ' target="_blank" rel="noopener"' : ""}>${t}</a>`;
   });
   s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[\s(])\*([^*\s][^*]*)\*(?=[\s).,:;!?]|$)/g, "$1<em>$2</em>");
   s = s.replace(/(^|[\s(])_([^_]+)_(?=[\s).,:;!?]|$)/g, "$1<em>$2</em>");
   s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => codes[+i]);
   return s;
@@ -38,7 +39,6 @@ function tryCell(l, kind, n, codeText) {
   const ask = C.blockAsk(kind, title);
   const rows = Math.min(18, codeText.split("\n").length + 1);
   return `<div class="tryit" data-kind="${kind}" data-layer="${l.id}" data-key="${l.id}-${kind[0]}${n}">
-<div class="tryit-head"><span class="tryit-tag">${label}</span></div>
 <textarea class="tryit-code" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="${label} code">${esc(codeText)}</textarea>
 <div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button><span class="tryit-ask">Stuck? <a href="${C.claudeLink(l, ask)}" target="_blank" rel="noopener">Ask Claude</a> · <a href="${C.chatgptLink(l, ask)}" target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
 <pre class="tryit-out" hidden></pre>
@@ -48,7 +48,6 @@ function checkpointCell(l, codeText) {
   const ask = C.checkpointAsk;
   const rows = Math.min(20, codeText.split("\n").length + 1);
   return `<div class="cpcell" data-layer="${l.id}">
-<div class="tryit-head"><span class="tryit-tag">Checkpoint ${l.id}</span></div>
 <textarea class="tryit-code" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint ${l.id} answers">${esc(codeText)}</textarea>
 <div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a data-ask-cp="claude" href="${C.claudeLink(l, ask)}" target="_blank" rel="noopener">Ask Claude</a> · <a data-ask-cp="chatgpt" href="${C.chatgptLink(l, ask)}" target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
 <div class="cp-result" data-cp-out hidden></div>
@@ -223,8 +222,6 @@ body { padding-block: 24px 80px; }
 .bench .visuals canvas { max-width: 100%; }
 .tryit { border: 1px solid var(--line); border-left: 3px solid var(--pencil); background: var(--paper); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; max-width: 100%; min-width: 0; }
 .tryit[data-kind="break"] { border-left-color: var(--key); }
-.tryit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 0.88rem; color: var(--muted); }
-.tryit-tag { font-family: var(--pixel); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); }
 .tryit-code { width: 100%; resize: vertical; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; tab-size: 2; color: var(--code-ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; white-space: pre; overflow: auto; }
 .tryit-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .tryit-ask { font-size: 0.82rem; color: var(--muted); margin-left: auto; }
@@ -233,6 +230,7 @@ body { padding-block: 24px 80px; }
 .cpcell.complete { border-color: var(--pass); }
 .cp-result { display: flex; flex-direction: column; gap: 8px; }
 .tab.complete .num { background: var(--pass); }
+.tab.complete::after { content: "★"; color: var(--pass); }
 .howto { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; max-width: 760px; }
 .howto summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .howto ol { margin: 10px 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
