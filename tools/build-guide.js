@@ -171,9 +171,11 @@ const sections = chapters.map(({ l, lede, html }) => `
       <button class="btn ghost" type="button" data-reset>Reset to stub</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
-    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers). The link brings your code and test results along: <a data-ask="claude" href="${C.claudeLink(l)}" target="_blank" rel="noopener">Claude</a> · <a data-ask="chatgpt" href="${C.chatgptLink(l)}" target="_blank" rel="noopener">ChatGPT</a></p>
-    <div class="hint-row"><button class="btn ghost" type="button" data-hint>Hint please</button><span data-hint-level></span><button class="linkish" type="button" data-hint-reset>start over</button></div>
-    <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send the same thing.</p><pre data-tutor-text></pre></details>
+    <div class="help">
+      <p>Stuck? <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="claude" href="${C.claudeLink(l)}" target="_blank" rel="noopener">Ask Claude</a> · <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="chatgpt" href="${C.chatgptLink(l)}" target="_blank" rel="noopener">Ask ChatGPT</a></p>
+      <div class="level"><span class="tip" tabindex="0" data-tip="How much help a tutor may give you. 1 is questions only; 5 points at the line to look at. The Ask links and Claude in Chrome both follow it.">Hint level</span><span class="dots" role="radiogroup" aria-label="Hint level">${C.hintLevels.map((h, i) => `<button type="button" role="radio" aria-checked="false" data-level="${i + 1}" title="${i + 1}: ${h}" aria-label="Level ${i + 1}: ${h}"></button>`).join("")}</span><span class="level-now" data-hint-level></span></div>
+      <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send the same.</p><pre data-tutor-text></pre></details>
+    </div>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
     <div class="visuals" data-visuals></div>
@@ -223,7 +225,6 @@ body { padding-block: 24px 80px; }
 .bench-confirm { font-size: 0.85rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .bench-error { border: 1px dashed var(--fail); color: var(--fail); font-family: var(--mono); font-size: 0.8rem; padding: 8px 10px; border-radius: 6px; overflow-wrap: anywhere; }
 .bench .visuals canvas { max-width: 100%; }
-.bench-buddy { font-size: 0.82rem; color: var(--muted); }
 .tryit { border: 1px solid var(--line); border-left: 3px solid var(--pencil); background: var(--paper); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; max-width: 100%; min-width: 0; }
 .tryit[data-kind="break"] { border-left-color: var(--key); }
 .tryit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 0.88rem; color: var(--muted); }
@@ -240,17 +241,28 @@ body { padding-block: 24px 80px; }
 .howto summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .howto ol { margin: 10px 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
 .howto p { font-size: 0.92rem; }
-.share[open] { display: flex; flex-direction: column; gap: 12px; }
-.share-row { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--line); }
-.share-name { font-size: 0.85rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; max-width: 280px; }
-.share-name input, .share-fallback { font: inherit; font-size: 0.9rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; }
-.share-status { font-size: 0.88rem; min-height: 1.2em; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn-row .btn { text-decoration: none; }
+.tabbar { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.tabbar .tabs { flex: 1 1 320px; min-width: 0; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.tools .btn { text-decoration: none; padding-block: 6px; font-size: 0.85rem; }
+.tip { position: relative; }
+.tip::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: max-content; max-width: 260px; white-space: normal; text-align: left; font: 400 0.8rem/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--bg); background: var(--ink); padding: 8px 10px; border-radius: 6px; opacity: 0; pointer-events: none; transform: translateY(-3px); transition: opacity .12s, transform .12s; }
+.tools .tip::after { left: auto; right: 0; }
+.tip:hover::after, .tip:focus-visible::after { opacity: 1; transform: none; transition-delay: .25s; }
+@media (hover: none) { .tip::after { display: none; } }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 40; width: min(440px, calc(100vw - 32px)); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 0.9rem; }
+.toast input { font: inherit; font-size: 0.85rem; width: 100%; border: 0; border-radius: 4px; padding: 6px 8px; }
 .banner { max-width: 760px; border: 2px solid var(--key); background: var(--paper); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-.hint-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 0.82rem; color: var(--muted); }
-.linkish { font: inherit; font-size: 0.8rem; background: none; border: 0; padding: 0; color: var(--pencil); text-decoration: underline; cursor: pointer; }
-.tutor-sees { border: 1px dashed var(--line); border-radius: 6px; padding: 8px 10px; font-size: 0.85rem; }
+.help { display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+.level { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dots { display: inline-flex; gap: 6px; }
+.dots button { width: 16px; height: 16px; padding: 0; border-radius: 50%; border: 2px solid var(--pencil); background: transparent; cursor: pointer; }
+.dots button.on { background: var(--pencil); }
+.dots button:focus-visible { outline: 2px solid var(--key); outline-offset: 2px; }
+.level-now { font-size: 0.8rem; }
+.tutor-sees { font-size: 0.85rem; }
 .tutor-sees summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .tutor-sees pre { margin: 8px 0 0; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11.5px; }
 @media (max-width: 960px) {
@@ -273,27 +285,19 @@ body { padding-block: 24px 80px; }
       <li><strong>Run tests</strong> (or press ⌘/Ctrl + Enter). Failing tests show the value they expected and what they got; pictures appear as your code works.</li>
       <li><strong>Break it</strong> with the chapter's experiments.</li>
       <li><strong>Pass the checkpoint</strong> at the end of the chapter. When its tab shows ★, move to the next layer.</li>
-      <li><strong>Stuck?</strong> Every cell and study-buddy callout has links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers. <em>Hint please</em> in the workbench sets how much help a tutor may give.</li>
+      <li><strong>Stuck?</strong> Every cell and study-buddy callout has links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers. The <em>Hint level</em> dots in the workbench set how much help a tutor may give.</li>
     </ol>
-    <p>Your work saves in this browser. To move it to another device or show it off, use <strong>Save, move or share</strong> below. All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
-  </details>
-  <details class="howto share" id="save">
-    <summary>Save, move or share your work</summary>
-    <div class="share-row">
-      <p><strong>Progress link.</strong> Your code, guesses and checkpoint answers, packed into one link. Bookmark it, or open it on another device to pick up where you left off. It holds your answers, so keep it to yourself.</p>
-      <span class="btn-row"><button class="btn" type="button" data-share="progress">Copy progress link</button></span>
-    </div>
-    <div class="share-row">
-      <p><strong>Showcase link.</strong> A page that runs your engine and shows everything it draws, for anyone you send it to. It includes your code but not your checkpoint answers.</p>
-      <label class="share-name">Name to show (optional) <input type="text" maxlength="40" autocomplete="nickname" data-share-name></label>
-      <span class="btn-row"><button class="btn ghost" type="button" data-share="showcase">Copy showcase link</button><a class="btn ghost" data-share-open href="showcase.html" target="_blank" rel="noopener">Open it</a></span>
-    </div>
-    <p class="share-status" data-share-status aria-live="polite"></p>
-    <input class="share-fallback" type="text" readonly data-share-fallback hidden aria-label="Link to copy">
-    <p class="bench-note">Nothing is uploaded. Your work rides in the part of the link after the #, which browsers never send to a server.</p>
+    <p>Your work saves in this browser. <strong>Save progress</strong> gives you a link to carry it to another device, and <strong>Share my engine</strong> makes a page to show it off. All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
   </details>
   <div class="banner" data-progress-banner hidden></div>
-  <nav class="tabs" aria-label="Layers">${tabs}</nav>
+  <div class="tabbar">
+    <nav class="tabs" aria-label="Layers">${tabs}</nav>
+    <div class="tools">
+      <button class="btn ghost tip" type="button" data-save data-tip="Copies a private link with your code and answers. Open it on another device to pick up where you left off. Nothing is uploaded.">Save progress</button>
+      <a class="btn ghost tip" data-showcase href="showcase.html" target="_blank" rel="noopener" data-tip="Opens a page that runs your engine and shows what it draws, ready to share. Your checkpoint answers stay private.">Share my engine ↗</a>
+    </div>
+  </div>
+  <div class="toast" data-toast role="status" aria-live="polite" hidden><p data-toast-text></p><input type="text" readonly data-toast-input hidden aria-label="Link to copy"></div>
 </div>
 ${sections}
 ${sources}

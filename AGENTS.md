@@ -54,7 +54,7 @@ Every layer ends with a checkpoint that unlocks when its tests pass: a **mystery
 - `checkpoints/NN-name.js`: the learner's checkpoint answers. Unlocks when the layer's tests pass.
 - `lib/`: provided helpers (font data, test library, checkpoints, page loader). Not part of the exercises. `lib/checkpoint-data.js` holds only fingerprints; don't try to reverse them.
 - `tests.html` and `index.html`: open in a browser to see results and pictures.
-- `guide.html`: the interactive guide. Each workbench has a *What your tutor sees* panel and a *Hint please* level; if the learner shares that level, stay at or below it.
+- `guide.html`: the interactive guide. Each workbench has a *What your tutor sees* panel and a *Hint level* (1–5); if the learner shares that level, stay at or below it.
 - Run `node tests/run.js` from the repo root. It needs only Node, no install.
 
 Layers build on each other: if layer 01 fails because `createFrame` isn't written, the learner needs to finish layer 00 first.

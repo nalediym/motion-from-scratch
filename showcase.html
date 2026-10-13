@@ -14,6 +14,10 @@
   .cta { border: 2px solid var(--ink); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; background: var(--paper); }
   .cta .btn { align-self: flex-start; text-decoration: none; }
   .small { font-size: 0.85rem; color: var(--muted); }
+  .owner { border: 2px dashed var(--pencil); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; background: var(--paper); }
+  .owner-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .owner label { font-size: 0.85rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+  .owner input { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 220px; max-width: 100%; }
 </style>
 </head>
 <body>
@@ -24,6 +28,14 @@
     <h1 data-title>A video engine, built from scratch</h1>
     <p class="lede">Every picture on this page was drawn just now, in your browser, by code a learner wrote themselves, starting from a single pixel.</p>
   </header>
+  <section class="owner" data-owner hidden>
+    <p><strong>This is your showcase.</strong> Send the link to anyone: they see this page without this box. Your checkpoint answers aren't in it.</p>
+    <div class="owner-row">
+      <label>Your name (optional) <input type="text" maxlength="40" autocomplete="nickname" data-name></label>
+      <button class="btn" type="button" data-copy>Copy link to share</button>
+    </div>
+    <p class="small" data-copy-status aria-live="polite"></p>
+  </section>
   <p data-status>Loading the engine…</p>
   <iframe class="engine" data-frame sandbox="allow-scripts" title="The learner's engine, running" hidden></iframe>
   <section class="cta">
@@ -77,11 +89,33 @@ function renderer(P) {
   new ResizeObserver(report).observe(document.body);
 }
 
+// The owner's box: add a name (re-packs the link) and copy the link to share,
+// without the "&mine" that shows this box.
+function owner(data, packed, setTitle) {
+  const box = document.querySelector("[data-owner]"), input = box.querySelector("[data-name]"), msg = box.querySelector("[data-copy-status]");
+  const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  const shareUrl = () => location.href.split("#")[0] + "#s=" + packed;
+  const rename = async n => {
+    data.name = n.trim().slice(0, 40);
+    packed = await MS.share.pack(data);
+    history.replaceState(null, "", "#s=" + packed + "&mine");
+    setTitle(data.name);
+  };
+  box.hidden = false;
+  input.value = data.name || store.get("mfs-share-name") || "";
+  if (input.value && input.value !== data.name) rename(input.value);
+  input.addEventListener("input", () => { store.set("mfs-share-name", input.value); rename(input.value); });
+  box.querySelector("[data-copy]").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(shareUrl()); msg.textContent = "Link copied. Anyone who opens it sees your engine run."; }
+    catch (e) { msg.textContent = "Copy this link: " + shareUrl(); }
+  });
+}
+
 (async function () {
   const status = document.querySelector("[data-status]"), frame = document.querySelector("[data-frame]");
   const fail = text => { status.textContent = text; };
-  const m = location.hash.match(/^#s=(.+)$/);
-  if (!m) return fail("This link doesn't include a showcase. Learners make one in the guide, under “Save, move or share your work”.");
+  const m = location.hash.match(/^#s=([^&]+)(&mine)?$/);
+  if (!m) return fail("This link doesn't include a showcase. Learners make one in the guide with “Share my engine”.");
   let data;
   try { data = await MS.share.unpack(m[1]); } catch (e) { return fail("This showcase link didn’t open: " + e.message); }
   if (!data || data.kind !== "showcase" || typeof data.src !== "object") return fail("This isn't a showcase link.");
@@ -89,8 +123,12 @@ function renderer(P) {
   const ready = MS.COURSE.layers.filter(l => l.ready);
   const shown = ready.map(l => l.id).filter(id => typeof data.src[id] === "string");
   if (!shown.length) return fail("This showcase is empty: no code has been written yet.");
-  const name = typeof data.name === "string" ? data.name.trim().slice(0, 40) : "";
-  if (name) { document.querySelector("[data-title]").textContent = name + "’s video engine"; document.title = name + "’s video engine · Motion from Scratch"; }
+  const setTitle = n => {
+    document.querySelector("[data-title]").textContent = n ? n + "’s video engine" : "A video engine, built from scratch";
+    document.title = (n ? n + "’s video engine" : "Showcase") + " · Motion from Scratch";
+  };
+  setTitle(typeof data.name === "string" ? data.name.trim().slice(0, 40) : "");
+  if (m[2]) owner(data, m[1], setTitle);
 
   // Layers below the highest shown one still need loading (their starter code if
   // the learner hasn't written them), because each layer builds on the ones below.

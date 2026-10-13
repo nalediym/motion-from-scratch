@@ -41,9 +41,10 @@
     if (!sec) return;
     const pre = sec.querySelector("[data-tutor-text]");
     if (pre) pre.textContent = tutorText(id);
-    const lv = level(id), label = sec.querySelector("[data-hint-level]"), more = sec.querySelector("[data-hint]");
-    if (label) label.textContent = "Hint level " + lv + " of 5: " + C.hintLevels[lv - 1];
-    if (more) more.disabled = lv >= 5;
+    const lv = level(id), label = sec.querySelector("[data-hint-level]");
+    if (label) label.textContent = lv + " · " + C.hintShort[lv - 1];
+    sec.querySelectorAll("[data-level]").forEach(b => { const on = Number(b.dataset.level) <= lv; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(Number(b.dataset.level) === lv)); });
+    refreshShowcase();
   }
 
   // ---------- Ask links that bring the learner's code along ----------
@@ -70,8 +71,7 @@
   document.querySelectorAll(".chapter").forEach(sec => {
     const id = sec.dataset.layer;
     sec.querySelectorAll("[data-ask]").forEach(a => wireAsk(a, () => fit(max => linkFor(a.dataset.ask, id, askText(id, max)))));
-    sec.querySelector("[data-hint]").addEventListener("click", () => { store.set("mfs-hint-" + id, String(Math.min(5, level(id) + 1))); afterRun(id); });
-    sec.querySelector("[data-hint-reset]").addEventListener("click", () => { store.set("mfs-hint-" + id, "1"); afterRun(id); });
+    sec.querySelectorAll("[data-level]").forEach(b => b.addEventListener("click", () => { store.set("mfs-hint-" + id, b.dataset.level); afterRun(id); }));
     sec.querySelector(".editor").addEventListener("input", () => afterRun(id));
   });
   document.querySelectorAll(".cpcell").forEach(cell => {
@@ -80,41 +80,42 @@
       linkFor(a.dataset.askCp, id, C.checkpointAsk + (state[id] && state[id].cp ? " Where I am: " + cpLine(state[id].cp) + "." : ""))));
   });
 
-  // ---------- Save, move or share ----------
-  const shareBox = document.getElementById("save");
-  const status = shareBox.querySelector("[data-share-status]"), fallback = shareBox.querySelector("[data-share-fallback]");
-  const nameIn = shareBox.querySelector("[data-share-name]"), openA = shareBox.querySelector("[data-share-open]");
-  nameIn.value = store.get("mfs-share-name") || "";
+  // ---------- Save progress / Share my engine ----------
   const here = () => location.href.split("#")[0];
+  const saveBtn = document.querySelector("[data-save]"), showA = document.querySelector("[data-showcase]");
+  const toast = document.querySelector("[data-toast]"), toastText = toast.querySelector("[data-toast-text]"), toastIn = toast.querySelector("[data-toast-input]");
+  let toastTimer;
+  const say = (text, link) => {
+    clearTimeout(toastTimer);
+    toast.hidden = false; toastText.textContent = text;
+    toastIn.hidden = !link; if (link) { toastIn.value = link; toastIn.select(); }
+    toastTimer = setTimeout(() => { toast.hidden = true; }, link ? 15000 : 6000);
+  };
   function collect(kind) {
     const src = {};
     document.querySelectorAll(".chapter").forEach(sec => {
       const id = sec.dataset.layer, v = sec.querySelector(".editor").value;
       if (v !== $("stub-" + id)) src[id] = v;
     });
-    if (kind === "showcase") return { v: 1, kind: "showcase", name: nameIn.value.trim().slice(0, 40), src };
+    if (kind === "showcase") return { v: 1, kind: "showcase", name: "", src };
     const cp = {}, tries = {};
     document.querySelectorAll(".cpcell").forEach(c => { const t = c.querySelector("textarea"); if (t.value !== t.defaultValue) cp[c.dataset.layer] = t.value; });
     document.querySelectorAll(".tryit").forEach(c => { const t = c.querySelector(".tryit-code"); if (t.value !== t.defaultValue) tries[c.dataset.key] = t.value; });
     return { v: 1, kind: "progress", src, cp, try: tries };
   }
-  async function linkOf(kind) {
-    const data = await share.pack(collect(kind));
-    return kind === "showcase" ? new URL("showcase.html", here()).href + "#s=" + data : here() + "#progress=" + data;
-  }
-  shareBox.querySelectorAll("[data-share]").forEach(b => b.addEventListener("click", async () => {
-    const kind = b.dataset.share, what = kind === "progress" ? "Progress link" : "Showcase link";
-    const empty = Object.keys(collect(kind).src).length ? "" : " You haven't changed any code yet, so there isn't much in it.";
+  saveBtn.addEventListener("click", async () => {
     let url;
-    try { url = await linkOf(kind); } catch (e) { status.textContent = "Couldn't make the link: " + e.message; return; }
-    try { await navigator.clipboard.writeText(url); fallback.hidden = true; status.textContent = what + " copied." + empty; }
-    catch (e) { fallback.hidden = false; fallback.value = url; fallback.select(); status.textContent = what + " is in the box below. Copy it from there." + empty; }
-  }));
-  const refreshOpen = () => linkOf("showcase").then(u => { openA.href = u; }, () => {});
-  shareBox.addEventListener("toggle", () => { if (shareBox.open) refreshOpen(); });
-  nameIn.addEventListener("input", () => { store.set("mfs-share-name", nameIn.value); refreshOpen(); });
-  ["pointerdown", "focus"].forEach(ev => openA.addEventListener(ev, refreshOpen));
-
+    try { url = here() + "#progress=" + await share.pack(collect("progress")); } catch (e) { say("Couldn't make the link: " + e.message); return; }
+    try { await navigator.clipboard.writeText(url); say("Progress link copied. Bookmark it, or open it on another device. It holds your answers, so keep it private."); }
+    catch (e) { say("Copy your progress link from the box below. It holds your answers, so keep it private.", url); }
+  });
+  // The showcase opens in a new tab, so its link is kept ready ahead of the click.
+  // "&mine" shows the owner's box (name + copy) on the showcase page.
+  let showTimer;
+  function refreshShowcase() {
+    clearTimeout(showTimer);
+    showTimer = setTimeout(() => share.pack(collect("showcase")).then(d => { showA.href = new URL("showcase.html", here()).href + "#s=" + d + "&mine"; }, () => {}), 300);
+  }
   // ---------- Opening a progress link ----------
   const banner = document.querySelector("[data-progress-banner]");
   const incoming = location.hash.match(/^#progress=(.+)$/);
