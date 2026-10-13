@@ -180,7 +180,7 @@ const page = `<!DOCTYPE html>
 <meta name="description" content="${COURSE.subtitle}. An interactive guide: read each layer, write the code beside it, and run the tests in your browser.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,700;112,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=Silkscreen&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,700;112,800&family=Inter:wght@500;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=Silkscreen&display=swap">
 <style>
 ${style}
 /* ---- guide layout: chapter on the left, workbench on the right ---- */
