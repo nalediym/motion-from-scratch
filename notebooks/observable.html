@@ -27,7 +27,7 @@
           { id: "03", slug: "time", title: "Time", builds: "frame = f(n) and a player that keeps time", ready: true },
           { id: "04", slug: "interpolate", title: "Interpolate", builds: "lerp, clamp, ranges, extrapolation", ready: true },
           { id: "05", slug: "easing", title: "Easing", builds: "a cubic-Bézier solver", ready: true },
-          { id: "06", slug: "springs", title: "Springs", builds: "physics stepping and stability", ready: false },
+          { id: "06", slug: "springs", title: "Springs", builds: "physics stepping and stability", ready: true },
           { id: "07", slug: "canvas", title: "Hand-off to canvas", builds: "transforms, blur, then real fonts on canvas", ready: false },
           { id: "08", slug: "scenes", title: "Scenes", builds: "sequences, a camera, masks, seeded randomness", ready: false },
           { id: "09", slug: "kinetic-intro", title: "KineticIntro", builds: "the recreation", ready: false },
@@ -521,6 +521,14 @@
             "q2": "cdbb59ea",
             "q3": "0ee3a105"
           }
+        },
+        "06": {
+          "mystery": "d2c3d8d5",
+          "questions": {
+            "q1": "1ff44ef7",
+            "q2": "1615219e",
+            "q3": "bdae1b04"
+          }
         }
       };
     })(globalThis.MS = globalThis.MS || {});
@@ -992,6 +1000,91 @@
             "The R is scattered. Its dots ask for x below 0 or above 1. Clamp x to 0–1 first: anything up to 0 gives exactly 0, anything from 1 up gives exactly 1.",
           ];
           scattered.forEach((n, j) => { if (n) hints.push(`${why[j]} (${n} dot${n === 1 ? "" : "s"} off.)`); });
+          const ok = MS.hashFrame(frame) === data.mystery;
+          return { wrong: ok ? 0 : 1, hints };
+        },
+      });
+    })(globalThis.MS = globalThis.MS || {});
+
+    // lib/mysteries/06-springs.js — layer 06's checkpoint picture. PROVIDED.
+    // A freeze-frame of dots on springs. Each dot's spring is worked out twice, in
+    // two ways that must agree (defaults written out or left out, falling or
+    // rising, 60 fps or 30 fps...). Where your two answers agree, the dot lands on
+    // its letter. Every rule right spells a word.
+    // draw() runs the learner's functions; check() says which rule went wrong,
+    // never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+    (function (MS) {
+      const { shuffle } = MS.mysteryKit;
+      const WORD = "SPRING", C = 3, M = 5;
+      const sp = (frame, fps, extra) => MS.spring({ frame, fps, ...extra });
+      const FULL = { stiffness: 100, damping: 10, mass: 1 }, QUICK = { stiffness: 260, damping: 14 };
+      // Per letter: two ways to get the same progress at frame n (`want` places the dot, `got` moves it).
+      const PAIRS = [
+        { frames: [3, 5, 7, 9, 12, 16], want: n => sp(n, 30, { config: FULL }), got: n => sp(n, 30) },
+        { frames: [3, 6, 9, 13, 18], want: (n, k) => sp(n, 30, { config: k % 2 ? { stiffness: 100, damping: 10, mass: 2 } : { stiffness: 100, damping: 14, mass: 1 } }),
+          got: (n, k) => sp(n, 30, { config: k % 2 ? { mass: 2 } : { damping: 14 } }) },
+        { frames: [4, 6, 8, 11, 15], want: n => sp(n, 30), got: n => (sp(n, 30, { from: 40, to: 10 }) - 40) / -30 },
+        { frames: [2, 3, 5, 7, 10], want: n => sp(n, 30, { config: QUICK }), got: n => sp(2 * n, 60, { config: QUICK }) },
+        { frames: [3, 4, 7, 10, 13, 15], want: n => sp(Math.round((1000 * n) / 24), 1000), got: n => sp(n, 24) },
+      ];
+      // The last letter checks settleFrame against spring() itself.
+      const SETTLE = { fps: 25, from: 3, to: -2, config: { stiffness: 300, damping: 18 }, threshold: 0.01 };
+      const OFFSETS = [];
+      for (let dy = -12; dy <= 12; dy++) for (let dx = -12; dx <= 12; dx++) if (Math.abs(dx) + Math.abs(dy) >= 8) OFFSETS.push([dx, dy]);
+      shuffle(OFFSETS, 6);
+      const px = v => Math.floor(v + 0.5 + 1e-7);
+      const STOPS = [[255, 92, 138], [91, 140, 255], [234, 240, 250]];
+
+      function settlesWhere(s) {   // the first frame from which spring() stays close, up to 10 s
+        const limit = s.threshold * Math.abs(s.to - s.from), last = 10 * s.fps;
+        let first = 0;
+        for (let n = 0; n <= last; n++) if (Math.abs(MS.spring({ frame: n, fps: s.fps, from: s.from, to: s.to, config: s.config }) - s.to) > limit) first = n + 1;
+        return first > last ? Infinity : first;
+      }
+
+      MS.mystery("06", {
+        draw() {
+          const W = M * 2 + (WORD.length * 6 - 1) * C, H = M * 2 + 7 * C;
+          const frame = MS.createFrame(W, H);
+          MS.clearFrame(frame, [11, 13, 18]);
+          const scattered = WORD.split("").map(() => 0), failed = [];
+          let settled = false;
+          try { settled = MS.settleFrame(SETTLE) === settlesWhere(SETTLE); } catch (e) { failed.push(`settleFrame threw "${e.message}"`); }
+          let dot = 0;
+          [...WORD].forEach((ch, j) => {
+            const color = MS.interpolateColors(j, [0, 2.5, 5], STOPS);
+            let k = 0;
+            MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
+              if (cell !== "#") return;
+              const P = [M + (j * 6 + c) * C, M + r * C], o = OFFSETS[dot++ % OFFSETS.length];
+              let at = [P[0] + o[0], P[1] + o[1]];
+              if (j === 5) { if (settled) at = P; }
+              else {
+                try {
+                  const pair = PAIRS[j], n = pair.frames[k % pair.frames.length];
+                  const want = pair.want(n, k), got = pair.got(n, k);
+                  const A = [P[0] + o[0], P[1] + o[1]], B = [P[0] + o[0] - o[0] / want, P[1] + o[1] - o[1] / want];
+                  at = [px(A[0] + (B[0] - A[0]) * got), px(A[1] + (B[1] - A[1]) * got)];
+                } catch (e) { failed.push(`the ${ch}: ${e.message}`); at = [NaN, NaN]; }
+              }
+              k++;
+              if (at[0] !== P[0] || at[1] !== P[1]) scattered[j]++;
+              if (Number.isFinite(at[0]) && Number.isFinite(at[1])) MS.fillRect(frame, at[0], at[1], C, C, color);
+            }));
+          });
+          return { frame, scattered, failed: [...new Set(failed)] };
+        },
+        check({ frame, scattered, failed }, data) {
+          const hints = failed.map(msg => `Part of the picture couldn't be drawn (${msg}).`);
+          const why = [
+            "The S is scattered: spring() with no config should behave exactly like spring() with Remotion's defaults written out (stiffness 100, damping 10, mass 1).",
+            "The P is scattered: a config that gives only some values, just damping or just mass, takes the defaults for the rest.",
+            "The R is scattered: a spring falling from 40 to 10 should move exactly like one rising from 0 to 1, flipped and stretched. Check how from and to are used.",
+            "The I is scattered: frame 2n at 60 fps is the same moment as frame n at 30 fps, so it should give the same value.",
+            "The N is scattered: at 24 fps, frame n is Math.round(1000 × n ÷ 24) milliseconds in, exactly like that many frames at 1000 fps.",
+            "The G is scattered: settleFrame disagrees with your spring(). It should be the first frame from which spring() stays within threshold × |to − from| of `to`, using the fps, from, to, config and threshold it's given.",
+          ];
+          scattered.forEach((n, j) => { if (n) hints.push(why[j]); });
           const ok = MS.hashFrame(frame) === data.mystery;
           return { wrong: ok ? 0 : 1, hints };
         },
@@ -3923,6 +4016,468 @@
     - **Read the original.** The [cubic Bézier easing functions](https://www.w3.org/TR/css-easing-1/#cubic-bezier-easing-functions) section of CSS Easing Functions. Notice what browsers do with times below 0 or above 1: instead of clamping, they extend the curve along its tangent lines.
     - Do the same: replace clamping with CSS's tangent-line rule, and check that `interpolate` with "extend" now keeps moving smoothly past the end.
     - Count your solver's Newton steps for 1,000 values of x, then add an 11-sample lookup table for the first guess, like Remotion's, and count again.
+
+  </script>
+  <script type="text/markdown">
+    ## Layer 06 · Springs
+
+    _A spring doesn't know where it's going to be, only what happens next._
+
+    **You'll write:** `springForce`, `stepSpring`, `spring`, `dampingRatio`, `settleFrame` in `src/06-springs.js`
+    **Builds on:** layers 00–05
+
+    Easing curves are drawn by hand: someone picks four numbers and the motion follows the shape exactly. A spring is different. You describe a physical object, how stiff it is, how much friction it has and how heavy it is, and the motion is whatever physics says happens. That's why spring motion feels alive, and why [Remotion's `spring()`](https://www.remotion.dev/docs/spring) is one of its most-used functions. KineticIntro itself only uses easing curves; springs are the other half of Remotion's motion toolkit. This layer simulates one, step by step, and finds out how small the steps have to be.
+
+    ### Under the hood
+
+    #### A spring is a rule, not a curve
+
+    Hang a weight on a spring and pull it down. Two forces act on it. The spring pulls it back toward where it wants to rest, harder the further away it is: that's [Hooke's law](https://en.wikipedia.org/wiki/Hooke%27s_law). Friction, called **damping**, pushes against the motion, harder the faster it moves:
+
+    ```text
+      force = −stiffness × (position − target)  −  damping × velocity
+              └──── the spring pulls it back ──┘   └─ friction slows it ─┘
+
+      acceleration = force ÷ mass
+    ```
+
+    That's the whole description, and it only says what happens *next*: given where the weight is and how fast it's moving, here's how its speed is changing. To find out where it is at frame 30, you have to play time forward from the start.
+
+    #### Stepping through time
+
+    Playing time forward means taking small steps of `dt` seconds. Each step uses the force to update the velocity, and the velocity to update the position. The order matters more than it looks:
+
+    ```text
+      explicit Euler:        position += velocity × dt      (the old velocity)
+                             velocity += acceleration × dt
+
+      semi-implicit Euler:   velocity += acceleration × dt
+                             position += velocity × dt      (the new velocity)
+    ```
+
+    Both look reasonable, and over one step they barely differ. Over thousands of steps, explicit Euler quietly adds energy every time: a spring with no friction swings a little wider each second, forever. [Semi-implicit Euler](https://en.wikipedia.org/wiki/Semi-implicit_Euler_method) keeps the swing the same size, which is why physics engines use it. It costs nothing extra; it's just the right order.
+
+    #### How small is small enough?
+
+    Each step pretends the force stays the same for `dt` seconds. That's fine while `dt` is short compared with how fast the spring swings. A spring's natural speed is `ω = √(stiffness ÷ mass)`, in radians per second, and semi-implicit Euler stays stable only while `ω × dt` is below 2. Past that, every step overshoots a little more than the last, and the numbers explode.
+
+    A video frame is far too long a step: at 30 fps, `dt` is 33 ms, so any spring stiffer than about 3,600 (with mass 1) blows up. This layer steps every **1 ms** instead, and frame `n` is however many whole milliseconds have passed by then. Notice what that costs: because frame = f(n), working out frame 90 means simulating all 3,000 steps from the start, every time.
+
+    > **Study buddy:** "Ask me questions until I can explain why updating the velocity before the position keeps a frictionless spring from gaining energy. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20updating%20the%20velocity%20before%20the%20position%20keeps%20a%20frictionless%20spring%20from%20gaining%20energy.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20updating%20the%20velocity%20before%20the%20position%20keeps%20a%20frictionless%20spring%20from%20gaining%20energy.%20No%20code.)
+
+    #### The damping ratio
+
+    Three numbers describe a spring, but its character comes down to one, the **damping ratio**:
+
+    ```text
+      ζ = damping ÷ (2 × √(stiffness × mass))
+
+      ζ below 1   underdamped         overshoots, bounces, then settles
+      ζ = 1       critically damped   arrives as fast as possible, never overshoots
+      ζ above 1   overdamped          creeps in slowly, never overshoots
+    ```
+
+    Remotion's default spring is stiffness 100, damping 10, mass 1, so ζ = 10 ÷ (2 × 10) = 0.5: a little bouncy.
+
+    #### When is it done?
+
+    A spring never quite arrives. Each bounce is smaller than the last, but it never reaches exactly zero. So "done" needs a definition: the spring has **settled** at the first frame from which it stays within some small distance of its target for good. Remotion's [`measureSpring()`](https://www.remotion.dev/docs/measure-spring) uses half a percent of the distance travelled, and so does `settleFrame`. "Stays" matters: a bouncy spring can pass through the target zone on its way back out.
+
+    ### Your turn
+
+    Work through `src/06-springs.js` top to bottom. Each function's comment is its spec. Some questions to guide you, in order:
+
+    1. **springForce.** If the position is past the target, which way should the force point? How do you fill in config values that are missing without losing the ones you were given?
+    2. **stepSpring.** Which comes first, the new velocity or the new position? Why must the state you were given stay unchanged? (Think about frame = f(n).)
+    3. **spring.** How many 1 ms steps is frame 5 at 24 fps? What should frame 0 give, whatever the config?
+    4. **dampingRatio.** What makes ζ exactly 1?
+    5. **settleFrame.** If frame 20 is inside the zone but frame 25 is outside, can frame 20 be the answer? Do you need to call `spring()` for every frame, or can you keep stepping one simulation?
+
+    Run the tests after each function. A failing test tells you exactly what it expected.
+
+    Once it works, the test pictures show four springs, bouncy, default, critically damped and heavy, as graphs and as moving dots.
+
+    > **Study buddy:** "Give me three spring configs and ask me to rank them by how much they overshoot and how fast they settle, before I run anything. Then ask me to explain the ranking. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20three%20spring%20configs%20and%20ask%20me%20to%20rank%20them%20by%20how%20much%20they%20overshoot%20and%20how%20fast%20they%20settle%2C%20before%20I%20run%20anything.%20Then%20ask%20me%20to%20explain%20the%20ranking.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20three%20spring%20configs%20and%20ask%20me%20to%20rank%20them%20by%20how%20much%20they%20overshoot%20and%20how%20fast%20they%20settle%2C%20before%20I%20run%20anything.%20Then%20ask%20me%20to%20explain%20the%20ranking.%20No%20code.)
+
+
+  </script>
+  <script type="text/markdown">
+    ### ✏️ Your code for layer 06
+
+    This cell is your `src/06-springs.js`. When editing locally, change it and everything below re-runs by itself.
+
+    **Stuck?** Ask a study buddy that gives hints, not answers: [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next.)
+  </script>
+  <script type="module" pinned>
+    layer05; // run after the layer before
+    // Layer 06 · Springs — physics stepping and stability.
+    // Read the chapter first (docs/06-springs.md). Each comment below is a spec; the tests check it.
+    (function (MS) {
+      /**
+       * The force a spring and its damper put on a mass at `position`, moving at
+       * `velocity`, while the spring pulls it toward `target`:
+       *   force = −stiffness × (position − target) − damping × velocity
+       * config is { stiffness, damping, mass }. Any missing value (or a missing
+       * config) takes Remotion's default: stiffness 100, damping 10, mass 1.
+       */
+      function springForce(position, velocity, target, config) {
+        throw MS.todo("springForce");
+      }
+
+      /**
+       * Move a spring forward by dt seconds. state is { position, velocity }.
+       * Update the velocity first (acceleration = force ÷ mass), then move the
+       * position using the NEW velocity. Return a new state object; don't change
+       * the one passed in.
+       *   stepSpring({ position: 1, velocity: 0 }, 0, { stiffness: 100, damping: 0, mass: 1 }, 0.01)
+       *     → { position: 0.99, velocity: -1 }
+       */
+      function stepSpring(state, target, config, dt) {
+        throw MS.todo("stepSpring");
+      }
+
+      /**
+       * Like Remotion's spring(): where is a spring at `frame`, if it starts at
+       * rest at `from` on frame 0 and is pulled toward `to`?
+       * Simulate it with stepSpring in steps of 1 ms (dt = 0.001). Frame n is
+       * Math.round(1000 × n ÷ fps) steps from the start. from defaults to 0 and
+       * to to 1; config is passed on as it is.
+       */
+      function spring({ frame, fps, from = 0, to = 1, config } = {}) {
+        throw MS.todo("spring");
+      }
+
+      /**
+       * The damping ratio: damping ÷ (2 × √(stiffness × mass)), with the same
+       * defaults. Below 1 the spring overshoots and bounces; from 1 up it doesn't.
+       */
+      function dampingRatio(config) {
+        throw MS.todo("dampingRatio");
+      }
+
+      /**
+       * The first frame from which spring() stays within threshold × |to − from|
+       * of `to` for every frame up to 10 seconds (frame 10 × fps). Return
+       * Infinity if it's still outside at 10 seconds.
+       */
+      function settleFrame({ fps, from = 0, to = 1, config, threshold = 0.005 } = {}) {
+        throw MS.todo("settleFrame");
+      }
+
+      Object.assign(MS, { springForce, stepSpring, spring, dampingRatio, settleFrame });
+    })(globalThis.MS = globalThis.MS || {});
+
+    const layer06 = true;
+  </script>
+  <script type="module">
+    layer06;
+    const report06 = (() => {
+      const MS = globalThis.MS;
+      MS.tests = MS.tests.filter(t => t.layer !== "06");
+      MS.visuals = MS.visuals.filter(v => v.layer !== "06");
+    // tests/06-springs.test.js — PROVIDED. Read a failing test to see what's expected.
+    (function (MS) {
+      const L = "06";
+      const plain = { stiffness: 50, damping: 0, mass: 1 };
+
+      MS.test(L, "springForce pulls back toward the target (Hooke's law)", t => {
+        t.close(MS.springForce(2, 0, 0, plain), -100, 1e-12, "2 past the target");
+        t.close(MS.springForce(-1, 0, 3, plain), 200, 1e-12, "4 short of the target");
+        t.close(MS.springForce(3, 0, 3, plain), 0, 1e-12, "at the target, no pull");
+      });
+
+      MS.test(L, "springForce: damping pushes against the velocity", t => {
+        t.close(MS.springForce(0, 3, 0, { stiffness: 50, damping: 4, mass: 1 }), -12, 1e-12, "moving at +3");
+        t.close(MS.springForce(1, -2, 0, { stiffness: 50, damping: 4, mass: 1 }), -42, 1e-12, "spring and damper together");
+      });
+
+      MS.test(L, "springForce: missing config values use Remotion's defaults", t => {
+        t.close(MS.springForce(1, 1, 0, {}), -110, 1e-12, "empty config: stiffness 100, damping 10");
+        t.close(MS.springForce(1, 1, 0), -110, 1e-12, "no config at all");
+        t.close(MS.springForce(1, 1, 0, { damping: 0 }), -100, 1e-12, "only damping given");
+      });
+
+      MS.test(L, "stepSpring: velocity first, then position with the new velocity", t => {
+        const s = MS.stepSpring({ position: 1, velocity: 0 }, 0, { stiffness: 100, damping: 0, mass: 1 }, 0.01);
+        t.close(s.velocity, -1, 1e-12, "velocity");
+        t.close(s.position, 0.99, 1e-12, "position (it already moved, using the new velocity)");
+      });
+
+      MS.test(L, "stepSpring: a heavier mass speeds up less", t => {
+        const s = MS.stepSpring({ position: 1, velocity: 0 }, 0, { stiffness: 100, damping: 0, mass: 4 }, 0.01);
+        t.close(s.velocity, -0.25, 1e-12, "velocity");
+        t.close(s.position, 0.9975, 1e-12, "position");
+      });
+
+      MS.test(L, "stepSpring returns a new state and leaves the old one alone", t => {
+        const before = { position: 2, velocity: 1 };
+        const after = MS.stepSpring(before, 0, {}, 0.001);
+        t.ok(after !== before, "it should return a new object");
+        t.eq(before.position, 2, "the old position");
+        t.eq(before.velocity, 1, "the old velocity");
+      });
+
+      MS.test(L, "spring starts at `from` on frame 0", t => {
+        t.eq(MS.spring({ frame: 0, fps: 30 }), 0, "default from = 0");
+        t.eq(MS.spring({ frame: 0, fps: 30, from: 5, to: 10 }), 5, "from = 5");
+      });
+
+      MS.test(L, "spring matches a simulation in 1 ms steps", t => {
+        t.close(MS.spring({ frame: 30, fps: 30 }), 1.0022390596465578, 1e-9, "frame 30 at 30 fps");
+        t.close(MS.spring({ frame: 10, fps: 30, from: 0, to: 100 }), 115.47237566170986, 1e-7, "0 → 100, frame 10");
+        t.close(MS.spring({ frame: 12, fps: 30, from: 40, to: 10 }), 5.452007774883348, 1e-9, "falling from 40 to 10, frame 12");
+      });
+
+      MS.test(L, "spring rounds each frame to a whole number of 1 ms steps", t => {
+        t.close(MS.spring({ frame: 7, fps: 24 }), 1.1135651208793387, 1e-9, "frame 7 at 24 fps is 291.67 ms → 292 steps");
+        t.close(MS.spring({ frame: 20, fps: 30, config: { damping: 200 } }), 0.2826860556738996, 1e-9, "frame 20 at 30 fps is 666.67 ms → 667 steps");
+      });
+
+      MS.test(L, "spring: fps changes the frame numbers, not the time", t => {
+        t.close(MS.spring({ frame: 18, fps: 60 }), MS.spring({ frame: 9, fps: 30 }), 1e-12, "frame 18 at 60 fps and frame 9 at 30 fps are both 300 ms");
+      });
+
+      MS.test(L, "spring: the default spring overshoots, then settles", t => {
+        let highest = 0;
+        for (let n = 0; n <= 30; n++) highest = Math.max(highest, MS.spring({ frame: n, fps: 30 }));
+        t.ok(highest > 1, `it should pass 1 on the way; the highest value in frames 0–30 was ${highest}`);
+        t.close(MS.spring({ frame: 90, fps: 30 }), 1, 1e-3, "three seconds later it's at rest");
+      });
+
+      MS.test(L, "dampingRatio", t => {
+        t.close(MS.dampingRatio({ stiffness: 100, damping: 30, mass: 1 }), 1.5, 1e-12, "overdamped");
+        t.close(MS.dampingRatio({ stiffness: 25, damping: 10, mass: 1 }), 1, 1e-12, "critically damped");
+        t.close(MS.dampingRatio({ stiffness: 200, damping: 10, mass: 2 }), 0.25, 1e-12, "bouncy");
+      });
+
+      MS.test(L, "settleFrame: the first frame from which it stays close", t => {
+        t.eq(MS.settleFrame({ fps: 30 }), 28, "the default spring at 30 fps");
+        t.eq(MS.settleFrame({ fps: 60 }), 55, "the same spring at 60 fps");
+        t.eq(MS.settleFrame({ fps: 30, config: { damping: 20 } }), 23, "critically damped");
+      });
+
+      MS.test(L, "settleFrame: edge cases", t => {
+        t.eq(MS.settleFrame({ fps: 30, from: 4, to: 4 }), 0, "already there");
+        t.eq(MS.settleFrame({ fps: 30, config: { damping: 200 } }), Infinity, "too slow to settle within 10 seconds");
+      });
+
+      // ---- pictures ----
+      const SPRINGS = [
+        ["BOUNCY", { damping: 4 }], ["DEFAULT", {}], ["CRITICAL", { damping: 20 }], ["HEAVY", { mass: 4 }],
+      ];
+      const BG = [11, 13, 18], INK = [234, 240, 250, 255], DIM = [60, 70, 90], LINE = [30, 36, 50];
+
+      MS.visual(L, "Four springs from 0 to 1 over 2 seconds; the dashed line is the target", () => {
+        const W = 120, H = 34, f = MS.createFrame(W * 2 + 18, (H + 14) * 2 + 4);
+        MS.clearFrame(f, BG);
+        SPRINGS.forEach(([name, config], i) => {
+          const ox = 6 + (i % 2) * (W + 6), oy = 4 + Math.floor(i / 2) * (H + 14);
+          const yOf = v => oy + (H - 1) * (1 - v / 1.6);   // 0 at the bottom, 1.6 at the top
+          for (let x = 0; x < W; x += 2) MS.fillRect(f, ox + x, Math.round(yOf(1)), 1, 1, DIM);
+          for (let n = 0; n <= 60; n++) {
+            const v = MS.spring({ frame: n, fps: 30, config });
+            MS.fillRect(f, ox + Math.round(n * (W - 2) / 60), Math.round(yOf(v)), 2, 2, INK);
+          }
+          MS.drawText(f, name, ox, oy + H + 3, 1, DIM);
+        });
+        return f;
+      });
+
+      MS.animation(L, "The same four springs, moving", () => MS.createComposition({
+        width: 120, height: SPRINGS.length * 11 + 4, fps: 30, durationInFrames: 75,
+        render(frame, n) {
+          MS.clearFrame(frame, BG);
+          SPRINGS.forEach(([name, config], i) => {
+            const y = 3 + i * 11;
+            MS.drawText(frame, name, 2, y + 1, 1, DIM);
+            MS.fillRect(frame, 52, y + 4, 58, 1, LINE);
+            MS.fillRect(frame, 100, y, 1, 9, DIM);   // the target
+            const x = MS.spring({ frame: Math.max(0, n - 5), fps: 30, from: 52, to: 100, config });
+            MS.fillCircle(frame, x, y + 4.5, 3, INK);
+          });
+        },
+      }));
+    })(globalThis.MS = globalThis.MS || {});
+
+      return MS.runLayerReport("06");
+    })();
+    const el06 = document.createElement("div");
+    el06.innerHTML = report06.html;
+    display(el06);
+  </script>
+  <script type="text/markdown">
+    ### Predict, then run
+
+    Guess first, then run.
+
+
+  </script>
+  <script type="module">
+    layer06; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 1: Remotion's default spring goes from 0 to 1. What's the highest value it reaches?
+        const myGuess = null; // TODO: your guess, to 2 decimals
+        let highest = 0;
+        for (let n = 0; n <= 60; n++) highest = Math.max(highest, MS.spring({ frame: n, fps: 30 }));
+        MS.reveal("the highest value", myGuess, Math.round(highest * 100) / 100);
+      });
+      display(out);
+    }
+  </script>
+  <script type="module">
+    layer06; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 2: with damping 20 instead of 10, does the spring ever go past 1?
+        const myGuess = null; // TODO: true or false
+        let passes = false;
+        for (let n = 0; n <= 300; n++) if (MS.spring({ frame: n, fps: 30, config: { damping: 20 } }) > 1) passes = true;
+        MS.reveal("goes past 1", myGuess, passes);
+      });
+      display(out);
+    }
+  </script>
+  <script type="module">
+    layer06; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 3: the default spring settles at frame 28 (30 fps). Make it four times
+        // heavier (mass 4) and keep everything else. When does it settle?
+        const myGuess = null; // TODO: your guess, a frame number
+        MS.reveal("settle frame with mass 4", myGuess, MS.settleFrame({ fps: 30, config: { mass: 4 } }));
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    <details><summary>Answers</summary>
+
+    1. 1.16. With ζ = 0.5, the default spring overshoots by 16% before settling back. There's a formula for the first overshoot, `e^(−πζ ÷ √(1 − ζ²))`, and it gives 0.163.
+    2. false. Damping 20 makes ζ exactly 1: critically damped, the fastest a spring can arrive without ever passing its target. It creeps up on 1 forever and never crosses it.
+    3. 123, more than four times as long. A heavier mass slows the swing (ω halves) *and* makes it bouncier (ζ halves to 0.25), so it takes longer to swing and more swings to settle.
+
+    </details>
+
+    ### Break it
+
+    Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.
+
+    #### 1. Explicit Euler
+
+
+  </script>
+  <script type="module">
+    layer06; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 1: does the order of the two updates matter?
+        // TODO(break-it), in src/06-springs.js → stepSpring:
+        //   move the position with the OLD velocity first, then update the velocity.
+        const config = { stiffness: 1000, damping: 0, mass: 1 };   // no friction: it should swing forever, never growing
+        for (let s = 1; s <= 4; s++) {
+          let far = 0;
+          for (let n = (s - 1) * 30; n < s * 30; n++) far = Math.max(far, Math.abs(MS.spring({ frame: n, fps: 30, config }) - 1));
+          console.log("second " + s + ": swings up to " + far.toFixed(3) + " from the target");
+        }
+        // TODO: before the change, the swing stays the same size. What happens after? Where does the energy come from?
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    #### 2. One step per frame
+
+
+  </script>
+  <script type="module">
+    layer06; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 2: why 1 ms steps?
+        // TODO(break-it), in src/06-springs.js → spring:
+        //   take one step per frame (dt = 1 ÷ fps) instead of 1 ms steps.
+        const stiff = { stiffness: 4000, damping: 20, mass: 1 };
+        for (const n of [2, 4, 6, 8, 10]) console.log("frame " + n + ": stiff " + MS.spring({ frame: n, fps: 30, config: stiff }).toFixed(3) + ", default " + MS.spring({ frame: n, fps: 30 }).toFixed(3));
+        // TODO: which spring survives the change and which explodes? Work out ω × dt for each (ω = √(stiffness ÷ mass)).
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    #### 3. Ignore the frame rate
+
+
+  </script>
+  <script type="module">
+    layer06; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 3: what is fps for?
+        // TODO(break-it), in src/06-springs.js → spring:
+        //   ignore fps and always use 30.
+        console.log("frame 15 at 30 fps: " + MS.spring({ frame: 15, fps: 30 }).toFixed(4));
+        console.log("frame 30 at 60 fps: " + MS.spring({ frame: 30, fps: 60 }).toFixed(4));
+        console.log("frame 12 at 24 fps: " + MS.spring({ frame: 12, fps: 24 }).toFixed(4));
+        // TODO: all three are half a second in. After the change, which disagree? How would the 60 fps video look?
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    ### Checkpoint
+
+    When all 14 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is another freeze-frame of flying dots, this time on springs. Each dot's position is worked out twice, in two ways that must agree, so a spring that's off by even a little shows up as a scattered letter. Its traps: configs with some values missing, a spring that falls instead of rising, frames that aren't a whole number of milliseconds, other frame rates, and a settle frame that has to agree with your spring. The three questions are below.
+
+
+  </script>
+  <script type="module" pinned>
+    layer06; // after your code
+    // Checkpoint 06 · Springs. Replace each null with your answer.
+    MS.answers("06", {
+      // 1. Remotion's default spring has stiffness 100 and mass 1. What damping makes it
+      //    critically damped?
+      q1: null,
+      // 2. How many 1 ms steps does spring() simulate to work out frame 100 at 24 fps?
+      q2: null,
+      // 3. react-spring's default config is tension 170 and friction 26 (its names for
+      //    stiffness and damping), with mass 1. What's its damping ratio, to 3 decimals?
+      q3: null,
+    });
+    const answers06 = true;
+  </script>
+  <script type="module">
+    answers06; report06; // after your answers and this layer's tests
+    {
+      const cp = MS.runCheckpoint("06", MS.runTests("06"));
+      const el = document.createElement("div");
+      el.innerHTML = MS.checkpointHTML(cp);
+      display(el);
+    }
+  </script>
+  <script type="text/markdown">
+
+    ### In the real world
+
+    - Remotion's [`spring()`](https://www.remotion.dev/docs/spring) takes the same config names with the same defaults. Instead of simulating in 1 ms steps, it uses the exact formula for a damped spring, borrowed from React Native, and lands within about 0.001 of your answer.
+    - Apple's SwiftUI describes springs by their *damping fraction*, which is the damping ratio, and CSS can fake a spring by listing many points in a [`linear()`](https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function/linear) easing function.
+    - Game engines step their physics in small, fixed time steps for exactly the stability reasons in this chapter, whatever the screen's frame rate: see Glenn Fiedler's ["Fix Your Timestep!"](https://gafferongames.com/post/fix_your_timestep/).
+
+    ### Going further (optional)
+
+    - **Read the original.** Glenn Fiedler's ["Integration Basics"](https://gafferongames.com/post/integration_basics/) compares explicit Euler, semi-implicit Euler and RK4 on a spring, with graphs.
+    - Replace the simulation with the exact formula for an underdamped spring, `to − (to − from) × e^(−ζωt) × (cos(ω_d t) + (ζω ÷ ω_d) × sin(ω_d t))` with `ω_d = ω√(1 − ζ²)`, and compare with your 1 ms answer at frame 10.
+    - Make `spring()` fast without breaking frame = f(n): cache states so a later frame can continue from an earlier one, and check you still get the same answer whatever order frames are asked in.
 
   </script>
 </notebook>
