@@ -200,7 +200,7 @@ body { padding-block: 24px 80px; }
   </details>
   <div class="banner" data-progress-banner hidden></div>
   <div class="tabbar">
-    <nav class="tabs" aria-label="Layers"><a class="tab" href="#layer-00" data-layer="00"><span class="num">00</span>Pixels</a><a class="tab" href="#layer-01" data-layer="01"><span class="num">01</span>Shapes & blending</a><a class="tab" href="#layer-02" data-layer="02"><span class="num">02</span>Glyphs</a><span class="tab soon">03–10 coming soon</span></nav>
+    <nav class="tabs" aria-label="Layers"><a class="tab" href="#layer-00" data-layer="00"><span class="num">00</span>Pixels</a><a class="tab" href="#layer-01" data-layer="01"><span class="num">01</span>Shapes & blending</a><a class="tab" href="#layer-02" data-layer="02"><span class="num">02</span>Glyphs</a><a class="tab" href="#layer-03" data-layer="03"><span class="num">03</span>Time</a><span class="tab soon">04–10 coming soon</span></nav>
     <div class="tools">
       <button class="btn ghost tip" type="button" data-save data-tip="Copies a private link with your code and answers. Open it on another device to pick up where you left off. Nothing is uploaded.">Save progress</button>
       <a class="btn ghost tip" data-showcase href="showcase.html" target="_blank" rel="noopener" data-tip="Opens a page that runs your engine and shows what it draws, ready to share. Your checkpoint answers stay private.">Share my engine ↗</a>
@@ -760,6 +760,164 @@ MS.answers("02", {
     <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send it too.</p><pre data-tutor-text></pre></details>
   </aside>
 </section>
+
+<section class="chapter" id="layer-03" data-layer="03">
+  <div class="read">
+    <header class="ch-head">
+      <span class="eyebrow">Layer 03</span>
+      <h2>Time</h2>
+      <p class="lede">A video is a function from frame numbers to pictures.</p>
+      <a class="to-bench" href="#bench-03">Open the workbench ↓</a>
+    </header>
+    <p class="meta"><strong>You'll write:</strong> <code>secondsToFrames</code>, <code>framesToSeconds</code>, <code>timecode</code>, <code>createComposition</code>, <code>renderFrame</code>, <code>frameAt</code> in <code>src/03-time.js</code><br><strong>Builds on:</strong> layers 00–02</p>
+<p>Everything so far draws one picture. KineticIntro is 180 of them, shown 30 a second for six seconds. This layer adds time, though not the way you might expect: instead of nudging things a little on every tick, you'll describe each frame as a function of its number, <code>n</code>. That one decision, which <a href="https://www.remotion.dev/docs/the-fundamentals" target="_blank" rel="noopener">Remotion</a> is built on, is what lets a video jump to any frame, render in any order, and come out the same every time.</p>
+<h3 data-anchor="under-the-hood">Under the hood</h3>
+<h4 data-anchor="motion-is-still-pictures-fast">Motion is still pictures, fast</h4>
+<p>Show still pictures quickly enough and your eye reads them as movement. Film shows 24 a second, most web video 30 or 60. That rate is the <strong>frame rate</strong>, in frames per second (fps). Frame <code>n</code> is on screen from <code>n / fps</code> seconds until the next frame starts:</p>
+<pre class="diagram"><code>  time (ms)   0          33.3        66.7        100
+              │ frame 0   │ frame 1   │ frame 2   │ frame 3 …     at 30 fps
+              └─ 1000 ÷ 30 = 33.3 ms ─┘</code></pre>
+<p>So converting is multiplying or dividing by fps: 1.5 seconds at 30 fps is 45 frames, and 45 frames is 1.5 seconds. Only one direction needs rounding, because a clip can't last half a frame.</p>
+<h4 data-anchor="frame-f-n">frame = f(n)</h4>
+<p>There are two ways to make a ball move. One keeps state and changes it on every tick: <code>x = x + 2</code>. The other computes the picture straight from the frame number: <code>x = 2 × n</code>.</p>
+<pre class="diagram"><code>  by mutation:   tick → x += 2 → draw      frame 40 depends on frames 0–39 having run, in order
+  by f(n):       n    → x = 2n → draw      frame 40 depends only on 40</code></pre>
+<p>The second way wins everywhere that matters. A timeline can jump to frame 140 without playing 0–139. Frames can render out of order, or in parallel: Remotion splits a long video across many CPU cores or cloud machines. And the same <code>n</code> always gives the same picture, so a frame can be tested like any other function.</p>
+<p>A <strong>composition</strong> packages that function with what a player needs to know: <code>width</code>, <code>height</code>, <code>fps</code>, <code>durationInFrames</code>, and <code>render(frame, n)</code>. Those are the same props as Remotion's <a href="https://www.remotion.dev/docs/composition" target="_blank" rel="noopener"><code>&lt;Composition&gt;</code></a>. KineticIntro's are 1080 × 1920, 30 fps, 180 frames. <code>renderFrame</code> gives <code>render</code> a brand-new, empty frame every time, so a frame can't depend on what was drawn before it.</p>
+<blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain why describing frame n as a function of n beats moving things a little on every tick. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2003%20%28Time%29%3A%20frame%20%3D%20f%28n%29%20and%20a%20player%20that%20keeps%20time.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20describing%20frame%20n%20as%20a%20function%20of%20n%20beats%20moving%20things%20a%20little%20on%20every%20tick.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2003%20%28Time%29%3A%20frame%20%3D%20f%28n%29%20and%20a%20player%20that%20keeps%20time.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20describing%20frame%20n%20as%20a%20function%20of%20n%20beats%20moving%20things%20a%20little%20on%20every%20tick.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
+<h4 data-anchor="timecode">Timecode</h4>
+<p>Video editors label frames with <a href="https://en.wikipedia.org/wiki/SMPTE_timecode" target="_blank" rel="noopener">SMPTE timecode</a>: <code>HH:MM:SS:FF</code>, hours, minutes, seconds, then the frame within the current second. The last field counts up to <code>fps − 1</code>, not 99. At 24 fps, frame 100 is 4 seconds and 4 frames: <code>00:00:04:04</code>.</p>
+<h4 data-anchor="a-player-keeps-time">A player keeps time</h4>
+<p>To play a composition, a browser page asks for <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame" target="_blank" rel="noopener"><code>requestAnimationFrame</code></a> callbacks. The browser calls back before each screen refresh, 60 or 120 times a second depending on the screen, with a timestamp. The player turns the time that has passed into a frame number:</p>
+<pre class="diagram"><code>  screen refreshes (60 Hz):   │  │  │  │  │  │  │  │  │      every 16.7 ms
+  video frames (30 fps):      │  0  │  1  │  2  │  3  │      every 33.3 ms
+                                → each frame is shown on two refreshes</code></pre>
+<p>A frame stays on screen until the next one has <em>started</em>, so the player counts whole frames and never rounds up. If drawing a frame takes too long, the player doesn't fall behind: on the next refresh it shows whatever frame the clock says, skipping the ones in between. That's a <strong>dropped frame</strong>. An animation built on <code>x += 2</code> would slow down instead. Past the end, a looping player starts again from 0; the <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Remainder" target="_blank" rel="noopener">remainder operator</a> <code>%</code> does exactly that wrap-around.</p>
+<p>From this layer on, the test pictures move. The page plays them with <code>lib/present.js</code>, which uses <em>your</em> <code>frameAt</code> and <code>renderFrame</code> to decide what to show.</p>
+<h3 data-anchor="your-turn">Your turn</h3>
+<p>Work through <code>src/03-time.js</code> top to bottom. Each function's comment is its spec. Some questions to guide you, in order:</p>
+<ol><li><strong>secondsToFrames, framesToSeconds.</strong> Only one of them rounds. Which, and why?</li><li><strong>timecode.</strong> How many frames are in one minute at a given fps? Which operator gives you what's left over after taking out whole seconds?</li><li><strong>createComposition.</strong> What counts as a positive whole number? Layer 00's <code>createFrame</code> asked the same question.</li><li><strong>renderFrame.</strong> Why make a new frame on every call instead of keeping one? What would frame 3 contain if you didn't?</li><li><strong>frameAt.</strong> Frame <code>k</code> starts at <code>k × 1000 / fps</code> ms. At 40 ms into a 30 fps clip, which frames have started? What should a 90-frame loop show at exactly 3000 ms?</li></ol>
+<p>Run the tests after each function. A failing test tells you exactly what it expected.</p>
+<p>Once it works, the test pictures play: a ball that crosses the frame in exactly one second, and a clock showing every frame's timecode.</p>
+<blockquote class="ask"><strong>Study buddy:</strong> "I'll paste my frameAt. Don't fix it. Give me an elapsed time where it would show the wrong frame, and let me work out why." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2003%20%28Time%29%3A%20frame%20%3D%20f%28n%29%20and%20a%20player%20that%20keeps%20time.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27ll%20paste%20my%20frameAt.%20Don%27t%20fix%20it.%20Give%20me%20an%20elapsed%20time%20where%20it%20would%20show%20the%20wrong%20frame%2C%20and%20let%20me%20work%20out%20why." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2003%20%28Time%29%3A%20frame%20%3D%20f%28n%29%20and%20a%20player%20that%20keeps%20time.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27ll%20paste%20my%20frameAt.%20Don%27t%20fix%20it.%20Give%20me%20an%20elapsed%20time%20where%20it%20would%20show%20the%20wrong%20frame%2C%20and%20let%20me%20work%20out%20why." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
+<h3 data-anchor="predict-then-run">Predict, then run</h3>
+<p>Guess first, then run.</p>
+<div class="tryit" data-kind="predict" data-layer="03" data-key="03-p1">
+<textarea class="tryit-code" rows="4" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 1 code">// Predict 1: how long is one frame on screen at 30 fps, in milliseconds?
+const myGuess = null; // TODO: your guess, rounded to 2 decimals
+MS.reveal("one frame at 30 fps, in ms", myGuess, Math.round(MS.framesToSeconds(1, 30) * 100000) / 100);</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<div class="tryit" data-kind="predict" data-layer="03" data-key="03-p2">
+<textarea class="tryit-code" rows="4" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 2 code">// Predict 2: after exactly one second, which frame does a 30 fps player show?
+const myGuess = null; // TODO: your guess, a frame number
+MS.reveal("frame on screen at 1000 ms", myGuess, MS.frameAt(1000, 30, 90));</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<div class="tryit" data-kind="predict" data-layer="03" data-key="03-p3">
+<textarea class="tryit-code" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 3 code">// Predict 3: a 120 Hz screen refreshes every 8.33 ms. During one second of
+// a 30 fps video, on how many of those 120 refreshes does the picture change?
+const myGuess = null; // TODO: your guess, a whole number
+let changes = 0, last = -1;
+for (let k = 0; k &lt; 120; k++) {
+  const n = MS.frameAt((k * 1000) / 120, 30, 300);
+  if (n !== last) { changes++; last = n; }
+}
+MS.reveal("refreshes that show a new frame", myGuess, changes);</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<details><summary>Answers</summary>
+<ol><li>33.33 ms (1000 ÷ 30). That's the whole time budget for drawing a frame if you want to play in real time.</li><li>30, not 29 or 31. Frames are numbered from 0, so after one second frames 0–29 have finished and frame 30 has just started, the same way pixel coordinates start at 0.</li><li>30. The screen refreshes 120 times, but the video only has 30 new pictures each second, so each one stays up for 4 refreshes in a row. The video looks the same on a 60 Hz screen; each frame just gets 2 refreshes.</li></ol>
+</details>
+<h3 data-anchor="break-it">Break it</h3>
+<p>Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.</p>
+<h4 data-anchor="1-reuse-the-frame">1. Reuse the frame</h4>
+<div class="tryit" data-kind="break" data-layer="03" data-key="03-b1">
+<textarea class="tryit-code" rows="12" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 1 code">// Break it 1: does each frame start clean?
+// TODO(break-it), in src/03-time.js → renderFrame:
+//   make the frame once, keep it in a variable outside the function,
+//   and reuse it on every call. Change nothing else.
+const comp = MS.createComposition({
+  width: 12, height: 3, fps: 30, durationInFrames: 12,
+  render(frame, n) { MS.setPixel(frame, n, 1, [255, 255, 255]); },   // one dot per frame
+});
+console.log(MS.asciiFrame(MS.renderFrame(comp, 3)));
+console.log(MS.asciiFrame(MS.renderFrame(comp, 7)));
+// TODO: before the change each frame has one dot. After it, what does frame 7 show, and why?</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<p>Players render frames out of order all the time: scrubbing, seeking, and rendering in parallel. A frame that depends on the one before it breaks all three.</p>
+<h4 data-anchor="2-round-instead-of-counting">2. Round instead of counting</h4>
+<div class="tryit" data-kind="break" data-layer="03" data-key="03-b2">
+<textarea class="tryit-code" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 2 code">// Break it 2: which frame is on screen at 20 ms?
+// TODO(break-it), in src/03-time.js → frameAt:
+//   round to the nearest frame (Math.round) instead of counting started frames.
+for (const ms of [0, 10, 20, 30, 40, 50]) console.log(ms + " ms → frame " + MS.frameAt(ms, 30, 90));
+// TODO: after the change, at which times does the player show a frame that hasn't started yet?</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<h4 data-anchor="3-forget-to-loop">3. Forget to loop</h4>
+<div class="tryit" data-kind="break" data-layer="03" data-key="03-b3">
+<textarea class="tryit-code" rows="11" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 3 code">// Break it 3: what happens at the end of the clip?
+// TODO(break-it), in src/03-time.js → frameAt:
+//   return the number of started frames without looping or holding.
+const comp = MS.createComposition({ width: 4, height: 4, fps: 30, durationInFrames: 90, render() {} });
+for (const ms of [2900, 2990, 3000, 3100]) {
+  const n = MS.frameAt(ms, 30, comp.durationInFrames);
+  try { MS.renderFrame(comp, n); console.log(ms + " ms → frame " + n + ": drawn"); }
+  catch (e) { console.log(ms + " ms → frame " + n + ": " + e.message); }
+}
+// TODO: after the change, what happens at 3 seconds, and which function notices?</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<h3 data-anchor="checkpoint">Checkpoint</h3>
+<p>When all 13 tests pass, the checkpoint unlocks (layer 00 explains how it works). Its traps: moments a hair before a frame starts, a clip that loops, a clip that holds its last frame, half a frame to round, and a timecode caption. The three questions are below.</p>
+<div class="cpcell" data-layer="03">
+<textarea class="tryit-code" rows="11" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint 03 answers">// Checkpoint 03 · Time. Replace each null with your answer.
+MS.answers("03", {
+  // 1. At 24 fps, how many frames long is a 2.5-second clip?
+  q1: null,
+  // 2. A 30 fps player loops a 60-frame clip. 2,350 ms after it starts,
+  //    which frame number is on screen?
+  q2: null,
+  // 3. What is the timecode of frame 4,000 at 25 fps? Answer as a string.
+  q3: null,
+});</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button></div>
+<div class="cp-result" data-cp-out hidden></div>
+</div>
+<h3 data-anchor="in-the-real-world">In the real world</h3>
+<ul><li>In Remotion, <a href="https://www.remotion.dev/docs/use-current-frame" target="_blank" rel="noopener"><code>useCurrentFrame()</code></a> hands every component its <code>n</code>, and a component is your <code>render</code>: a function of the frame number.</li><li>For real video files, a <code>&lt;video&gt;</code> element's <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/requestVideoFrameCallback" target="_blank" rel="noopener"><code>requestVideoFrameCallback</code></a> tells you exactly which decoded frame is on screen, the same question <code>frameAt</code> answers.</li><li>US broadcast video runs at 29.97 fps, a leftover from adding color to black-and-white TV, so its timecode has to skip some labels to stay in step with the clock: <a href="https://en.wikipedia.org/wiki/SMPTE_timecode#Drop-frame_timecode" target="_blank" rel="noopener">drop-frame timecode</a>.</li></ul>
+<h3 data-anchor="going-further-optional">Going further (optional)</h3>
+<ul><li><strong>Read the original.</strong> The HTML Standard's <a href="https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#animation-frames" target="_blank" rel="noopener">animation frames</a> section: when <code>requestAnimationFrame</code> callbacks run, and what the timestamp means.</li><li>Give the player controls: pause, scrub to any frame (easy, because a frame is just <code>f(n)</code>), and play at half speed.</li><li>Write <code>timecodeDropFrame(n)</code> for 29.97 fps, which skips the labels <code>:00</code> and <code>:01</code> at the start of every minute except every tenth minute. Check it against an online timecode calculator.</li></ul>
+  </div>
+  <aside class="bench" id="bench-03" aria-label="Layer 03 workbench">
+    <div class="bench-head">
+      <span class="num">03</span><strong>Workbench</strong>
+      <span class="score" data-score></span>
+    </div>
+    <p class="bench-note">Your <code>src/03-time.js</code>. Edits save in this browser. Runs on top of your earlier layers.</p>
+    <textarea class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" id="editor-03" aria-label="Code for layer 03"></textarea>
+    <div class="bench-actions">
+      <button class="btn" type="button" data-run>Run tests <kbd data-kbd>⌘↵</kbd></button>
+      <button class="btn ghost" type="button" data-copy>Copy</button>
+      <button class="btn ghost" type="button" data-reset>Reset to starter code</button>
+    </div>
+    <p class="bench-confirm" data-confirm hidden>Replace your code with the starter code? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <p class="help">Stuck? <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2003%20%28Time%29%3A%20frame%20%3D%20f%28n%29%20and%20a%20player%20that%20keeps%20time.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Ask Claude</a> · <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2003%20%28Time%29%3A%20frame%20%3D%20f%28n%29%20and%20a%20player%20that%20keeps%20time.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Ask ChatGPT</a>
+      <span class="level"><span class="tip" tabindex="0" data-tip="How much help a tutor may give you. 1 is questions only; 5 points at the line to look at. The Ask links and Claude in Chrome both follow it.">Hint level</span><span class="dots" role="radiogroup" aria-label="Hint level"><button type="button" role="radio" aria-checked="false" data-level="1" title="1: ask what I expected, what happened and what I've tried" aria-label="Level 1: ask what I expected, what happened and what I've tried"></button><button type="button" role="radio" aria-checked="false" data-level="2" title="2: point at a failing test's expected vs actual values" aria-label="Level 2: point at a failing test's expected vs actual values"></button><button type="button" role="radio" aria-checked="false" data-level="3" title="3: ask a concept question and point to the chapter section" aria-label="Level 3: ask a concept question and point to the chapter section"></button><button type="button" role="radio" aria-checked="false" data-level="4" title="4: explain with an analogy or ASCII diagram, using different numbers" aria-label="Level 4: explain with an analogy or ASCII diagram, using different numbers"></button><button type="button" role="radio" aria-checked="false" data-level="5" title="5: point at the line to look at and ask about it" aria-label="Level 5: point at the line to look at and ask about it"></button></span><span class="level-now" data-hint-level></span></span></p>
+    <div class="bench-error" data-error hidden></div>
+    <ul class="results" data-results></ul>
+    <div class="visuals" data-visuals></div>
+    <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send it too.</p><pre data-tutor-text></pre></details>
+  </aside>
+</section>
 <script type="text/plain" id="lib-course">// lib/course.js — the course map. PROVIDED.
 // Every page and the test runner read this list, so a layer only has to be
 // added here once.
@@ -771,7 +929,7 @@ MS.answers("02", {
       { id: "00", slug: "pixels", title: "Pixels", builds: "a framebuffer: memory you can see", ready: true },
       { id: "01", slug: "shapes", title: "Shapes & blending", builds: "rectangles, circles, alpha, gradients", ready: true },
       { id: "02", slug: "glyphs", title: "Glyphs", builds: "text from a hand-made bitmap font", ready: true },
-      { id: "03", slug: "time", title: "Time", builds: "frame = f(n) and a player that keeps time", ready: false },
+      { id: "03", slug: "time", title: "Time", builds: "frame = f(n) and a player that keeps time", ready: true },
       { id: "04", slug: "interpolate", title: "Interpolate", builds: "lerp, clamp, ranges, extrapolation", ready: false },
       { id: "05", slug: "easing", title: "Easing", builds: "a cubic-Bézier solver", ready: false },
       { id: "06", slug: "springs", title: "Springs", builds: "physics stepping and stability", ready: false },
@@ -1284,6 +1442,14 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
           "right": 149
         }
       ]
+    },
+    "03": {
+      "mystery": "9c57c2ed",
+      "questions": {
+        "q1": "768fb158",
+        "q2": "f3db86c8",
+        "q3": "082b249c"
+      }
     }
   };
 })(globalThis.MS = globalThis.MS || {});
@@ -1486,6 +1652,69 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   });
 })(globalThis.MS = globalThis.MS || {});
 </script>
+<script type="text/plain" id="mystery-03">// lib/mysteries/03-time.js — layer 03's checkpoint picture. PROVIDED.
+// Six panels from a 12-frame film, each picked by your timing functions at a
+// tricky moment, plus a timecode caption. Every rule right spells a word.
+// draw() runs the learner's functions; check() says which rule went wrong,
+// never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+(function (MS) {
+  const FILM = "T?#MIN??#GXI";   // frame n shows FILM[n]
+  const FPS = 12;
+  // How each panel picks its frame. The right answers spell the word.
+  const PANELS = [
+    { why: "83.2 ms in (frame 1 starts at 83.33 ms)", pick: () => MS.frameAt(83.2, FPS, 12) },
+    { why: "416.6 ms in (frame 5 starts at 416.67 ms)", pick: () => MS.frameAt(416.6, FPS, 12) },
+    { why: "1.25 s into the 1-second loop", pick: () => MS.frameAt(1250, FPS, 12) },
+    { why: "5 s into a clip that doesn't loop", pick: () => MS.frameAt(5000, FPS, 12, false) },
+    { why: "0.375 s, converted to frames", pick: () => MS.secondsToFrames(0.375, FPS) },
+    { why: "3.75 s into the loop", pick: () => MS.frameAt(3750, FPS, 12) },
+  ];
+  const PW = 9, PH = 11, GAP = 2, M = 3;
+
+  MS.mystery("03", {
+    draw() {
+      const film = MS.createComposition({
+        width: PW, height: PH, fps: FPS, durationInFrames: 12,
+        render(frame, n) { MS.clearFrame(frame, [26, 39, 64]); MS.drawText(frame, FILM[n], 2, 2, 1, [255, 255, 255]); },
+      });
+      const W = M * 2 + PANELS.length * PW + (PANELS.length - 1) * GAP, H = M + PH + M + 7 + M;
+      const sheet = MS.createFrame(W, H);
+      MS.clearFrame(sheet, [11, 13, 18]);
+      const picked = [], failed = [];
+      PANELS.forEach((p, i) => {
+        let panel = null;
+        try { picked[i] = p.pick(); panel = MS.renderFrame(film, picked[i]); }
+        catch (e) { failed[i] = e.message; }
+        const x0 = M + i * (PW + GAP);
+        for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
+          const k = ((M + y) * W + x0 + x) * 4;
+          if (panel) sheet.data.set(panel.data.subarray((y * PW + x) * 4, (y * PW + x) * 4 + 4), k);
+          else sheet.data.set((x === y || x === PW - 1 - y) ? [255, 92, 138, 255] : [40, 10, 20, 255], k);   // a red X: this panel couldn't be drawn
+        }
+      });
+      let caption = "";
+      try { caption = MS.timecode(18, FPS); MS.drawText(sheet, caption, W / 2, M + PH + M, 1, [138, 147, 166], { align: "center" }); }
+      catch (e) { failed.caption = e.message; }
+      return { frame: sheet, picked, failed, caption };
+    },
+    check({ frame, picked, failed, caption }, data) {
+      const hints = [];
+      const want = [0, 4, 3, 11, 5, 9];
+      failed.forEach((msg, i) => { if (msg) hints.push(`Panel ${i + 1} (${PANELS[i].why}) couldn't be drawn: ${msg}`); });
+      if (picked[0] === 1 || picked[1] === 5) hints.push("Panel 1 or 2 shows the frame after the right one. A frame is on screen only once it has fully started: count the frames that have started, don't round.");
+      if (picked[2] !== undefined && picked[2] !== 3) hints.push(`Panel 3 should be a quarter of the way through the clip's second time around. Past the last frame, a looping player starts again from 0.`);
+      if (picked[3] !== undefined && picked[3] !== 11) hints.push("Panel 4 should hold the last frame: with loop = false, a player that runs past the end stays on frame durationInFrames − 1.");
+      if (picked[4] !== undefined && picked[4] !== 5) hints.push("Panel 5 is a frame off. 0.375 s at 12 fps is 4.5 frames, and secondsToFrames rounds to the nearest whole frame (halves go up).");
+      if (picked[5] !== undefined && picked[5] !== 9 && picked[2] === 3) hints.push("Panel 6 is wrong although panel 3 is right: the loop has to work for any number of times around.");
+      const ghost = (() => { try { const f = MS.createComposition({ width: 4, height: 1, fps: 1, durationInFrames: 4, render: (fr, n) => MS.setPixel(fr, n, 0, [255, 255, 255]) }); MS.renderFrame(f, 1); return MS.renderFrame(f, 2).data[7] > 0; } catch (e) { return false; } })();
+      if (ghost) hints.push("Letters are piling up on top of each other: each call to renderFrame should start from a new, empty frame.");
+      if (!failed.caption && caption !== "00:00:01:06") hints.push(`The caption reads "${caption}". Every timecode field has two digits, and the last one counts frames within the current second.`);
+      const matches = MS.hashFrame(frame) === data.mystery && want.every((v, i) => picked[i] === v);
+      return { wrong: matches ? 0 : 1, hints };
+    },
+  });
+})(globalThis.MS = globalThis.MS || {});
+</script>
 <script type="text/plain" id="stub-00">// Layer 00 · Pixels — a framebuffer: memory you can see.
 // Read the chapter first (docs/00-pixels.md). Each comment below is a spec; the tests check it.
 //
@@ -1674,6 +1903,74 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   }
 
   Object.assign(MS, { GLYPH_W, GLYPH_H, drawGlyph, measureText, drawText });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="stub-03">// Layer 03 · Time — frame = f(n) and a player that keeps time.
+// Read the chapter first (docs/03-time.md). Each comment below is a spec; the tests check it.
+// From here on, `frame` is a picture (layer 00) and `n` is a frame number: 0, 1, 2, …
+(function (MS) {
+  /**
+   * How many frames does `seconds` last at `fps` frames per second?
+   * Round to the nearest whole frame (Math.round).
+   *   secondsToFrames(2, 30) → 60
+   */
+  function secondsToFrames(seconds, fps) {
+    throw MS.todo("secondsToFrames");
+  }
+
+  /**
+   * How many seconds do `n` frames last at `fps`? Don't round.
+   *   framesToSeconds(45, 30) → 1.5
+   */
+  function framesToSeconds(n, fps) {
+    throw MS.todo("framesToSeconds");
+  }
+
+  /**
+   * Frame number n as a timecode string "HH:MM:SS:FF": hours, minutes,
+   * seconds, and the frame within the current second. Every field has
+   * two digits. fps is a whole number.
+   *   timecode(30 * 61 + 5, 30) → "00:01:01:05"
+   */
+  function timecode(n, fps) {
+    throw MS.todo("timecode");
+  }
+
+  /**
+   * Check and return a composition: a video described as a function.
+   *   spec = { width, height, fps, durationInFrames, render }
+   * width, height, fps and durationInFrames must be positive whole numbers,
+   * and render a function. Throw an Error otherwise. Return a new object
+   * with exactly those five properties.
+   * render(frame, n) draws frame number n into `frame`.
+   */
+  function createComposition(spec) {
+    throw MS.todo("createComposition");
+  }
+
+  /**
+   * Draw frame number n of composition `comp` and return it:
+   * make a new frame of the composition's size (createFrame), call
+   * comp.render(frame, n), and return the frame.
+   * Throw an Error unless n is a whole number from 0 to durationInFrames − 1.
+   */
+  function renderFrame(comp, n) {
+    throw MS.todo("renderFrame");
+  }
+
+  /**
+   * Which frame should a player show after `elapsedMs` milliseconds?
+   * Count the frames that have fully started: frame k starts at
+   * k × 1000 / fps ms. Past the last frame:
+   *   loop = true   start again from 0 (a 90-frame clip shows frame 0 after frame 89)
+   *   loop = false  stay on the last frame
+   * elapsedMs is never negative.
+   */
+  function frameAt(elapsedMs, fps, durationInFrames, loop = true) {
+    throw MS.todo("frameAt");
+  }
+
+  Object.assign(MS, { secondsToFrames, framesToSeconds, timecode, createComposition, renderFrame, frameAt });
 })(globalThis.MS = globalThis.MS || {});
 </script>
 <script type="text/plain" id="test-00">// tests/00-pixels.test.js — PROVIDED. Read a failing test to see what's expected.
@@ -2025,6 +2322,108 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     MS.drawText(f, "RIGHT @", 100, 42, 2, MS.hex("#EAF0FA"), { align: "right" });
     return f;
   });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="test-03">// tests/03-time.test.js — PROVIDED. Read a failing test to see what's expected.
+(function (MS) {
+  const L = "03";
+  const dot = n => (frame, k) => { MS.setPixel(frame, k, 0, [255, 255, 255]); };   // a render that lights pixel (n, 0)
+  const lit = f => { let c = 0; for (let i = 3; i < f.data.length; i += 4) if (f.data[i]) c++; return c; };
+
+  MS.test(L, "secondsToFrames: seconds × fps", t => {
+    t.eq(MS.secondsToFrames(2, 30), 60, "2 s at 30 fps");
+    t.eq(MS.secondsToFrames(0.5, 60), 30, "0.5 s at 60 fps");
+  });
+
+  MS.test(L, "secondsToFrames rounds to the nearest whole frame", t => {
+    t.eq(MS.secondsToFrames(1.01, 30), 30, "30.3 frames → 30");
+    t.eq(MS.secondsToFrames(0.1, 25), 3, "2.5 frames → 3");
+  });
+
+  MS.test(L, "framesToSeconds: frames ÷ fps, not rounded", t => {
+    t.eq(MS.framesToSeconds(45, 30), 1.5, "45 frames at 30 fps");
+    t.close(MS.framesToSeconds(1, 60), 1 / 60, 1e-12, "one frame at 60 fps");
+  });
+
+  MS.test(L, "timecode pads every field to two digits", t => {
+    t.eq(MS.timecode(0, 30), "00:00:00:00");
+    t.eq(MS.timecode(7, 30), "00:00:00:07");
+  });
+
+  MS.test(L, "timecode carries frames into seconds, minutes and hours", t => {
+    t.eq(MS.timecode(30, 30), "00:00:01:00", "30 frames at 30 fps is one second");
+    t.eq(MS.timecode(30 * 61 + 5, 30), "00:01:01:05");
+    t.eq(MS.timecode(25 * 3600, 25), "01:00:00:00", "an hour at 25 fps");
+  });
+
+  MS.test(L, "createComposition keeps the size, fps, duration and render", t => {
+    const render = () => {};
+    const c = MS.createComposition({ width: 64, height: 36, fps: 24, durationInFrames: 48, render });
+    t.eq(c.width, 64, "width"); t.eq(c.height, 36, "height"); t.eq(c.fps, 24, "fps");
+    t.eq(c.durationInFrames, 48, "durationInFrames"); t.eq(c.render, render, "render");
+  });
+
+  MS.test(L, "createComposition rejects numbers that aren't positive and whole", t => {
+    const ok = { width: 8, height: 8, fps: 30, durationInFrames: 10, render: () => {} };
+    t.throws(() => MS.createComposition({ ...ok, width: 0 }), "width 0");
+    t.throws(() => MS.createComposition({ ...ok, height: 2.5 }), "height 2.5");
+    t.throws(() => MS.createComposition({ ...ok, fps: 29.97 }), "fps 29.97");
+    t.throws(() => MS.createComposition({ ...ok, durationInFrames: -1 }), "durationInFrames -1");
+  });
+
+  MS.test(L, "createComposition rejects a render that isn't a function", t => {
+    t.throws(() => MS.createComposition({ width: 8, height: 8, fps: 30, durationInFrames: 10, render: "draw" }));
+  });
+
+  MS.test(L, "renderFrame hands render a new, empty frame each time", t => {
+    const c = MS.createComposition({ width: 8, height: 2, fps: 30, durationInFrames: 8, render: dot() });
+    const a = MS.renderFrame(c, 1), b = MS.renderFrame(c, 3);
+    t.eq(b.width, 8, "frame width"); t.eq(b.height, 2, "frame height");
+    t.pixel(b, 3, 0, [255, 255, 255, 255], "render got n = 3");
+    t.eq(lit(b), 1, "frame 3 shows only its own pixel, nothing left over from frame 1");
+    t.ok(a !== b, "each call makes its own frame");
+  });
+
+  MS.test(L, "renderFrame rejects frame numbers outside 0 … duration − 1", t => {
+    const c = MS.createComposition({ width: 4, height: 4, fps: 30, durationInFrames: 10, render: () => {} });
+    t.throws(() => MS.renderFrame(c, -1), "-1");
+    t.throws(() => MS.renderFrame(c, 10), "10 (the last frame is 9)");
+    t.throws(() => MS.renderFrame(c, 2.5), "2.5");
+  });
+
+  MS.test(L, "frameAt counts whole frames that have started", t => {
+    t.eq(MS.frameAt(0, 30, 90), 0, "at 0 ms");
+    t.eq(MS.frameAt(33.3, 30, 90), 0, "33.3 ms: frame 1 starts at 33.33 ms");
+    t.eq(MS.frameAt(33.4, 30, 90), 1, "33.4 ms");
+    t.eq(MS.frameAt(2000, 24, 100), 48, "2 s at 24 fps");
+  });
+
+  MS.test(L, "frameAt loops back to 0 after the last frame", t => {
+    t.eq(MS.frameAt(3000, 30, 90), 0, "3 s into a 3-second loop");
+    t.eq(MS.frameAt(3500, 30, 90), 15, "3.5 s");
+  });
+
+  MS.test(L, "frameAt holds the last frame when loop is false", t => {
+    t.eq(MS.frameAt(5000, 30, 90, false), 89, "5 s into a 3-second clip");
+    t.eq(MS.frameAt(1000, 30, 90, false), 30, "before the end it counts as usual");
+  });
+
+  // ---- pictures that move (they play with your frameAt and renderFrame) ----
+  MS.animation(L, "A ball that crosses the frame in exactly one second", () => MS.createComposition({
+    width: 64, height: 24, fps: 30, durationInFrames: 30,
+    render(frame, n) {
+      MS.clearFrame(frame, [11, 13, 18]);
+      MS.fillCircle(frame, 8 + (48 * n) / 29, 12, 6, MS.hex("#5B8CFF"));
+    },
+  }));
+
+  MS.animation(L, "A clock: the timecode of every frame at 30 fps", () => MS.createComposition({
+    width: 77, height: 15, fps: 30, durationInFrames: 90,
+    render(frame, n) {
+      MS.clearFrame(frame, [11, 13, 18]);
+      MS.drawText(frame, MS.timecode(n, 30), 6, 4, 1, MS.hex("#EAF0FA"));
+    },
+  }));
 })(globalThis.MS = globalThis.MS || {});
 </script>
 <script>
