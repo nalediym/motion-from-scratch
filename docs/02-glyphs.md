@@ -73,23 +73,99 @@ KineticIntro sets its words at a font size of 150 px in a 1080 px wide frame. Fo
 
 ## Predict, then run
 
-1. How wide is `"DESIGN."` at scale 4 with tracking 1?
-2. What does `drawGlyph(f, "Ä", 0, 0, 1, white)` draw?
-3. `drawText(f, "II", 20, 0, 1, white, { align: "center" })`: the width is 11, so the left edge is 14.5. Which pixel column gets the first ink, and why that one?
+Replace `null` with your guess, then run each block. (Terminal: `node tools/try.js 02 p1`, or copy a block into `scratch.js` and run `node tools/try.js --file scratch.js`.)
+
+```js predict
+// Predict 1: how wide is "DESIGN." at scale 4 with tracking 1?
+const myGuess = null; // TODO: your guess in pixels
+MS.reveal('measureText("DESIGN.", 4)', myGuess, MS.measureText("DESIGN.", 4));
+```
+
+```js predict
+// Predict 2: "Ä" isn't in the font. How many of its 35 cells get ink?
+const myGuess = null; // TODO: a number from 0 to 35
+const f = MS.createFrame(5, 7);
+MS.drawGlyph(f, "Ä", 0, 0, 1, [255, 255, 255]);
+let n = 0;
+for (let i = 3; i < f.data.length; i += 4) if (f.data[i]) n++;
+MS.reveal("cells inked for Ä", myGuess, n);
+console.log(MS.asciiFrame(f));
+```
+
+```js predict
+// Predict 3: centered on x = 20, "II" is 11 wide, so its left edge is 14.5.
+// Which column gets the first ink?
+const myGuess = null; // TODO: a column number
+const f = MS.createFrame(40, 7);
+MS.drawText(f, "II", 20, 0, 1, [255, 255, 255], { align: "center" });
+let first = -1;
+for (let x = 0; x < f.width; x++) if (MS.getPixel(f, x, 0)[3]) { first = x; break; }
+MS.reveal("first inked column", myGuess, first);
+```
 
 <details><summary>Answers</summary>
 
 1. 164 pixels: 7 glyphs × 5 cells × 4, plus 6 gaps × 1 × 4.
-2. Tofu. "Ä" isn't in the font, and uppercasing it doesn't help.
+2. 20. "Ä" isn't in the font and uppercasing it doesn't help, so you get tofu: the 20 cells around the edge of the box.
 3. Column 15. Your `fillRect` rounds edges, and `round(14.5)` is 15. Text lands on whole pixels, just like rectangles.
 
 </details>
 
 ## Break it
 
-1. **Put tracking after every glyph**, including the last, in `measureText`. Which tests fail? Center a word and look: it drifts right by half a gap. Real UI text that looks "slightly off-center" is often this bug.
-2. **Loop by index.** Change `drawText` to `for (let i = 0; i < text.length; i++)` and draw `"HI 👋"`. How many tofu boxes appear for the one emoji, and why?
-3. **Skip the uppercase step.** Draw `"Design."`. What appears?
+Each experiment has a **TODO** block (what to change in your code) and an **experiment** block (run it before and after). Undo each change afterwards. Terminal: `node tools/try.js 02 b1`.
+
+### 1. Tracking after every glyph
+
+```js
+// src/02-glyphs.js → measureText
+// TODO(break-it): count tracking after every glyph, including the last one.
+```
+
+```js experiment
+// Break it 1: is centered text still centered?
+const f = MS.createFrame(40, 7);
+MS.drawText(f, "II", 20, 0, 1, [255, 255, 255], { align: "center" });
+let left = -1, right = -1;
+for (let x = 0; x < f.width; x++) if (MS.getPixel(f, x, 0)[3]) { if (left < 0) left = x; right = x; }
+console.log("empty columns on the left:", left, "| on the right:", f.width - 1 - right);
+console.log(MS.asciiFrame(f));
+// TODO: before the change the two sides differ by one column (from rounding).
+// After it, which way does the text shift, and by how much? Why that direction?
+```
+
+Real UI text that looks "slightly off-center" is often this bug.
+
+### 2. Loop by index
+
+```js
+// src/02-glyphs.js → drawText
+// TODO(break-it): walk the text with for (let i = 0; i < text.length; i++) and text[i].
+```
+
+```js experiment
+// Break it 2: one emoji, drawn by your drawText.
+console.log('"HI 👋".length =', "HI 👋".length, '  [..."HI 👋"].length =', [..."HI 👋"].length);
+const f = MS.createFrame(30, 7);
+MS.drawText(f, "HI 👋", 0, 0, 1, [255, 255, 255]);
+console.log(MS.asciiFrame(f));
+// TODO: count the tofu boxes before and after the change. Why does one emoji become two?
+```
+
+### 3. Skip the uppercase step
+
+```js
+// src/02-glyphs.js → drawGlyph
+// TODO(break-it): look the character up exactly as given, without uppercasing it.
+```
+
+```js experiment
+// Break it 3: mixed-case text.
+const f = MS.createFrame(36, 7);
+MS.drawText(f, "Design", 0, 0, 1, [255, 255, 255]);
+console.log(MS.asciiFrame(f));
+// TODO: predict what you'll see after the change, then run. Which letters survive?
+```
 
 ## Checkpoint
 
@@ -105,9 +181,9 @@ KineticIntro sets its words at a font size of 150 px in a 1080 px wide frame. Fo
 
 ## Study buddy prompts
 
-- "I'm on layer 02 of Motion from Scratch. Ask me questions until I can explain the difference between advance, tracking and kerning. No code."
-- "Here's my measureText. Don't fix it; give me one input where it's wrong and let me work out why."
-- "Explain how outline fonts get rasterized, connecting it to the pixel-center rule I learned in layer 01."
+- "I'm on layer 02 of Motion from Scratch. Ask me questions until I can explain the difference between advance, tracking and kerning. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20the%20difference%20between%20advance%2C%20tracking%20and%20kerning.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20the%20difference%20between%20advance%2C%20tracking%20and%20kerning.%20No%20code.)
+- "Here's my measureText. Don't fix it; give me one input where it's wrong and let me work out why." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20measureText.%20Don%27t%20fix%20it%3B%20give%20me%20one%20input%20where%20it%27s%20wrong%20and%20let%20me%20work%20out%20why.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20measureText.%20Don%27t%20fix%20it%3B%20give%20me%20one%20input%20where%20it%27s%20wrong%20and%20let%20me%20work%20out%20why.)
+- "Explain how outline fonts get rasterized, connecting it to the pixel-center rule I learned in layer 01." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Explain%20how%20outline%20fonts%20get%20rasterized%2C%20connecting%20it%20to%20the%20pixel-center%20rule%20I%20learned%20in%20layer%2001.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Explain%20how%20outline%20fonts%20get%20rasterized%2C%20connecting%20it%20to%20the%20pixel-center%20rule%20I%20learned%20in%20layer%2001.)
 
 ## Going further (optional)
 

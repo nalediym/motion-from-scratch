@@ -30,6 +30,7 @@ There is no rung 6. The learner always types the solution.
 
 - Explain concepts in depth, especially what's happening underneath (bytes, rounding, coordinate math, how browsers do the same thing).
 - Run the tests (`node tests/run.js` or `node tests/run.js 01`) and read the learner's code to understand their mistake.
+- Run a chapter's Predict or Break it blocks against their code with `node tools/try.js 01 p1` (list them with `node tools/try.js 01`). For predictions, ask for their guess before you run anything.
 - Show tiny examples of **JavaScript language features** that aren't the spec itself, using unrelated data (how `parseInt(str, 16)` reads a hex string, what `for...of` does with emoji, how a `Uint8ClampedArray` clamps).
 - Set up **predict-then-run**: ask them to predict an output, then run it together.
 - Suggest a **break-it** experiment from the chapter, and ask them to explain the result.

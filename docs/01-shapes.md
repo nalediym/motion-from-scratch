@@ -115,13 +115,39 @@ When your tests pass, `tests.html` draws that exact background. It's the first r
 
 ## Predict, then run
 
-1. How many pixels does `fillRect(f, 0.4, 0, 2, 1, c)` cover? And `fillRect(f, 0.6, 0, 2, 1, c)`?
-2. A circle of radius 5 centered on a pixel center. The area of a circle is πr² ≈ 78.5. How many pixels will be filled?
-3. `[255, 0, 0, 128]` blended onto `[0, 0, 0, 0]`. What are the four numbers afterwards?
+Replace `null` with your guess, then run each block. (Terminal: `node tools/try.js 01 p1`, or copy a block into `scratch.js` and run `node tools/try.js --file scratch.js`.)
+
+```js predict
+// Predict 1: how many pixels does each rectangle cover?
+const myGuess = null; // TODO: your guess as [first, second]
+const count = f => { let n = 0; for (let i = 3; i < f.data.length; i += 4) if (f.data[i]) n++; return n; };
+const a = MS.createFrame(5, 1), b = MS.createFrame(5, 1);
+MS.fillRect(a, 0.4, 0, 2, 1, [255, 255, 255]);   // starts at x = 0.4
+MS.fillRect(b, 0.6, 0, 2, 1, [255, 255, 255]);   // starts at x = 0.6
+MS.reveal("pixels covered by each 2-wide rectangle", myGuess, [count(a), count(b)]);
+```
+
+```js predict
+// Predict 2: a circle of radius 5 has area πr² ≈ 78.5. How many pixels does it fill?
+const myGuess = null; // TODO: your guess, a whole number
+const f = MS.createFrame(21, 21);
+MS.fillCircle(f, 10.5, 10.5, 5, [255, 255, 255]);
+let n = 0;
+for (let i = 3; i < f.data.length; i += 4) if (f.data[i]) n++;
+MS.reveal("pixels in a radius-5 circle", myGuess, n);
+```
+
+```js predict
+// Predict 3: half-transparent red painted onto an empty, transparent pixel.
+const myGuess = null; // TODO: your guess as [r, g, b, a]
+const f = MS.createFrame(1, 1);
+MS.blendPixel(f, 0, 0, [255, 0, 0, 128]);
+MS.reveal("the pixel after blending", myGuess, MS.getPixel(f, 0, 0));
+```
 
 <details><summary>Answers</summary>
 
-1. Two each. Edges 0 → 2, and 1 → 3.
+1. `[2, 2]`. Edges round to 0 → 2 and 1 → 3.
 2. 81. Close to 78.5 but not equal: pixels are all-or-nothing, so the count wobbles around the true area.
 3. `[255, 0, 0, 128]`. The color stays pure red; only the alpha says "half there".
 
@@ -129,9 +155,68 @@ When your tests pass, `tests.html` draws that exact background. It's the first r
 
 ## Break it
 
-1. **Forget the division.** Remove `/ outAlpha` from `blendPixel`. Which tests fail? Blend 50% red onto a transparent pixel and look at the result: it's dark red, `[128, 0, 0, 128]`. When that pixel is later layered over something bright, it shows up as a dark fringe. Dark halos around cut-out images are this exact bug, in real software.
-2. **Make the right edge inclusive.** Change `fillRect` so it covers `right` too. Then draw two half-transparent rectangles side by side, one from 0 to 10 and the next from 10 to 20. Look closely at x = 10. What happened, and why does it look like a seam?
-3. **Skip the bounding box.** Make `fillCircle` loop over the whole frame. Time drawing 1,000 small circles on a 1080 × 1920 frame, before and after, with `console.time`.
+Each experiment has a **TODO** block (what to change in your code) and an **experiment** block (run it before and after). Undo each change afterwards. Terminal: `node tools/try.js 01 b1`.
+
+### 1. Forget the division
+
+```js
+// src/01-shapes.js → blendPixel
+// TODO(break-it): remove the "divide by outAlpha" step from the color math.
+//                 Keep the outAlpha math itself.
+```
+
+```js experiment
+// Break it 1: blend onto nothing, then layer the result over white.
+const f = MS.createFrame(1, 1);                  // transparent
+MS.blendPixel(f, 0, 0, [255, 0, 0, 128]);        // 50% red onto nothing
+const result = MS.getPixel(f, 0, 0);
+console.log("50% red on nothing:", result);
+const bg = MS.createFrame(1, 1);
+MS.clearFrame(bg, [255, 255, 255]);              // white card
+MS.blendPixel(bg, 0, 0, result);                 // put the result on top
+console.log("...then over white:", MS.getPixel(bg, 0, 0));
+// TODO: before the change the second line is a clean pink.
+// After it, what color do you get, and why is it darker?
+```
+
+Which tests fail? Dark halos around cut-out images in real software are this exact bug.
+
+### 2. Make the right edge inclusive
+
+```js
+// src/01-shapes.js → fillRect
+// TODO(break-it): make the rectangle also cover the pixel at x = right.
+```
+
+```js experiment
+// Break it 2: two half-transparent rectangles that share an edge at x = 10.
+const f = MS.createFrame(20, 1);
+MS.clearFrame(f, [255, 255, 255]);
+MS.fillRect(f, 0, 0, 10, 1, [0, 0, 255, 128]);   // covers 0..9
+MS.fillRect(f, 10, 0, 10, 1, [0, 0, 255, 128]);  // covers 10..19
+console.log("x = 9: ", MS.getPixel(f, 9, 0));
+console.log("x = 10:", MS.getPixel(f, 10, 0));
+console.log("x = 11:", MS.getPixel(f, 11, 0));
+// TODO: before the change all three match. After it, what happens at x = 10?
+// Why would that look like a seam?
+```
+
+### 3. Skip the bounding box
+
+```js
+// src/01-shapes.js → fillCircle
+// TODO(break-it): loop over every pixel in the frame instead of the circle's bounding box.
+```
+
+```js experiment
+// Break it 3: how long do 20 small circles take on a full-size frame?
+const f = MS.createFrame(1080, 1920);
+const start = Date.now();
+for (let i = 0; i < 20; i++) MS.fillCircle(f, 540, 960, 8, [255, 255, 255, 40]);
+console.log("20 circles of radius 8:", Date.now() - start, "ms");
+// TODO: run before and after. Roughly how many times slower is the full-frame loop?
+// How many pixels does each version test per circle?
+```
 
 ## Checkpoint
 
@@ -147,9 +232,9 @@ When your tests pass, `tests.html` draws that exact background. It's the first r
 
 ## Study buddy prompts
 
-- "I'm on layer 01 of Motion from Scratch. Without giving me code, walk me through Porter–Duff 'over' by asking me what should happen in three cases I can check by hand."
-- "Ask me to predict which pixels fillRect(1.5, 0, 2, 1) covers, then tell me whether my reasoning (not just my answer) was right."
-- "Explain straight versus premultiplied alpha with an analogy, then give me a break-it experiment that shows the difference."
+- "I'm on layer 01 of Motion from Scratch. Without giving me code, walk me through Porter–Duff 'over' by asking me what should happen in three cases I can check by hand." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20Without%20giving%20me%20code%2C%20walk%20me%20through%20Porter%E2%80%93Duff%20%27over%27%20by%20asking%20me%20what%20should%20happen%20in%20three%20cases%20I%20can%20check%20by%20hand.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20Without%20giving%20me%20code%2C%20walk%20me%20through%20Porter%E2%80%93Duff%20%27over%27%20by%20asking%20me%20what%20should%20happen%20in%20three%20cases%20I%20can%20check%20by%20hand.)
+- "Ask me to predict which pixels fillRect(1.5, 0, 2, 1) covers, then tell me whether my reasoning (not just my answer) was right." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20to%20predict%20which%20pixels%20fillRect%281.5%2C%200%2C%202%2C%201%29%20covers%2C%20then%20tell%20me%20whether%20my%20reasoning%20%28not%20just%20my%20answer%29%20was%20right.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20to%20predict%20which%20pixels%20fillRect%281.5%2C%200%2C%202%2C%201%29%20covers%2C%20then%20tell%20me%20whether%20my%20reasoning%20%28not%20just%20my%20answer%29%20was%20right.)
+- "Explain straight versus premultiplied alpha with an analogy, then give me a break-it experiment that shows the difference." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20Explain%20straight%20versus%20premultiplied%20alpha%20with%20an%20analogy%2C%20then%20give%20me%20a%20break-it%20experiment%20that%20shows%20the%20difference.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20Explain%20straight%20versus%20premultiplied%20alpha%20with%20an%20analogy%2C%20then%20give%20me%20a%20break-it%20experiment%20that%20shows%20the%20difference.)
 
 ## Going further (optional)
 

@@ -106,11 +106,32 @@ Run `node tests/run.js 00` after each function. A failing test tells you exactly
 
 ## Predict, then run
 
-Write your guess down before you check. The point is to notice where your mental model differs from the machine.
+Each block has a line for your guess. **Replace `null` with what you think will happen, then run the block.** It tells you whether you were right; the answers underneath explain why. Guess before you run: the point is to catch the places where your mental model and the machine disagree.
 
-1. `createFrame(1080, 1920).data.length` is what number?
-2. You call `setPixel(f, 0, 0, [300, -5, 127.6])`. What does `getPixel(f, 0, 0)` return?
-3. In the browser console, run `const a = new Uint8ClampedArray(4); a[1.5] = 200; a`. What's in `a`?
+To run a block, press **Run** under it in the guide or run its cell in a notebook. In a terminal, `node tools/try.js 00 p1` runs prediction 1; to fill in your guess there, copy the block into `scratch.js` and run `node tools/try.js --file scratch.js`.
+
+```js predict
+// Predict 1: how many bytes does one full-size video frame need?
+const myGuess = null; // TODO: your guess, a single number
+const frame = MS.createFrame(1080, 1920);
+MS.reveal("data.length of a 1080 × 1920 frame", myGuess, frame.data.length);
+```
+
+```js predict
+// Predict 2: what comes back after writing out-of-range numbers?
+const myGuess = null; // TODO: your guess as [r, g, b, a]
+const f = MS.createFrame(1, 1);
+MS.setPixel(f, 0, 0, [300, -5, 127.6]);
+MS.reveal("getPixel after setPixel([300, -5, 127.6])", myGuess, MS.getPixel(f, 0, 0));
+```
+
+```js predict
+// Predict 3: what happens when you write to slot 1.5? (None of your code is involved.)
+const myGuess = null; // TODO: your guess as an array of 4 numbers
+const a = new Uint8ClampedArray(4);
+a[1.5] = 200;
+MS.reveal("the array after a[1.5] = 200", myGuess, a);
+```
 
 <details><summary>Answers</summary>
 
@@ -124,11 +145,64 @@ Bonus: try `a[0] = 127.5; a[1] = 128.5`. Both become 128. Clamped arrays round e
 
 ## Break it
 
-Once your tests pass, break things on purpose and explain what you see. Undo each change afterwards.
+Once your tests pass, break things on purpose. Each experiment has two parts:
 
-1. **Swap x and y** in `pixelIndex`. Run the tests, then open `tests.html` and look at the XOR pattern. Which tests catch it, and what happened to the picture?
-2. **Delete the bounds check** in `setPixel`. Which test fails? Draw a pixel at `(width, 0)` and find where it actually landed.
-3. **Replace `Uint8ClampedArray` with `Uint8Array`** in `createFrame`. Which test fails, and what number did 300 become?
+- a **TODO** block saying what to change in your own code (it never shows the solution, only what to alter);
+- an **experiment** block to run before and after the change.
+
+Run the experiment, make the change, run it again, and explain the difference. Then undo the change and check your tests pass again. In a terminal: `node tools/try.js 00 b1`.
+
+### 1. Swap x and y
+
+```js
+// src/00-pixels.js → pixelIndex
+// TODO(break-it): swap x and y in your formula. Change nothing else.
+```
+
+```js experiment
+// Break it 1: where do two pixels start, before and after the swap?
+const f = MS.createFrame(4, 2);   // 4 wide, 2 tall: data has 32 slots, 0 to 31
+console.log("pixelIndex(3, 0) =", MS.pixelIndex(f, 3, 0));
+console.log("pixelIndex(0, 1) =", MS.pixelIndex(f, 0, 1));
+// TODO: note both numbers, make the change, run again.
+// Is either new number outside the 32 slots? What would setPixel do with it?
+```
+
+Then run `node tests/run.js 00` and look at the XOR pattern in `tests.html`. Which tests catch the swap, and what happened to the picture?
+
+### 2. Delete the bounds check
+
+```js
+// src/00-pixels.js → setPixel
+// TODO(break-it): comment out your check that (x, y) is inside the frame.
+```
+
+```js experiment
+// Break it 2: draw one pixel just past the right edge.
+const f = MS.createFrame(4, 3);
+MS.setPixel(f, 4, 0, [255, 255, 255]);   // x = width: there is no column 4
+console.log(MS.asciiFrame(f));
+// TODO: before the change you should see only dots (·).
+// After it, which pixel lit up, and why that one?
+```
+
+### 3. Lose the clamping
+
+```js
+// src/00-pixels.js → createFrame
+// TODO(break-it): use Uint8Array instead of Uint8ClampedArray.
+```
+
+```js experiment
+// Break it 3: out-of-range values, with and without clamping.
+const f = MS.createFrame(1, 1);
+MS.setPixel(f, 0, 0, [300, -5, 127.6]);
+console.log(MS.getPixel(f, 0, 0));
+// TODO: after the change, explain each of the three numbers.
+// Hint: 256 possible values wrap around like a clock face.
+```
+
+Which test fails with `Uint8Array`, and why would wrapping be a disaster for colors?
 
 ## Checkpoint
 
@@ -146,9 +220,9 @@ Once your tests pass, break things on purpose and explain what you see. Undo eac
 
 Paste one of these into Claude Code, Codex or ChatGPT. The repo's `CLAUDE.md` and `AGENTS.md` already tell coding agents not to hand you answers.
 
-- "I'm on layer 00 of Motion from Scratch. Don't give me code. Ask me questions until I can explain why the pixel index is (y × width + x) × 4."
-- "Here's my setPixel. Don't fix it. Tell me which test case would break it, and let me find the bug."
-- "Quiz me on Uint8ClampedArray versus Uint8Array with three predict-the-output questions."
+- "I'm on layer 00 of Motion from Scratch. Don't give me code. Ask me questions until I can explain why the pixel index is (y × width + x) × 4." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Don%27t%20give%20me%20code.%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20the%20pixel%20index%20is%20%28y%20%C3%97%20width%20%2B%20x%29%20%C3%97%204.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Don%27t%20give%20me%20code.%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20the%20pixel%20index%20is%20%28y%20%C3%97%20width%20%2B%20x%29%20%C3%97%204.)
+- "Here's my setPixel. Don't fix it. Tell me which test case would break it, and let me find the bug." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20setPixel.%20Don%27t%20fix%20it.%20Tell%20me%20which%20test%20case%20would%20break%20it%2C%20and%20let%20me%20find%20the%20bug.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20setPixel.%20Don%27t%20fix%20it.%20Tell%20me%20which%20test%20case%20would%20break%20it%2C%20and%20let%20me%20find%20the%20bug.)
+- "Quiz me on Uint8ClampedArray versus Uint8Array with three predict-the-output questions." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Quiz%20me%20on%20Uint8ClampedArray%20versus%20Uint8Array%20with%20three%20predict-the-output%20questions.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Quiz%20me%20on%20Uint8ClampedArray%20versus%20Uint8Array%20with%20three%20predict-the-output%20questions.)
 
 ## Going further (optional)
 

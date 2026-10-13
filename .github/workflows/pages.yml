@@ -27,11 +27,12 @@ jobs:
 
       - name: Check the generated guide and notebooks are up to date
         run: |
+          node tools/link-prompts.js
           node tools/build-guide.js
           node tools/build-notebooks.js
-          if ! git diff --quiet -- guide.html notebooks/; then
-            echo "::error::guide.html or notebooks/ are out of date. Run: node tools/build-guide.js && node tools/build-notebooks.js, then commit."
-            git diff --stat -- guide.html notebooks/
+          if ! git diff --quiet -- docs/ guide.html notebooks/; then
+            echo "::error::Generated files are out of date. Run: node tools/link-prompts.js && node tools/build-guide.js && node tools/build-notebooks.js, then commit."
+            git diff --stat -- docs/ guide.html notebooks/
             exit 1
           fi
 
@@ -45,7 +46,7 @@ jobs:
       - name: Assemble the site
         run: |
           mkdir -p _site/observable
-          cp -r index.html guide.html tests.html lib src tests docs notebooks tools LICENSE README.md AGENTS.md _site/
+          cp -r index.html guide.html tests.html scratch.js lib src tests docs notebooks tools LICENSE README.md AGENTS.md _site/
           rm -rf _site/notebooks/.observable
           cp -r notebooks/.observable/dist/. _site/observable/
           touch _site/.nojekyll

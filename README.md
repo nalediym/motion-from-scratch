@@ -43,6 +43,8 @@ Pick one way to work. Every option has the same chapters, starter code and tests
 
 You don't need Node to take the course; the browser runs everything. Node lets you (and an AI study buddy) run the same tests from a terminal. Run `node tools/pictures.js 01` to save a layer's pictures as PNG files.
 
+**Predict, then run and Break it, in a terminal:** `node tools/try.js 00` lists a layer's blocks, and `node tools/try.js 00 p1` or `node tools/try.js 00 b2` runs one against your code. To fill in a guess, copy the block into `scratch.js`, replace `null`, and run `node tools/try.js --file scratch.js`. In the guide and the notebooks every block is already an editable cell with a Run button.
+
 **Jupyter / VS Code setup:** install [Deno](https://docs.deno.com/runtime/getting_started/installation/), run `deno jupyter --install`, then open `notebooks/jupyter-deno.ipynb` and pick the Deno kernel.
 
 **Editing the Observable notebook:** download `notebooks/observable.html`, then in its folder run `npx -p @observablehq/notebook-kit notebooks preview --root .` and edit the file in any editor; the page reloads as you save. [Observable Desktop](https://observablehq.com/notebook-kit/desktop) (macOS) can open it too.
@@ -56,8 +58,8 @@ You don't need Node to take the course; the browser runs everything. Node lets y
 | Read the idea, with diagrams of what's happening underneath | `docs/NN-name.md` |
 | Write the functions. Each comment is the spec | `src/NN-name.js` |
 | Check: tests print expected vs actual, and pictures appear as your code works | `tests.html` or `node tests/run.js NN` |
-| Predict, then run: guess what the machine will do before you check | in each chapter |
-| Break it: undo something on purpose and explain the result | in each chapter |
+| Predict, then run: type your guess into the block, run it, and it tells you if you were right | in each chapter |
+| Break it: a TODO says what to change in your code; run the experiment before and after | in each chapter |
 
 There are no solutions in this repo. The tests are the judge, like Nand2Tetris.
 
@@ -89,7 +91,7 @@ guide.html  the interactive guide
 tests.html  results and pictures
 ```
 
-**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/build-guide.js && node tools/build-notebooks.js` and commit the results. CI checks they're up to date, then publishes the site to GitHub Pages.
+**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/link-prompts.js && node tools/build-guide.js && node tools/build-notebooks.js` and commit the results. CI checks they're up to date, then publishes the site to GitHub Pages.
 
 ## Credits
 

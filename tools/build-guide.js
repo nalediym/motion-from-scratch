@@ -34,9 +34,23 @@ function inline(s) {
   s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => codes[+i]);
   return s;
 }
-function markdown(md) {
+function tryCell(l, kind, n, codeText) {
+  const title = ((codeText.split("\n").find(x => x.startsWith("// ")) || "").replace(/^\/\/\s*/, ""));
+  const label = kind === "predict" ? `Predict ${n}` : `Break it ${n}`;
+  const hint = kind === "predict" ? "Replace <code>null</code> with your guess, then run." : "Run it, make the TODO change in your code, then run it again.";
+  const ask = C.blockAsk(kind, title);
+  const rows = Math.min(18, codeText.split("\n").length + 1);
+  return `<div class="tryit" data-kind="${kind}" data-layer="${l.id}" data-key="${l.id}-${kind[0]}${n}">
+<div class="tryit-head"><span class="tryit-tag">${label}</span><span>${hint}</span></div>
+<textarea class="tryit-code" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="${label} code">${esc(codeText)}</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button><span class="tryit-ask">Stuck? <a href="${C.claudeLink(l, ask)}" target="_blank" rel="noopener">Ask Claude</a> · <a href="${C.chatgptLink(l, ask)}" target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
+<pre class="tryit-out" hidden></pre>
+</div>`;
+}
+function markdown(md, l) {
   const lines = md.replace(/\r/g, "").split("\n");
   const out = [];
+  const count = { predict: 0, experiment: 0 };
   let i = 0, para = [];
   const flush = () => { if (para.length) { const meta = para.every(x => x.startsWith("**")); out.push(`<p${meta ? ' class="meta"' : ""}>${para.map(inline).join(meta ? "<br>" : " ")}</p>`); para = []; } };
   while (i < lines.length) {
@@ -48,7 +62,12 @@ function markdown(md) {
       i++;
       while (i < lines.length && !/^```/.test(lines[i])) body.push(lines[i++]);
       i++;
-      out.push(`<pre class="${lang === "text" ? "diagram" : ""}"><code>${esc(body.join("\n"))}</code></pre>`);
+      if (lang === "js predict" || lang === "js experiment") {
+        const kind = lang === "js predict" ? "predict" : "experiment";
+        out.push(tryCell(l, kind === "predict" ? "predict" : "break", ++count[kind], body.join("\n")));
+      } else {
+        out.push(`<pre class="${lang === "text" ? "diagram" : ""}"><code>${esc(body.join("\n"))}</code></pre>`);
+      }
       continue;
     }
     if (/^#{1,3} /.test(line)) {
@@ -88,7 +107,7 @@ const chapters = ready.map(l => {
   const md = read(f.doc);
   const lede = (md.match(/^_(.+)_\s*$/m) || [, ""])[1];
   const body = md.replace(/^_(.+)_\s*$/m, "");             // lede rendered in the header
-  return { l, lede, html: markdown(body) };
+  return { l, lede, html: markdown(body, l) };
 });
 
 const embed = (id, text) => `<script type="text/plain" id="${id}">${text.replace(/<\/script/gi, "<\\/script")}</script>`;
@@ -97,6 +116,7 @@ const sources = [
   embed("lib-font", read("lib/font5x7.js")),
   embed("lib-check", read("lib/check.js")),
   embed("lib-present", read("lib/present.js")),
+  embed("lib-experiment", read("lib/experiment.js")),
   ...ready.map(l => embed(`stub-${l.id}`, read(COURSE.files(l).src))),
   ...ready.map(l => embed(`test-${l.id}`, read(COURSE.files(l).test))),
 ].join("\n");
@@ -179,6 +199,14 @@ body { padding-block: 24px 80px; }
 .bench-error { border: 1px dashed var(--fail); color: var(--fail); font-family: var(--mono); font-size: 0.8rem; padding: 8px 10px; border-radius: 6px; overflow-wrap: anywhere; }
 .bench .visuals canvas { max-width: 100%; }
 .bench-buddy { font-size: 0.82rem; color: var(--muted); }
+.tryit { border: 1px solid var(--line); border-left: 3px solid var(--pencil); background: var(--paper); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; max-width: 100%; min-width: 0; }
+.tryit[data-kind="break"] { border-left-color: var(--key); }
+.tryit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 0.88rem; color: var(--muted); }
+.tryit-tag { font-family: var(--pixel); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); }
+.tryit-code { width: 100%; resize: vertical; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; tab-size: 2; color: var(--code-ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; white-space: pre; overflow: auto; }
+.tryit-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tryit-ask { font-size: 0.82rem; color: var(--muted); margin-left: auto; }
+.tryit-out { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .howto { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; max-width: 760px; }
 .howto summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .howto ol { margin: 10px 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
@@ -226,23 +254,26 @@ ${sources}
   const escH = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const mark = { pass: "✓", fail: "✗", todo: "·" };
 
+  // Fresh MS with the libraries plus your code for layers up to this one.
+  // Returns an error message, or null when everything loaded.
+  function prepare(id) {
+    globalThis.MS = {};
+    ["lib-course", "lib-font", "lib-check", "lib-present", "lib-experiment"].forEach(s => run($(s)));
+    for (const l of MS.COURSE.layers.filter(l => l.ready && l.id <= id)) {
+      try { run(codeFor(l.id)); }
+      catch (e) { return (l.id === id ? "Your code" : "Your layer " + l.id + " code") + " didn't load: " + e.name + ": " + e.message; }
+    }
+    return null;
+  }
+
   function runLayer(section) {
     const id = section.dataset.layer;
     const errBox = section.querySelector("[data-error]");
     const list = section.querySelector("[data-results]");
     const vis = section.querySelector("[data-visuals]");
     errBox.hidden = true; list.innerHTML = ""; vis.innerHTML = "";
-    globalThis.MS = {};
-    ["lib-course", "lib-font", "lib-check", "lib-present"].forEach(s => run($(s)));
-    const layers = MS.COURSE.layers.filter(l => l.ready && l.id <= id);
-    for (const l of layers) {
-      try { run(codeFor(l.id)); }
-      catch (e) {
-        errBox.hidden = false;
-        errBox.textContent = (l.id === id ? "Your code" : "Your layer " + l.id + " code") + " didn't load: " + e.name + ": " + e.message;
-        return;
-      }
-    }
+    const err = prepare(id);
+    if (err) { errBox.hidden = false; errBox.textContent = err; return; }
     run($("test-" + id));
     const results = MS.runTests(id);
     const passed = results.filter(r => r.status === "pass").length;
@@ -281,6 +312,26 @@ ${sources}
       catch (err) { ed.select(); done(false); }
     });
     runLayer(section);
+  });
+
+  // Predict / Break it cells
+  document.querySelectorAll(".tryit").forEach(cell => {
+    const ta = cell.querySelector(".tryit-code"), out = cell.querySelector(".tryit-out");
+    const k = "mfs-try-" + cell.dataset.key;
+    const saved = store.get(k);
+    if (saved !== null) ta.value = saved;
+    ta.addEventListener("input", () => store.set(k, ta.value));
+    const go = () => {
+      const err = prepare(cell.dataset.layer);
+      out.hidden = false;
+      out.textContent = err ? err : MS.runExperiment(ta.value);
+    };
+    ta.addEventListener("keydown", e => {
+      if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); ta.setRangeText("  ", ta.selectionStart, ta.selectionEnd, "end"); store.set(k, ta.value); }
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); go(); }
+    });
+    cell.querySelector("[data-try]").addEventListener("click", go);
+    cell.querySelector("[data-try-reset]").addEventListener("click", () => { ta.value = ta.defaultValue; store.set(k, ta.value); out.hidden = true; });
   });
 
   // highlight the tab for the chapter in view
