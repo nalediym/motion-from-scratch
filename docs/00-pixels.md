@@ -206,9 +206,27 @@ Which test fails with `Uint8Array`, and why would wrapping be a disaster for col
 
 ## Checkpoint
 
-- `node tests/run.js 00` shows 11 of 11 passing.
-- `tests.html` shows a checkerboard and a blue-and-orange XOR pattern under Layer 00.
-- You can explain, without looking, why pixel (3, 2) in a 10-wide frame starts at index 92.
+Your layer is **complete** when three things are true:
+
+1. **All 11 tests pass.** That unlocks the checkpoint.
+2. **The mystery picture comes out right.** The checkpoint runs your functions on a scrambled list of drawing commands full of this chapter's traps: fractional coordinates, pixels one step past the right edge, colors out of range. Get every rule right and a hidden word appears. Get one wrong and the picture shows it, with a hint about which rule to look at (never the fix).
+3. **Three questions are answered correctly** in `checkpoints/00-pixels.js` (in the guide and notebooks, the cell below). Answers are checked against fingerprints, so the repo can't spoil them. You may type an expression instead of a number, like `10 * 10`, or compute an answer with your own functions.
+
+```js checkpoint
+// Checkpoint 00 · Pixels. Replace each null with your answer, then run:
+//   node tests/run.js 00      (or press "Run checkpoint" in the guide)
+MS.answers("00", {
+  // 1. In a frame 12 pixels wide, at which index of data does pixel (7, 3) start?
+  q1: null,
+  // 2. How many bytes do 60 frames of 1920 × 1080 take, before any compression?
+  q2: null,
+  // 3. You store -5, 300, 127.5 and 128.5 into a new Uint8ClampedArray(4).
+  //    What does it hold? Answer as an array of 4 numbers.
+  q3: null,
+});
+```
+
+Run `node tests/run.js 00`. While tests are failing it shows **🔒 locked**; once they pass it draws the mystery picture right in your terminal and marks each question. When it says **★ Checkpoint passed: layer complete!**, move on. (`tests.html` shows a checkerboard and a blue-and-orange XOR pattern under Layer 00.)
 
 ## In the real world
 

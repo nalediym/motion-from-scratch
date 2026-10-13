@@ -31,12 +31,12 @@ const buddyLinks = l => `**Stuck?** Ask a study buddy that gives hints, not answ
 function segments(l) {
   const md = chapter(l);
   const out = [];
-  const re = /```js (predict|experiment)\n([\s\S]*?)```\n?/g;
-  const n = { predict: 0, break: 0 };
+  const re = /```js (predict|experiment|checkpoint)\n([\s\S]*?)```\n?/g;
+  const n = { predict: 0, break: 0, checkpoint: 0 };
   let last = 0, m;
   while ((m = re.exec(md))) {
     out.push({ md: md.slice(last, m.index) });
-    const kind = m[1] === "predict" ? "predict" : "break";
+    const kind = m[1] === "predict" ? "predict" : m[1] === "checkpoint" ? "checkpoint" : "break";
     const code = m[2].replace(/\n$/, "");
     const title = (code.split("\n").find(x => x.startsWith("// ")) || "").replace(/^\/\/\s*/, "");
     out.push({ kind, n: ++n[kind], code, title });
@@ -61,7 +61,10 @@ function withCodeCells(l, pushMd, pushBlock, pushCode) {
   }
   if (!inserted) pushCode();
 }
-const blockIntro = (l, s) => `**${s.kind === "predict" ? `Predict ${s.n}` : `Break it ${s.n}`}** · ${s.kind === "predict" ? "replace `null` with your guess, then run the cell." : "run it, make the TODO change in your code, then run it again."} Stuck? [Ask Claude](${C.claudeLink(l, C.blockAsk(s.kind, s.title))}) · [Ask ChatGPT](${C.chatgptLink(l, C.blockAsk(s.kind, s.title))})`;
+const cpAsk = "I'm working on this layer's checkpoint. Don't give me any answers or tell me if a specific answer is right. Ask me how I'm working each question out, and help me reason through the mystery picture's hints.";
+const blockIntro = (l, s) => s.kind === "checkpoint"
+  ? `**Checkpoint ${l.id}** · unlocks when every test passes. Replace each \`null\` with your answer, run the cell, then run the one below it. Stuck? [Ask Claude](${C.claudeLink(l, cpAsk)}) · [Ask ChatGPT](${C.chatgptLink(l, cpAsk)})`
+  :  `**${s.kind === "predict" ? `Predict ${s.n}` : `Break it ${s.n}`}** · ${s.kind === "predict" ? "replace `null` with your guess, then run the cell." : "run it, make the TODO change in your code, then run it again."} Stuck? [Ask Claude](${C.claudeLink(l, C.blockAsk(s.kind, s.title))}) · [Ask ChatGPT](${C.chatgptLink(l, C.blockAsk(s.kind, s.title))})`;
 const lines = s => s.split("\n").map((x, i, a) => (i < a.length - 1 ? x + "\n" : x)).filter((x, i, a) => !(i === a.length - 1 && x === ""));
 const md = text => ({ cell_type: "markdown", metadata: {}, source: lines(text) });
 const code = (text, extra = {}) => ({ cell_type: "code", metadata: extra, execution_count: null, outputs: [], source: lines(text) });
@@ -87,7 +90,13 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
     const f = C.files(l);
     withCodeCells(l,
       text => cells.push(md(text)),
-      s => { cells.push(md(blockIntro(l, s))); cells.push(code(`run_js(r"""\n${s.code}\n""")`)); },
+      s => {
+        cells.push(md(blockIntro(l, s)));
+        if (s.kind === "checkpoint") {
+          cells.push(code(`%%writefile ${f.checkpoint}\n${s.code}\n`));
+          cells.push(code(`# Tests + checkpoint for layer ${l.id}\n!node tests/run.js ${l.id}`));
+        } else cells.push(code(`run_js(r"""\n${s.code}\n""")`));
+      },
       () => {
         cells.push(md(`### ✏️ Your code for layer ${l.id}\n\nEdit the cell below, then run it. The first line saves it as \`${f.src}\`. Then run the tests and pictures under it.\n\n${buddyLinks(l)}`));
         cells.push(code(`%%writefile ${f.src}\n${read(f.src)}`));
@@ -107,12 +116,16 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
 {
   const cells = [
     md(`# ${C.title}\n\n_${C.subtitle}._ This notebook runs JavaScript directly, with the **Deno** kernel.\n\n## Set up once\n\n1. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/), then register its Jupyter kernel: \`deno jupyter --install\`\n2. Get the course: \`git clone ${C.repo}\`\n3. Open \`notebooks/jupyter-deno.ipynb\` in VS Code (with the Jupyter extension) or JupyterLab, and pick the **Deno** kernel.\n\n## How to use it\n\nRun the setup cell. Then for each layer: read the chapter, write your code in the code cell, run it, and run the check cell under it. Your code lives in this notebook; save it as you go.\n\n${buddyLinks(null)}`),
-    code(`// Setup: loads the course helpers. Run once per session.\nconst base = Deno.cwd().endsWith("notebooks") ? ".." : ".";\nfor (const f of ["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/png.js", "lib/notebook.js", "lib/experiment.js"]) {\n  (0, eval)(await Deno.readTextFile(\`\${base}/\${f}\`));\n}\nasync function check(layerId) {\n  const layer = MS.COURSE.layers.find(l => l.id === layerId);\n  MS.loadTests(layerId, await Deno.readTextFile(\`\${base}/\${MS.COURSE.files(layer).test}\`));\n  const r = MS.runLayerReport(layerId);\n  return Deno.jupyter.display({ "text/html": r.html, "text/plain": \`\${r.passed} / \${r.total} passing\` }, { raw: true });\n}\n"Course helpers loaded"`),
+    code(`// Setup: loads the course helpers. Run once per session.\nconst base = Deno.cwd().endsWith("notebooks") ? ".." : ".";\nfor (const f of ["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/png.js", "lib/notebook.js", "lib/experiment.js", "lib/checkpoint.js", "lib/checkpoint-data.js"]) {\n  (0, eval)(await Deno.readTextFile(\`\${base}/\${f}\`));\n}\nasync function check(layerId) {\n  const layer = MS.COURSE.layers.find(l => l.id === layerId);\n  MS.loadTests(layerId, await Deno.readTextFile(\`\${base}/\${MS.COURSE.files(layer).test}\`));\n  const r = MS.runLayerReport(layerId);\n  return Deno.jupyter.display({ "text/html": r.html, "text/plain": \`\${r.passed} / \${r.total} passing\` }, { raw: true });\n}\nasync function checkpoint(layerId) {\n  const layer = MS.COURSE.layers.find(l => l.id === layerId);\n  MS.loadTests(layerId, await Deno.readTextFile(\`\${base}/\${MS.COURSE.files(layer).test}\`));\n  const cp = MS.runCheckpoint(layerId, MS.runTests(layerId));\n  return Deno.jupyter.display({ "text/html": MS.checkpointHTML(cp), "text/plain": MS.checkpointText(cp) }, { raw: true });\n}\n"Course helpers loaded"`),
   ];
   for (const l of ready) {
     withCodeCells(l,
       text => cells.push(md(text)),
-      s => { cells.push(md(blockIntro(l, s))); cells.push(code(`{ // the braces let you re-run this cell\n${s.code}\n}`)); },
+      s => {
+        cells.push(md(blockIntro(l, s)));
+        if (s.kind === "checkpoint") { cells.push(code(s.code)); cells.push(code(`await checkpoint("${l.id}")`)); }
+        else cells.push(code(`{ // the braces let you re-run this cell\n${s.code}\n}`));
+      },
       () => {
         cells.push(md(`### ✏️ Your code for layer ${l.id}\n\nThis cell is your \`${C.files(l).src}\`. Write the functions, run the cell, then run the check below it.\n\n${buddyLinks(l)}`));
         cells.push(code(read(C.files(l).src)));
@@ -129,7 +142,7 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
 {
   const indent = s => s.replace(/<\/script/gi, "<\\/script").split("\n").map(x => (x ? "    " + x : x)).join("\n");
   const cell = (type, body, attrs = "") => `  <script type="${type}"${attrs}>\n${indent(body)}\n  </script>`;
-  const libs = ["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/png.js", "lib/notebook.js", "lib/experiment.js"].map(read).join("\n");
+  const libs = ["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/png.js", "lib/notebook.js", "lib/experiment.js", "lib/checkpoint.js", "lib/checkpoint-data.js"].map(read).join("\n");
   const parts = [
     cell("text/markdown", `# ${C.title}\n\n_${C.subtitle}._ Build a video engine from a single pixel up, one layer at a time.\n\n**On the web this notebook is read-and-run:** you can read every chapter and see the tests run on the starter code. To write your own code, use one of these:\n\n- **Edit locally with live reload:** download [observable.html](${C.repo}/blob/main/notebooks/observable.html), then run \`npx -p @observablehq/notebook-kit notebooks preview --root .\` in its folder and edit the file in any text editor.\n- **Observable Desktop** (macOS): open the same file and edit cells directly.\n- **No install at all:** use [the interactive guide](${C.site}guide.html) or [the Colab notebook](${C.colab}).\n\n${buddyLinks(null)}`),
     cell("module", `${libs}\nconst base = globalThis.MS;\nconst MS = globalThis.MS;`, " hidden"),
@@ -142,6 +155,11 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
       text => parts.push(cell("text/markdown", text)),
       s => {
         parts.push(cell("text/markdown", blockIntro(l, s)));
+        if (s.kind === "checkpoint") {
+          parts.push(cell("module", `${name}; // after your code\n${s.code}\nconst answers${l.id} = true;`, " pinned"));
+          parts.push(cell("module", `answers${l.id}; report${l.id}; // after your answers and this layer's tests\n{\n  const cp = MS.runCheckpoint("${l.id}", MS.runTests("${l.id}"));\n  const el = document.createElement("div");\n  el.innerHTML = MS.checkpointHTML(cp);\n  display(el);\n}`));
+          return;
+        }
         const body = s.code.split("\n").map(x => "    " + x).join("\n");
         parts.push(cell("module", `${name}; // uses your code above\n{\n  const out = document.createElement("pre");\n  out.textContent = MS.runExperimentFn(() => {\n${body}\n  });\n  display(out);\n}`));
       },

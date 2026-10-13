@@ -28,6 +28,9 @@
 <script src="lib/course.js"></script>
 <script src="lib/font5x7.js"></script>
 <script src="lib/check.js"></script>
+<script src="lib/experiment.js"></script>
+<script src="lib/checkpoint.js"></script>
+<script src="lib/checkpoint-data.js"></script>
 <script src="lib/present.js"></script>
 <script src="lib/loader.js"></script>
 <script>
@@ -49,7 +52,8 @@
     sec.innerHTML = `
       <div class="layer-head"><span class="num">${l.id}</span><h2>${l.title}</h2><span class="score">${passed} / ${results.length}</span></div>
       <ul class="results">${results.map(r => `<li class="${r.status}"><span class="mark" aria-label="${r.status}">${mark[r.status]}</span><span>${esc(r.name)}${r.message ? `<span class="msg">${esc(r.message)}</span>` : ""}</span></li>`).join("")}</ul>
-      <div class="visuals"></div>`;
+      <div class="visuals"></div>
+      <div class="checkpoint"></div>`;
     const vis = sec.querySelector(".visuals");
     for (const v of MS.visuals.filter(v => v.layer === l.id)) {
       const fig = document.createElement("figure");
@@ -63,6 +67,20 @@
         cap.innerHTML = `<strong>${esc(v.name)}</strong><br>${e.todo ? "Waiting on: " : "Error: "}${esc(e.message)}`;
       }
       fig.appendChild(cap); vis.appendChild(fig);
+    }
+    const cp = MS.runCheckpoint(l.id, results);
+    const box = sec.querySelector(".checkpoint");
+    if (cp.available) {
+      const mark = { right: "✓", wrong: "✗ not yet", blank: "✏️ blank" };
+      if (cp.locked) box.innerHTML = `<p class="cp-head">🔒 Checkpoint locked: ${cp.testsLeft} test(s) still to pass.</p>`;
+      else {
+        box.innerHTML = `<p class="cp-head">${cp.complete ? "★ Checkpoint passed: layer complete!" : `◇ Checkpoint unlocked: answer the questions in <code>${MS.COURSE.files(l).checkpoint}</code>`}</p>
+          <div class="cp-body"><figure class="cp-pic"></figure><div><p>Mystery picture, drawn by your code: <strong>${cp.mystery.ok ? "✓ correct" : "✗ not quite"}</strong></p>
+          ${cp.mystery.hints.map(h => `<p class="cp-hint">→ ${esc(h)}</p>`).join("")}
+          <p>Questions: ${cp.questions.map(q => `<span class="cp-q ${q.status}">${q.n} ${mark[q.status]}</span>`).join(" ")}</p></div></div>`;
+        if (cp.mystery.frame) box.querySelector(".cp-pic").appendChild(MS.present(cp.mystery.frame, document.createElement("canvas"), 3));
+      }
+      if (cp.complete) sec.classList.add("complete");
     }
     root.appendChild(sec);
   }

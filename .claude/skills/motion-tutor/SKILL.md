@@ -33,7 +33,11 @@ Only move up when they're still stuck after trying:
 
 Never go past rung 4. If they ask for the code, say the course is built so they write it, and give the next rung instead.
 
-## 4. Deepen once it passes
+## 4. Checkpoints
+
+When a layer's tests pass, `node tests/run.js NN` unlocks its checkpoint. If the mystery picture is wrong, read out the runner's diagnosis and ask what that rule does in their code. For the questions, ask how they're working each one out; never give, confirm or rule out an answer.
+
+## 5. Deepen once it passes
 
 When a test passes, don't just celebrate. Pick one:
 - an explain-back: "Why does that formula skip whole rows?"

@@ -100,7 +100,7 @@
       <li><strong>Write</strong> the functions. Each comment in the starter code is the spec; each body says "not written yet" until you replace it.</li>
       <li><strong>Check</strong> with the tests. A failing test tells you the exact value it expected and what it got. Pictures appear as your code starts working.</li>
       <li><strong>Break it</strong>: each experiment has a TODO saying what to change in your code. Run it before and after the change, explain the difference, then undo it.</li>
-      <li><strong>Move on</strong> when every test passes and you can answer the checkpoint questions without looking.</li>
+      <li><strong>Pass the checkpoint.</strong> When every test passes, the checkpoint unlocks: your code draws a mystery picture full of the chapter's traps, and you answer three questions. Both right means the layer is <strong>★ complete</strong>.</li>
     </ol>
     <p>You've finished the course when layer 10 exports your own KineticIntro as an MP4.</p>
 
@@ -123,6 +123,9 @@
 <script src="lib/course.js"></script>
 <script src="lib/font5x7.js"></script>
 <script src="lib/check.js"></script>
+<script src="lib/experiment.js"></script>
+<script src="lib/checkpoint.js"></script>
+<script src="lib/checkpoint-data.js"></script>
 <script src="lib/loader.js"></script>
 <script>
 (async function () {
@@ -134,7 +137,9 @@
     map.innerHTML = MS.COURSE.layers.map(l => {
       const f = MS.COURSE.files(l), sc = scores[l.id];
       let pill = '<span class="pill soon">coming soon</span>';
-      if (l.ready && sc) pill = sc.p === sc.n ? `<span class="pill pass">${sc.p}/${sc.n} done</span>` : sc.p ? `<span class="pill fail">${sc.p}/${sc.n}</span>` : `<span class="pill todo">not started</span>`;
+      if (l.ready && sc) pill = sc.cp && sc.cp.complete ? `<span class="pill pass">★ complete</span>`
+        : sc.p === sc.n ? `<span class="pill fail">checkpoint open</span>`
+        : sc.p ? `<span class="pill fail">${sc.p}/${sc.n} tests</span>` : `<span class="pill todo">not started</span>`;
       const links = l.ready ? `<a href="${f.doc}">read</a><a href="tests.html#layer-${l.id}">tests</a>` : "";
       return `<li class="${l.ready ? "" : "soon"}"><span class="num">${l.id}</span><span class="t">${l.title}</span><span class="s">${pill}${links}</span><span class="b">${l.builds}</span></li>`;
     }).join("");
@@ -142,7 +147,7 @@
   render({});
   const { ready } = await MS.loadCourse();
   const scores = {};
-  for (const l of ready) { const r = MS.runTests(l.id); scores[l.id] = { p: r.filter(x => x.status === "pass").length, n: r.length }; }
+  for (const l of ready) { const r = MS.runTests(l.id); const cp = MS.runCheckpoint(l.id, r); scores[l.id] = { p: r.filter(x => x.status === "pass").length, n: r.length, cp }; }
   render(scores);
 })();
 </script>

@@ -78,4 +78,15 @@ pre code { background: transparent; color: inherit; padding: 0; font-size: inher
 .btn { font: inherit; font-weight: 700; font-size: 0.9rem; background: var(--ink); color: var(--paper); border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; }
 .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
 .banner { border-left: 0; border: 1px dashed var(--key); color: var(--ink); padding: 12px 14px; border-radius: 6px; font-size: 0.95rem; }
+.checkpoint { border-top: 1px dashed var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.checkpoint:empty { display: none; }
+.cp-head { font-weight: 700; }
+.cp-body { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+.cp-body > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 260px; }
+.cp-pic { margin: 0; max-width: 100%; }
+.cp-pic canvas { max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--line); }
+.cp-hint { font-size: 0.9rem; color: var(--fail); }
+.cp-q { font-family: var(--mono); font-size: 0.85rem; margin-right: 10px; white-space: nowrap; }
+.cp-q.right { color: var(--pass); } .cp-q.wrong { color: var(--fail); } .cp-q.blank { color: var(--todo); }
+.sheet.complete { border-color: var(--pass); }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

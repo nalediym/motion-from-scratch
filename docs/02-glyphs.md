@@ -169,9 +169,27 @@ console.log(MS.asciiFrame(f));
 
 ## Checkpoint
 
-- `node tests/run.js 02` shows 11 of 11 passing.
-- `tests.html` shows **DESIGN.** in big pixel letters, plus an alignment test with a pink center line and one tofu box.
-- You can explain why centering text needs `measureText` before the first glyph is drawn.
+Your layer is **complete** when three things are true:
+
+1. **All 11 tests pass.** That unlocks the checkpoint.
+2. **The mystery picture comes out right.** The checkpoint runs your functions on a scrambled list of drawing commands full of this chapter's traps: lowercase text, an emoji, middle dots, and three lines that must all be centered. Get every rule right and a hidden word appears. Get one wrong and the picture shows it, with a hint about which rule to look at (never the fix).
+3. **Three questions are answered correctly** in `checkpoints/02-glyphs.js` (in the guide and notebooks, the cell below). Answers are checked against fingerprints, so the repo can't spoil them. You may type an expression instead of a number, like `10 * 10`, or compute an answer with your own functions.
+
+```js checkpoint
+// Checkpoint 02 · Glyphs. Replace each null with your answer, then run:
+//   node tests/run.js 02      (or press "Run checkpoint" in the guide)
+MS.answers("02", {
+  // 1. How wide, in pixels, is "HELLO, WORLD!" at scale 2 with tracking 1?
+  q1: null,
+  // 2. How many tofu boxes does drawText draw for "Ça va? 👋"?
+  q2: null,
+  // 3. drawText(frame, "HI", 100, 0, 3, color, { align: "center" }):
+  //    which pixel column gets the first ink?
+  q3: null,
+});
+```
+
+Run `node tests/run.js 02`. While tests are failing it shows **🔒 locked**; once they pass it draws the mystery picture right in your terminal and marks each question. When it says **★ Checkpoint passed: layer complete!**, move on. (`tests.html` shows **DESIGN.** in big pixel letters, plus an alignment test with a pink center line and one tofu box.)
 
 ## In the real world
 

@@ -47,6 +47,16 @@ function tryCell(l, kind, n, codeText) {
 <pre class="tryit-out" hidden></pre>
 </div>`;
 }
+function checkpointCell(l, codeText) {
+  const ask = "I'm working on this layer's checkpoint. Don't give me any answers or tell me if a specific answer is right. Ask me how I'm working each question out, and help me reason through the mystery picture's hints.";
+  const rows = Math.min(20, codeText.split("\n").length + 1);
+  return `<div class="cpcell" data-layer="${l.id}">
+<div class="tryit-head"><span class="tryit-tag">Checkpoint ${l.id}</span><span>Unlocks when every test passes. Fill in your answers, then run.</span></div>
+<textarea class="tryit-code" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint ${l.id} answers">${esc(codeText)}</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a href="${C.claudeLink(l, ask)}" target="_blank" rel="noopener">Ask Claude</a> · <a href="${C.chatgptLink(l, ask)}" target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
+<div class="cp-result" data-cp-out hidden></div>
+</div>`;
+}
 function markdown(md, l) {
   const lines = md.replace(/\r/g, "").split("\n");
   const out = [];
@@ -62,7 +72,9 @@ function markdown(md, l) {
       i++;
       while (i < lines.length && !/^```/.test(lines[i])) body.push(lines[i++]);
       i++;
-      if (lang === "js predict" || lang === "js experiment") {
+      if (lang === "js checkpoint") {
+        out.push(checkpointCell(l, body.join("\n")));
+      } else if (lang === "js predict" || lang === "js experiment") {
         const kind = lang === "js predict" ? "predict" : "experiment";
         out.push(tryCell(l, kind === "predict" ? "predict" : "break", ++count[kind], body.join("\n")));
       } else {
@@ -117,6 +129,8 @@ const sources = [
   embed("lib-check", read("lib/check.js")),
   embed("lib-present", read("lib/present.js")),
   embed("lib-experiment", read("lib/experiment.js")),
+  embed("lib-checkpoint", read("lib/checkpoint.js")),
+  embed("lib-checkpoint-data", read("lib/checkpoint-data.js")),
   ...ready.map(l => embed(`stub-${l.id}`, read(COURSE.files(l).src))),
   ...ready.map(l => embed(`test-${l.id}`, read(COURSE.files(l).test))),
 ].join("\n");
@@ -207,6 +221,10 @@ body { padding-block: 24px 80px; }
 .tryit-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .tryit-ask { font-size: 0.82rem; color: var(--muted); margin-left: auto; }
 .tryit-out { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cpcell { border: 2px solid var(--ink); background: var(--paper); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; max-width: 100%; min-width: 0; }
+.cpcell.complete { border-color: var(--pass); }
+.cp-result { display: flex; flex-direction: column; gap: 8px; }
+.tab.complete .num { background: var(--pass); }
 .howto { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; max-width: 760px; }
 .howto summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .howto ol { margin: 10px 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
@@ -258,7 +276,7 @@ ${sources}
   // Returns an error message, or null when everything loaded.
   function prepare(id) {
     globalThis.MS = {};
-    ["lib-course", "lib-font", "lib-check", "lib-present", "lib-experiment"].forEach(s => run($(s)));
+    ["lib-course", "lib-font", "lib-check", "lib-present", "lib-experiment", "lib-checkpoint", "lib-checkpoint-data"].forEach(s => run($(s)));
     for (const l of MS.COURSE.layers.filter(l => l.ready && l.id <= id)) {
       try { run(codeFor(l.id)); }
       catch (e) { return (l.id === id ? "Your code" : "Your layer " + l.id + " code") + " didn't load: " + e.name + ": " + e.message; }
@@ -278,6 +296,7 @@ ${sources}
     const results = MS.runTests(id);
     const passed = results.filter(r => r.status === "pass").length;
     section.querySelector("[data-score]").textContent = passed + " / " + results.length;
+    renderCheckpoint(id, results);
     list.innerHTML = results.map(r => '<li class="' + r.status + '"><span class="mark">' + mark[r.status] + "</span><span>" + escH(r.name) + (r.message ? '<span class="msg">' + escH(r.message) + "</span>" : "") + "</span></li>").join("");
     for (const v of MS.visuals.filter(v => v.layer === id)) {
       const fig = document.createElement("figure"), cap = document.createElement("figcaption");
@@ -312,6 +331,48 @@ ${sources}
       catch (err) { ed.select(); done(false); }
     });
     runLayer(section);
+  });
+
+  // Checkpoint cells: run tests, load answers, draw the mystery, mark questions
+  function renderCheckpoint(id, results) {
+    const cell = document.querySelector('.cpcell[data-layer="' + id + '"]');
+    if (!cell) return;
+    const out = cell.querySelector("[data-cp-out]");
+    const saved = store.get("mfs-cp-" + id);
+    try { run(saved !== null ? saved : cell.querySelector("textarea").value); }
+    catch (e) { out.hidden = false; out.innerHTML = '<p class="cp-hint">Your answers did not load: ' + escH(e.message) + "</p>"; return; }
+    const cp = MS.runCheckpoint(id, results);
+    const mark = { right: "✓", wrong: "✗ not yet", blank: "✏️ blank" };
+    out.hidden = false;
+    if (cp.locked) { out.innerHTML = '<p class="cp-head">🔒 Locked: ' + cp.testsLeft + " test(s) still to pass. Use the workbench, then run this again.</p>"; }
+    else {
+      out.innerHTML = '<p class="cp-head">' + (cp.complete ? "★ Checkpoint passed: layer complete!" : "◇ Unlocked") + "</p>" +
+        '<div class="cp-body"><figure class="cp-pic"></figure><div><p>Mystery picture, drawn by your code: <strong>' + (cp.mystery.ok ? "✓ correct" : "✗ not quite") + "</strong></p>" +
+        cp.mystery.hints.map(x => '<p class="cp-hint">→ ' + escH(x) + "</p>").join("") +
+        "<p>Questions: " + cp.questions.map(q => '<span class="cp-q ' + q.status + '">' + q.n + " " + mark[q.status] + "</span>").join(" ") + "</p></div></div>";
+      if (cp.mystery.frame) out.querySelector(".cp-pic").appendChild(MS.present(cp.mystery.frame, document.createElement("canvas"), 3));
+    }
+    cell.classList.toggle("complete", !!cp.complete);
+    const tab = document.querySelector('.tab[data-layer="' + id + '"]');
+    if (tab) tab.classList.toggle("complete", !!cp.complete);
+    const score = document.querySelector('#layer-' + id + ' [data-score]');
+    if (score && cp.complete) score.textContent = "★ complete";
+  }
+  document.querySelectorAll(".cpcell").forEach(cell => {
+    const id = cell.dataset.layer, ta = cell.querySelector("textarea"), k = "mfs-cp-" + id;
+    const saved = store.get(k);
+    if (saved !== null) ta.value = saved;
+    ta.addEventListener("input", () => store.set(k, ta.value));
+    const go = () => {
+      const err = prepare(id);
+      const out = cell.querySelector("[data-cp-out]");
+      if (err) { out.hidden = false; out.textContent = err; return; }
+      run($("test-" + id));
+      renderCheckpoint(id, MS.runTests(id));
+    };
+    ta.addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); go(); } });
+    cell.querySelector("[data-cp-run]").addEventListener("click", go);
+    cell.querySelector("[data-cp-reset]").addEventListener("click", () => { ta.value = ta.defaultValue; store.set(k, ta.value); go(); });
   });
 
   // Predict / Break it cells

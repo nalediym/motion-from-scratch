@@ -63,6 +63,8 @@ You don't need Node to take the course; the browser runs everything. Node lets y
 
 There are no solutions in this repo. The tests are the judge, like Nand2Tetris.
 
+**Every layer ends with a checkpoint.** When all of a layer's tests pass, its checkpoint unlocks: your own code draws a *mystery picture* through deliberate traps (get every rule right and a hidden word appears; get one wrong and it tells you which rule to look at), and you answer three questions in `checkpoints/NN-*.js`. The answers are stored only as fingerprints, so the repo can't spoil them. A layer is **★ complete** when the picture and all three answers are right. `node tests/run.js`, `tests.html`, the course map, the guide and the notebooks all show it.
+
 ## Study buddy
 
 Stuck? Ask an AI, and it won't do the work for you.
@@ -82,6 +84,7 @@ Good first prompts:
 ```text
 docs/       the chapters
 src/        your code (one file per layer)
+checkpoints/ your checkpoint answers (one file per layer)
 tests/      the tests, plus run.js for the terminal
 lib/        provided helpers: font, test library, PNG writer, page loader, styles
 notebooks/  Colab, Jupyter (Deno) and Observable versions of the course
@@ -91,7 +94,7 @@ guide.html  the interactive guide
 tests.html  results and pictures
 ```
 
-**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/link-prompts.js && node tools/build-guide.js && node tools/build-notebooks.js` and commit the results. CI checks they're up to date, then publishes the site to GitHub Pages.
+**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/link-prompts.js && node tools/build-checkpoints.js && node tools/build-guide.js && node tools/build-notebooks.js` and commit the results. When a mystery or a checkpoint question changes, regenerate the fingerprints with `node tools/checkpoint-data.js --solution <your solution> --answers <answer key>`; keep both of those files out of the repo. CI checks they're up to date, then publishes the site to GitHub Pages.
 
 ## Credits
 

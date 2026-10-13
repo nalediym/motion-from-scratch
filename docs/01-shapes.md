@@ -220,9 +220,29 @@ console.log("20 circles of radius 8:", Date.now() - start, "ms");
 
 ## Checkpoint
 
-- `node tests/run.js 01` shows 17 of 17 passing.
-- `tests.html` shows overlapping blended shapes, and a tall dark-blue glowing background. That background is KineticIntro's.
-- You can explain why half-transparent red over nothing stays red.
+Your layer is **complete** when three things are true:
+
+1. **All 17 tests pass.** That unlocks the checkpoint.
+2. **The mystery picture comes out right.** The checkpoint runs your functions on a scrambled list of drawing commands full of this chapter's traps: squares that share edges, see-through ink painted onto nothing, then composited over a gradient. Get every rule right and a hidden word appears. Get one wrong and the picture shows it, with a hint about which rule to look at (never the fix).
+3. **Three questions are answered correctly** in `checkpoints/01-shapes.js` (in the guide and notebooks, the cell below). Answers are checked against fingerprints, so the repo can't spoil them. You may type an expression instead of a number, like `10 * 10`, or compute an answer with your own functions.
+
+```js checkpoint
+// Checkpoint 01 · Shapes & blending. Replace each null with your answer, then run:
+//   node tests/run.js 01      (or press "Run checkpoint" in the guide)
+MS.answers("01", {
+  // 1. You blend [255, 255, 255, 128] (half-transparent white) over an opaque black pixel.
+  //    What is the pixel afterwards? Answer as [r, g, b, a].
+  q1: null,
+  // 2. A pixel is [0, 0, 255, 128]. You blend [255, 0, 0, 64] over it.
+  //    What is its new alpha (0–255)?
+  q2: null,
+  // 3. How many pixels does fillRect(frame, 1.5, 0.5, 3, 2, color) cover?
+  //    (Check what Math.round does with exact halves.)
+  q3: null,
+});
+```
+
+Run `node tests/run.js 01`. While tests are failing it shows **🔒 locked**; once they pass it draws the mystery picture right in your terminal and marks each question. When it says **★ Checkpoint passed: layer complete!**, move on. (`tests.html` shows overlapping blended shapes, and a tall dark-blue glowing background. That background is KineticIntro's.)
 
 ## In the real world
 
