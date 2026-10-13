@@ -105,6 +105,13 @@ function markdown(md, l) {
       out.push(ordered ? `<ol>${items.join("")}</ol>` : `<ul>${items.join("")}</ul>`);
       continue;
     }
+    if (/^> /.test(line)) {                               // a study-buddy callout
+      flush();
+      const body = [];
+      while (i < lines.length && /^> ?/.test(lines[i])) body.push(lines[i++].replace(/^> ?/, ""));
+      out.push(`<blockquote class="ask">${inline(body.join(" "))}</blockquote>`);
+      continue;
+    }
     if (line.trim() === "") { flush(); i++; continue; }
     para.push(line.trim());
     i++;
@@ -202,6 +209,7 @@ body { padding-block: 24px 80px; }
 .read details p, .read details ol { margin-bottom: 8px; }
 .ch-head { display: flex; flex-direction: column; gap: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
 .ch-head h2 { font-size: clamp(2rem, 5vw, 2.8rem); }
+.read blockquote.ask { margin: 0; font-size: 0.92rem; border: 1px dashed var(--pencil); border-radius: 6px; padding: 10px 12px; color: var(--ink); }
 .read p.meta { font-size: 0.9rem; color: var(--muted); border-left: 3px solid var(--pencil); padding-left: 12px; }
 .bench { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .bench-head { display: flex; align-items: center; gap: 10px; }
@@ -240,15 +248,16 @@ body { padding-block: 24px 80px; }
   <div class="pegbar" aria-hidden="true"><i></i><i></i><i></i></div>
   <span class="eyebrow">The interactive guide</span>
   <h1>${COURSE.title}</h1>
-  <p class="lede">${COURSE.subtitle}. Read a layer on the left and write its code on the right. Tests and pictures run in your browser. Prefer your own editor? Clone <a href="https://github.com/nalediym/motion-from-scratch">the repo</a>; it has the same chapters, stubs and tests.</p>
+  <p class="lede">${COURSE.subtitle}. Read a layer on the left and write its code on the right. Tests and pictures run in your browser.</p>
   <details class="howto">
     <summary>How to use this guide</summary>
     <ol>
       <li><strong>Read</strong> a layer on the left. Answer the <em>Predict, then run</em> questions before peeking.</li>
       <li><strong>Write</strong> its functions in the workbench on the right. Your code saves in this browser as you type.</li>
       <li><strong>Run tests</strong> (or press ⌘/Ctrl + Enter). Failing tests show the value they expected and what they got; pictures appear as your code works.</li>
-      <li><strong>Break it</strong> with the chapter's experiments, then move to the next layer when every test passes.</li>
-      <li><strong>Stuck?</strong> Each workbench has study-buddy links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers.</li>
+      <li><strong>Break it</strong> with the chapter's experiments.</li>
+      <li><strong>Pass the checkpoint</strong> at the end of the chapter. When its tab shows ★, move to the next layer.</li>
+      <li><strong>Stuck?</strong> Every cell and study-buddy callout has links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers.</li>
     </ol>
     <p>Want to keep your work outside this browser? Use <strong>Copy</strong> and paste into the matching file in <a href="${C.repo}">the repo</a>, or work in <a href="${C.colab}" target="_blank" rel="noopener">Google Colab</a>. All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
   </details>

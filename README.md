@@ -49,35 +49,19 @@ You don't need Node to take the course; the browser runs everything. Node lets y
 
 **Editing the Observable notebook:** download `notebooks/observable.html`, then in its folder run `npx -p @observablehq/notebook-kit notebooks preview --root .` and edit the file in any editor; the page reloads as you save. [Observable Desktop](https://observablehq.com/notebook-kit/desktop) (macOS) can open it too.
 
-**You're done with a layer** when every test passes and you can answer its checkpoint questions without looking. You're done with the course when layer 10 exports your KineticIntro as an MP4.
-
 ## How each layer works
 
-| Step | Where |
-|---|---|
-| Read the idea, with diagrams of what's happening underneath | `docs/NN-name.md` |
-| Write the functions. Each comment is the spec | `src/NN-name.js` |
-| Check: tests print expected vs actual, and pictures appear as your code works | `tests.html` or `node tests/run.js NN` |
-| Predict, then run: type your guess into the block, run it, and it tells you if you were right | in each chapter |
-| Break it: a TODO says what to change in your code; run the experiment before and after | in each chapter |
+Each chapter explains what's happening underneath, with diagrams. Along the way, **Predict, then run** blocks ask you to type a guess and tell you if you were right, and **Break it** experiments have you change your code on purpose and explain what happens. Tests print expected vs actual values, and pictures appear as your code works. There are no solutions in this repo. The tests are the judge, like Nand2Tetris.
 
-There are no solutions in this repo. The tests are the judge, like Nand2Tetris.
-
-**Every layer ends with a checkpoint.** When all of a layer's tests pass, its checkpoint unlocks: your own code draws a *mystery picture* through deliberate traps (get every rule right and a hidden word appears; get one wrong and it tells you which rule to look at), and you answer three questions in `checkpoints/NN-*.js`. The answers are stored only as fingerprints, so the repo can't spoil them. A layer is **★ complete** when the picture and all three answers are right. `node tests/run.js`, `tests.html`, the course map, the guide and the notebooks all show it.
+**Every layer ends with a checkpoint.** When all of a layer's tests pass, its checkpoint unlocks: your own code draws a *mystery picture* through deliberate traps (get every rule right and a hidden word appears; get one wrong and it tells you which rule to look at), and you answer three questions in `checkpoints/NN-*.js`. The answers are stored only as fingerprints, so the repo can't spoil them. A layer is **★ complete** when the picture and all three answers are right. `node tests/run.js`, `tests.html`, the course map, the guide and the notebooks all show it. You're done with the course when layer 10 exports your KineticIntro as an MP4.
 
 ## Study buddy
 
 Stuck? Ask an AI, and it won't do the work for you.
 
 - **Claude Code or Codex:** open this folder in the agent. `CLAUDE.md` and `AGENTS.md` tell it to ask questions first, climb a hint ladder one step at a time, and never write your solution. It can run the tests to see exactly where you are.
-- **Claude.ai or ChatGPT in one click:** the course home and every workbench in the guide have links that open a new chat with short tutor rules filled in. You need to be signed in. (These links use a URL format the chat apps support but don't officially document.)
+- **Claude.ai or ChatGPT in one click:** each chapter has *Study buddy* callouts placed where they help, and every code cell and checkpoint has its own **Ask Claude · Ask ChatGPT** links. They open a new chat with the tutor rules and that exact question filled in. You need to be signed in. (These links use a URL format the chat apps support but don't officially document.)
 - **Any other chat:** paste the contents of `AGENTS.md` as your first message, then your question and your code.
-
-Good first prompts:
-
-- "I'm on layer 00. Don't give me code. Ask me questions until I can explain why the pixel index is (y × width + x) × 4."
-- "Here's my function. Don't fix it. Give me one input where it's wrong."
-- "Give me a predict-then-run question about what I just wrote."
 
 ## Layout
 
@@ -94,7 +78,7 @@ guide.html  the interactive guide
 tests.html  results and pictures
 ```
 
-**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/link-prompts.js && node tools/build-checkpoints.js && node tools/build-guide.js && node tools/build-notebooks.js` and commit the results. When a mystery or a checkpoint question changes, regenerate the fingerprints with `node tools/checkpoint-data.js --solution <your solution> --answers <answer key>`; keep both of those files out of the repo. CI checks they're up to date, then publishes the site to GitHub Pages.
+**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/build.js` and commit the results. When a mystery or a checkpoint question changes, regenerate the fingerprints with `node tools/checkpoint-data.js --solution <your solution> --answers <answer key>`, then run `node tools/build.js` again; keep both of those files out of the repo. CI checks they're up to date, then publishes the site to GitHub Pages.
 
 ## Credits
 

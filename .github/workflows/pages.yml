@@ -27,12 +27,9 @@ jobs:
 
       - name: Check the generated guide and notebooks are up to date
         run: |
-          node tools/link-prompts.js
-          node tools/build-checkpoints.js
-          node tools/build-guide.js
-          node tools/build-notebooks.js
+          node tools/build.js
           if ! git diff --quiet -- docs/ checkpoints/ guide.html notebooks/; then
-            echo "::error::Generated files are out of date. Run: node tools/link-prompts.js && node tools/build-checkpoints.js && node tools/build-guide.js && node tools/build-notebooks.js, then commit."
+            echo "::error::Generated files are out of date. Run node tools/build.js, then commit."
             git diff --stat -- docs/ checkpoints/ guide.html notebooks/
             exit 1
           fi

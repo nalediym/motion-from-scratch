@@ -20,7 +20,6 @@
   .map .num { grid-row: 1 / 3; justify-self: start; }
   .map li.soon { opacity: 0.55; }
   .steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 10px; max-width: 66ch; }
-  .stack { font-family: var(--mono); font-size: 12.5px; line-height: 1.45; background: transparent; border: 1px dashed var(--line); color: var(--ink); }
   .ways { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
   .way { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
   .way:first-child { border-color: var(--key); }
@@ -42,21 +41,6 @@
     <p class="lede">How to go from pixels to motion. Start with one pixel, add one idea per layer, and finish by rebuilding a real motion-graphics intro and exporting it as an MP4. No libraries, no install.</p>
   </header>
 
-<pre class="stack" aria-label="The stack you build, bottom to top">
-  10  Export          frames → MP4, then map it all to Remotion
-  09  KineticIntro    the recreation
-  08  Scenes          sequences, camera, masks, seeded randomness
-  07  Canvas          transforms + blur by hand, then real fonts
-  06  Springs         physics stepping and stability
-  05  Easing          a cubic-Bézier solver
-  04  Interpolate     lerp, clamp, ranges, extrapolation
-  03  Time            frame = f(n), a player that keeps time
-  02  Glyphs          text from a hand-made bitmap font
-  01  Shapes          rectangles, circles, alpha, gradients
-  00  Pixels          a framebuffer: memory you can see
-      ▲ each layer is built only from the layers below it
-</pre>
-
   <section id="start" style="display:flex;flex-direction:column;gap:16px">
     <h2>How to get started</h2>
     <p>Pick one way to work. They all have the same chapters, starter code and tests, so you can switch later.</p>
@@ -76,7 +60,7 @@
       <article class="way">
         <span class="tag">Best with an AI coding agent</span>
         <h3>Your own editor</h3>
-        <p>Download the code, write in <code>src/</code>, and check with <code>tests.html</code> or <code>node tests/run.js</code>. Claude Code and Codex follow the course's tutor rules automatically.</p>
+        <p>Download the code, write in <code>src/</code>, and check with <code>tests.html</code> or <code>node tests/run.js</code>.</p>
         <span class="btn-row"><a class="btn" data-link="zip" href="#">Download ZIP</a><a class="btn ghost" data-link="repo" href="#" target="_blank" rel="noopener">GitHub</a></span>
       </article>
       <article class="way">
@@ -114,6 +98,7 @@
 
   <section style="display:flex;flex-direction:column;gap:14px">
     <h2>The layers</h2>
+    <p>Each layer is built only from the layers below it.</p>
     <ul class="map" id="map"></ul>
   </section>
 
