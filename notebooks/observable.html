@@ -30,7 +30,7 @@
           { id: "06", slug: "springs", title: "Springs", builds: "physics stepping and stability", ready: true },
           { id: "07", slug: "transforms", title: "Transforms & blur", builds: "matrices, resampling and blur", ready: true },
           { id: "08", slug: "scenes", title: "Scenes", builds: "real fonts, sequences, a camera, masks, seeded randomness", ready: true },
-          { id: "09", slug: "kinetic-intro", title: "KineticIntro", builds: "the recreation", ready: false },
+          { id: "09", slug: "kinetic-intro", title: "KineticIntro", builds: "the recreation", ready: true },
           { id: "10", slug: "export", title: "Export", builds: "frames to MP4, then map it to Remotion", ready: false },
         ],
       };
@@ -544,6 +544,14 @@
             "q1": "8e3830da",
             "q2": "ccd5513c",
             "q3": "10a256cf"
+          }
+        },
+        "09": {
+          "mystery": "3877b809",
+          "questions": {
+            "q1": "86ee7447",
+            "q2": "ef5a1124",
+            "q3": "b73a9dda"
           }
         }
       };
@@ -1415,6 +1423,157 @@
         check({ frame, wrong, failed }, data) {
           const hints = failed.map(msg => `Part of the picture couldn't be drawn (${msg}).`);
           const names = ["first S", "C", "first E", "N", "second E", "last S"];
+          wrong.forEach((n, j) => { if (n) hints.push(`Some dots of the ${names[j]} flew off: ${RULES[j].rule}.`); });
+          const ok = MS.hashFrame(frame) === data.mystery;
+          return { wrong: ok ? 0 : 1, hints };
+        },
+      });
+    })(globalThis.MS = globalThis.MS || {});
+
+    // lib/mysteries/09-kinetic-intro.js — layer 09's checkpoint picture. PROVIDED.
+    // A word made of dots. Every dot asks one small question about a piece of
+    // KineticIntro (a scene's timing, the mask, the gradient angle, overlay, the
+    // background and vignette, the layers, the whole composition). A dot that
+    // gets a wrong answer flies off its letter. Every rule right spells a word.
+    // Text is drawn with the bitmap font here, so the picture is the same on every
+    // computer, whatever fonts it has.
+    // draw() runs the learner's functions; check() says which rule went wrong,
+    // never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+    (function (MS) {
+      const { shuffle } = MS.mysteryKit;
+      const WORD = "KINETIC", C = 3, M = 6;
+      const close = (a, b, eps) => typeof a === "number" && Math.abs(a - b) <= eps;
+      const samePixel = (p, q, eps = 1) => Array.isArray(p) && q.every((v, i) => close(p[i], v, eps));
+      const bitmapOnly = fn => { const real = MS.createCanvas; MS.createCanvas = () => null; try { return fn(); } finally { MS.createCanvas = real; } };
+      const scene = (n, o, want) => { const s = MS.sceneState(n, o); return s && s.visible === want[0] && close(s.scale, want[1], 1e-6) && close(s.opacity, want[2], 1e-6) && close(s.blur, want[3], 1e-6); };
+      const W0 = { a: 0, b: 48, enterFrom: 0.8, exitTo: 1.5, blurIn: 14, blurOut: 16 }, LOCK = { a: 120, b: 180, enterFrom: 0.86, exitTo: 1, blurIn: 14, exitDur: 2 };
+      const ODD = { a: 5, b: 30, enterDur: 10, exitDur: 5, pushTo: 1.2, enterFrom: 0.5, exitTo: 2, blurIn: 4, blurOut: 6 };
+      const overlay = (bg, c) => { const f = MS.createFrame(1, 1); MS.setPixel(f, 0, 0, bg); MS.blendOverlay(f, 0, 0, c); return MS.getPixel(f, 0, 0); };
+      const sum = (f, from = 0) => { let s = 0; for (let i = from * 4 + 3; i < f.data.length; i += 4) s += f.data[i]; return s; };
+      const layerOk = (layer, n, opts, width) => {
+        const s = MS.sceneState(n, opts), k = width / 1080, H = Math.round((width * 16) / 9);
+        if (!layer || !layer.sprite) return false;
+        const [cx, cy] = MS.transformPoint(layer.matrix, layer.sprite.width / 2, layer.sprite.height / 2);
+        const [ex] = MS.transformPoint(layer.matrix, layer.sprite.width / 2 + 1, layer.sprite.height / 2);
+        return close(layer.opacity, s.opacity, 1e-9) && close(layer.blur, s.blur * k, 1e-9) && close(cx, width / 2, 1e-6) && close(cy, H / 2, 1e-6) && close(ex - cx, s.scale, 1e-6);
+      };
+      const byHand = (n, width) => {
+        const H = Math.round((width * 16) / 9), k = width / 1080, f = MS.background(width, H);
+        const layers = [0, 1, 2].map(i => MS.wordLayer(n, i, width)).concat([MS.lockupLayer(n, width), { sprite: MS.vignette(width, H, 280 * k, 0.7) }]);
+        return MS.renderLayers(f, layers.filter(Boolean));
+      };
+
+      const RULES = [
+        { // K: scene timing
+          rule: "a scene enters over enterDur frames along APPLE, pushes in steadily from a to b, exits over exitDur frames along SMOOTH, is visible from a − 2 to b + 2, and calls a blur of 0.15 or less no blur",
+          probes: [
+            () => scene(3, W0, [true, 0.911684015, 0.547052442, 6.34126581]), () => scene(20, W0, [true, 1.016305208, 0.998222335, 0]),
+            () => scene(40, W0, [true, 1.492072185, 0.112118352, 14.206106368]), () => scene(-2, W0, [true, 0.8, 0, 14]),
+            () => scene(125, LOCK, [true, 0.966568982, 0.738269926, 3.664221036]), () => scene(179, LOCK, [true, 1.039333333, 0.29531467, 0]),
+            () => scene(182, LOCK, [true, 1.04, 0, 0]), () => scene(150, LOCK, [true, 1.02, 1, 0]),
+            () => scene(7, ODD, [true, 0.890080044, 0.752126072, 0.991495713]), () => scene(27, ODD, [true, 1.66421663, 0.584849804, 2.490901175]),
+            () => MS.sceneState(183, LOCK).visible === false && MS.sceneState(-3, W0).visible === false,
+            () => scene(10, { a: 0, b: 20, enterFrom: 0.5, exitTo: 2, blurIn: 4, blurOut: 6 }, [true, 1.759664865, 0.214712778, 4.981150411]),
+            () => scene(9, { a: 3, b: 18, enterFrom: 0.9, exitTo: 1.2, blurIn: 2, blurOut: 3, enterDur: 12, exitDur: 12 }, [true, 1.032551009, 0.904167288, 0.343939924]),
+          ],
+        },
+        { // I: the mask
+          rule: "maskUp goes from 110 at frame `at` to 0 at frame at + dur along APPLE, clamped at both ends, and dur is 22 when it isn't given",
+          probes: [
+            () => close(MS.maskUp(84, 82), 59.340401118, 1e-6), () => close(MS.maskUp(90, 82), 8.614393439, 1e-6),
+            () => close(MS.maskUp(104, 82), 0, 1e-9), () => close(MS.maskUp(3, 0, 6), 3.104298421, 1e-6),
+            () => close(MS.maskUp(1, 0, 6), 34.537026275, 1e-6), () => close(MS.maskUp(70, 82), 110, 1e-9), () => close(MS.maskUp(200, 82), 0, 1e-9),
+          ],
+        },
+        { // N: the gradient line
+          rule: "a CSS gradient angle points clockwise from straight up, and its gradient line runs through the box's center, just long enough to reach the corners",
+          probes: [
+            () => close(MS.linearGradientT(0, 50, 100, 50, 270), 1, 1e-9), () => close(MS.linearGradientT(10, 40, 80, 60, 135), 0.357142857, 1e-6),
+            () => close(MS.linearGradientT(60, 5, 120, 30, 30), 0.60072316, 1e-6), () => close(MS.linearGradientT(75, 12, 150, 24, 100), 0.5, 1e-9),
+            () => close(MS.linearGradientT(0, 0, 64, 64, 225), 0.5, 1e-9), () => close(MS.linearGradientT(64, 0, 64, 64, 45), 1, 1e-9),
+          ],
+        },
+        { // E: overlay
+          rule: "overlay multiplies where the backdrop is dark and screens where it's light, and mixes with ordinary blending where either is transparent",
+          probes: [
+            () => samePixel(overlay([30, 200, 128], [255, 255, 255, 64]), [38, 214, 160, 255]),
+            () => samePixel(overlay([240, 10, 90], [20, 220, 160, 255]), [227, 17, 113, 255]),
+            () => samePixel(overlay([90, 90, 90, 60], [255, 0, 0, 100]), [198, 24, 24, 136]),
+            () => samePixel(overlay([0, 0, 0, 0], [12, 34, 56, 0]), [0, 0, 0, 0], 0),
+          ],
+        },
+        { // T: background and vignette
+          rule: "the background is KineticIntro's two radial gradients (radii as fractions of width and height, the glow gone at 60%), and the vignette is an inset shadow: σ is half the blur radius",
+          probes: (() => {
+            const bgAt = (x, y, want) => () => samePixel(MS.getPixel(MS.background(90, 160), x, y), want);
+            const vigAt = (x, y, want) => () => samePixel(MS.getPixel(MS.vignette(90, 160, 20, 0.5), x, y), want, 2);
+            return [
+              bgAt(45, 60, [36, 54, 93, 255]), bgAt(5, 5, [13, 17, 25, 255]), bgAt(80, 150, [11, 13, 18, 255]), bgAt(45, 72, [38, 58, 100, 255]), bgAt(70, 40, [19, 27, 43, 255]),
+              vigAt(0, 0, [0, 0, 0, 94]), vigAt(45, 80, [0, 0, 0, 0]), vigAt(0, 80, [0, 0, 0, 62]), vigAt(5, 30, [0, 0, 0, 40]), vigAt(89, 159, [0, 0, 0, 94]),
+            ];
+          })(),
+        },
+        { // I: the layers
+          rule: "each word and the lockup is one layer while its scene is visible (null otherwise), scaled by the scene around its center in the middle of the frame, with the scene's opacity, a blur scaled by width ÷ 1080, padding for the blur, and a mask that hides the word until it rises; the lockup's sweep is overlaid, not blended normally, and its subtitle fades in",
+          probes: [
+            () => MS.wordLayer(131, 2, 108) === null && MS.wordLayer(77, 2, 108) === null && MS.wordLayer(78, 2, 108) !== null && MS.lockupLayer(117, 108) === null,
+            () => bitmapOnly(() => layerOk(MS.wordLayer(5, 0, 108), 5, W0, 108)),
+            () => bitmapOnly(() => layerOk(MS.wordLayer(126, 2, 324), 126, { a: 80, b: 128, enterFrom: 0.8, exitTo: 1.5, blurIn: 14, blurOut: 16 }, 324)),
+            () => bitmapOnly(() => layerOk(MS.lockupLayer(130, 108), 130, LOCK, 108)),
+            () => bitmapOnly(() => layerOk(MS.lockupLayer(179, 270), 179, LOCK, 270)),
+            () => bitmapOnly(() => { const l = MS.wordLayer(82, 2, 108), t = MS.textSprite("RENDER.", { size: 15, weight: 900, family: "Inter" }), pad = Math.ceil(3 * 16 * 0.1) + 2;
+              return l.sprite.width === t.width + 2 * pad && l.sprite.height === t.height + 2 * pad && sum(l.sprite) === 0; }),
+            () => bitmapOnly(() => sum(MS.wordLayer(100, 2, 108).sprite) > 0),
+            () => bitmapOnly(() => { const a = MS.lockupLayer(149, 108).sprite, b = MS.lockupLayer(160, 108).sprite; return sum(a) < sum(b); }),
+            () => bitmapOnly(() => samePixel(MS.getPixel(MS.lockupLayer(155, 216).sprite, 83, 19), [130, 189, 255, 255])),
+          ],
+        },
+        { // C: the composition
+          rule: "kineticIntro is 30 fps, 180 frames, width × 16 ÷ 9 high (rounded), and each frame is the background, then the words, the lockup and the vignette drawn with renderLayers",
+          probes: [
+            () => { const c = MS.kineticIntro(90); return c.width === 90 && c.height === 160 && c.fps === 30 && c.durationInFrames === 180; },
+            () => { const c = MS.kineticIntro(99); return c.height === 176; },
+            ...[22, 75, 158].map(n => () => bitmapOnly(() => {
+              const got = MS.renderFrame(MS.kineticIntro(108), n), want = byHand(n, 108);
+              return got.data.every((v, i) => Math.abs(v - want.data[i]) <= 1);
+            })),
+          ],
+        },
+      ];
+
+      const OFFSETS = [];
+      for (let dy = -10; dy <= 10; dy++) for (let dx = -10; dx <= 10; dx++) if (Math.abs(dx) + Math.abs(dy) >= 7) OFFSETS.push([dx, dy]);
+      shuffle(OFFSETS, 9);
+      const STOPS = [[255, 92, 138], [91, 140, 255], [234, 240, 250]];
+
+      MS.mystery("09", {
+        draw() {
+          const W = M * 2 + (WORD.length * 6 - 1) * C, H = M * 2 + 7 * C;
+          const frame = MS.createFrame(W, H);
+          MS.clearFrame(frame, [11, 13, 18]);
+          const wrong = WORD.split("").map(() => 0), failed = [];
+          let dot = 0;
+          [...WORD].forEach((ch, j) => {
+            const color = MS.interpolateColors(j, [0, 3, 6], STOPS), rules = RULES[j];
+            // Dot k asks probes k, k + dots, k + 2 × dots...; with fewer probes than dots, they repeat.
+            const n = rules.probes.length, dots = MS.FONT_5x7[ch].join("").split("").filter(cell => cell === "#").length;
+            let k = 0;
+            MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
+              if (cell !== "#") return;
+              const gx = M + (j * 6 + c) * C, gy = M + r * C, o = OFFSETS[dot++ % OFFSETS.length];
+              const mine = n >= dots ? rules.probes.filter((p, i) => i % dots === k) : [rules.probes[k % n]];
+              let right = false;
+              try { right = mine.every(p => p() === true); } catch (e) { failed.push(`the ${ch}: ${e.message}`); }
+              if (!right) wrong[j]++;
+              k++;
+              MS.fillRect(frame, right ? gx : gx + o[0], right ? gy : gy + o[1], C, C, color);
+            }));
+          });
+          return { frame, wrong, failed: [...new Set(failed)] };
+        },
+        check({ frame, wrong, failed }, data) {
+          const hints = failed.map(msg => `Part of the picture couldn't be drawn (${msg}).`);
+          const names = ["K", "first I", "N", "E", "T", "second I", "C"];
           wrong.forEach((n, j) => { if (n) hints.push(`Some dots of the ${names[j]} flew off: ${RULES[j].rule}.`); });
           const ok = MS.hashFrame(frame) === data.mystery;
           return { wrong: ok ? 0 : 1, hints };
@@ -6162,6 +6321,662 @@
     - **Read the original.** The HTML standard's [text preparation algorithm](https://html.spec.whatwg.org/multipage/canvas.html#text-preparation-algorithm) is what `fillText` and `measureText` run. Look for where `letterSpacing` and `textBaseline` come in.
     - Add `rotate` and a center point to `camera`'s options, and make a camera that orbits a word.
     - Write `noise(x)`: smooth randomness that changes gently as x changes, by blending `random()` values at whole numbers with your easing from layer 05. Use it to make the stars twinkle.
+
+  </script>
+  <script type="text/markdown">
+    ## Layer 09 · KineticIntro
+
+    _Everything you've built, on one timeline._
+
+    **You'll write:** `sceneState`, `maskUp`, `linearGradientT`, `blendOverlay`, `background`, `vignette`, `wordLayer`, `lockupLayer`, `kineticIntro` in `src/09-kinetic-intro.js`
+    **Builds on:** layers 00–08
+
+    This is the layer the whole course has been heading for. KineticIntro, from [Claude Motion Studio](https://github.com/MoussaabBadla/claude-motion-studio), is six seconds of portrait video: **DESIGN.**, **ANIMATE.** and **RENDER.** rise out of nowhere, push toward you and blur away, then **MOTION·STUDIO** settles in with a sweep of light and a subtitle. In Remotion it's a few React components styled with CSS, and Chrome draws it. Here you turn that CSS into calls of your own functions: every gradient, blur, curve and blend is something you've built. The numbers come from KineticIntro's source; where CSS leaves a choice to the browser (exactly where flexbox puts a box, how text is antialiased), this layer says what it chose.
+
+    ### Under the hood
+
+    #### Reading a component as math
+
+    KineticIntro wraps each word in a `Scene` component. Stripped of React, a Scene is a handful of `interpolate` calls on the frame number, and three numbers that come out of them: how big, how see-through and how blurred.
+
+    ```text
+      word 2, "ANIMATE.": a = 40, b = 88
+      frame:     38  40                        66                      88  90
+      enter:          0 ─── APPLE, 26 frames ──► 1
+      exit:                                    0 ─── SMOOTH, 22 frames ──► 1
+      push:           1 ──────────────────────────────────────────────────► 1.04
+      visible:   ◄─────────────────────────────────────────────────────────────►
+    ```
+
+    `scale` multiplies three things: growing from `enterFrom` while it enters, the slow push, and growing toward `exitTo` while it leaves. `opacity` is the smaller of "how far in" and "how far from out". The blur is the leftover of the entrance plus the start of the exit. A blur below 0.15 px is invisible, so KineticIntro turns it off, and that saves Chrome a filter pass on most frames.
+
+    Notice what isn't there: no state, no "previous frame". Each number is a function of n. That's layer 03's frame = f(n), all the way up.
+
+    #### A mask is a window
+
+    Inside each Scene, a `MaskUp` holds the word in a box with `overflow: hidden`, and slides the word up from 110% of its own height below the box to its place. The box is a window: you only see the part of the word that's inside it.
+
+    ```text
+       frame 42 (start)         frame 50               frame 64 (home)
+       ┌────────────────┐       ┌────────────────┐      ┌────────────────┐
+       │                │       │ ▄▄  ▄  ▄ ▄ ▄▄▄ │      │ █▀█ █▄ █ █ █▀▄ │
+       └────────────────┘       └────────────────┘      └────────────────┘
+         ANIMATE.  (hidden,       ▀▀  ▀  ▀ ▀ ▀▀▀
+         below the window)        (the rest still hidden)
+    ```
+
+    The order of effects matters again. The window is inside the Scene, and the Scene's blur applies to everything in it, so the word is cut by the window first and blurred afterwards: the cut edge goes soft. That's why the window belongs in the sprite, before `renderLayers` blurs it. The sprite needs empty padding around the window, too, or the blur would have nowhere to spread.
+
+    #### Where CSS puts a gradient
+
+    The light sweep is a `linear-gradient(100deg, …)`. [CSS Images](https://www.w3.org/TR/css-images-3/#linear-gradients) defines exactly where such a gradient runs. `0deg` points up and angles turn clockwise, so `90deg` points right and `100deg` points right and a little down. The **gradient line** goes through the middle of the box in that direction, and its length is chosen so that the corners land exactly on 0% and 100%:
+
+    ```text
+         0% ●─────────────────────────┐
+            │ ╲                        │      the gradient line points along the angle
+            │   ╲                      │      (here 100deg: right, a little down) and
+            │     ●  the box's middle  │      passes through the middle; lines of
+            │       ╲                  │      equal color cross it at right angles
+            └─────────╲────────────────● 100%
+                       ▼
+          length = |W·sin A| + |H·cos A|: just enough to reach both corners
+    ```
+
+    A point's position along the gradient is how far along that line its shadow falls. The background's `radial-gradient(70% 60% at 50% 38%, …)` is simpler: an ellipse with radii of 70% of the width and 60% of the height, centered half way across and 38% down, which is exactly what your `fillRadialGradient` takes. A stop like `transparent 60%` ends the gradient early: past 60% of the way out, it's transparent. CSS mixes gradient colors premultiplied, so fading to `transparent` (which is black at alpha 0) never darkens anything, as you saw in layer 07.
+
+    > **Study buddy:** "Give me a box, a gradient angle and a point, and ask me to sketch where the gradient line goes and roughly what percentage the point is at. Then ask me why the line is longer at 45deg than at 90deg. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20why%20the%20line%20is%20longer%20at%2045deg%20than%20at%2090deg.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20why%20the%20line%20is%20longer%20at%2045deg%20than%20at%2090deg.%20No%20code.)
+
+    #### Blend modes: changing what "over" means
+
+    Layer 01's blend put the new color over the old one. CSS's [`mix-blend-mode`](https://www.w3.org/TR/compositing-1/#mix-blend-mode) keeps that recipe but changes one ingredient: where the two colors overlap, the result is `B(backdrop, source)` instead of just the source. The [general formula](https://www.w3.org/TR/compositing-1/#generalformula) mixes three parts, by how much each color covers:
+
+    ```text
+      only the source shows:     (1 − αb) × αs × Cs
+      both overlap:              αb × αs × B(Cb, Cs)       ← the blend mode lives here
+      only the backdrop shows:   (1 − αs) × αb × Cb
+    ```
+
+    With `B(Cb, Cs) = Cs` that's exactly your `blendPixel`. KineticIntro's sweep uses [overlay](https://www.w3.org/TR/compositing-1/#blendingoverlay): where the backdrop is dark it multiplies, which makes dark darker; where it's light it "screens", which makes light lighter. So a white sweep brightens the light letters a lot and the dark background hardly at all.
+
+    Which backdrop, though? A blend mode only blends with the content of its own **stacking context**, and the Scene's `transform` makes it one. So the sweep never touches the page's background: it blends with the lockup's own pixels, and where those are transparent, it's an ordinary half-white blend. That's why `lockupLayer` blends the sweep into its sprite, not into the frame.
+
+    #### A shadow is a blur
+
+    The vignette is `box-shadow: inset 0 0 280px rgba(0, 0, 0, 0.7)`. An inset shadow is the shadow of everything *outside* the box, falling inward. [CSS Backgrounds](https://www.w3.org/TR/css-backgrounds-3/#shadow-blur) says a blur radius of 280px means a Gaussian blur with σ = 140, half the radius. So: make a frame that's black everywhere except a hole the size of the screen, blur it with your three box blurs, and keep the middle. The margin around the hole must be wider than the blur reaches, or the far edge of the black would fade in too. Three boxes of radius r reach 3r pixels, which is why the spec asks for a little more than 3σ.
+
+    #### Make it once
+
+    At full size, the vignette blurs a frame of more than five million pixels. If `render` did that for every frame, KineticIntro would take minutes. But frame = f(n) only says a frame must depend on n *alone*; anything that doesn't depend on n at all can be made once and reused. The background and the vignette never change, so `kineticIntro` makes them when the composition is made, and each frame starts from a copy.
+
+    ### Your turn
+
+    Work through `src/09-kinetic-intro.js` top to bottom. Each function's comment is its spec. Some questions to guide you, in order:
+
+    1. **sceneState.** Which of your layer 04 options gives "clamp" at both ends, and which takes an easing? At frame `a`, what should each of the four numbers be?
+    2. **maskUp.** What's the value one frame before `at`? One frame after `at + dur`?
+    3. **linearGradientT.** Which unit vector points in the direction of the angle, with 0deg up and y pointing down? How far along it is the point, measured from the middle of the box?
+    4. **blendOverlay.** Which color decides between "multiply" and "screen": the source or the backdrop? What happens to the formula when the backdrop is fully transparent?
+    5. **background.** What radii and center does each gradient give `fillRadialGradient`? How do you draw the glow over the background without wiping it out?
+    6. **vignette.** How do you make a frame that's opaque black with a transparent hole? After blurring, which matrix cuts the middle out?
+    7. **wordLayer.** Where does the word go inside its window at frame `a + 2`? Why does the sprite need padding, and why is that padding's size based on blur 16?
+    8. **lockupLayer.** In what order do the title, the sweep and the subtitle go into the sprite? Where's the sweep's box?
+    9. **kineticIntro.** What can you make once, outside `render`?
+
+    Run the tests after each function. A failing test tells you exactly what it expected.
+
+    Once it works, the test pictures show KineticIntro itself, playing, and three of its pieces on their own.
+
+    > **Study buddy:** "Show me the CSS for one KineticIntro Scene and ask me to translate each property into one of my functions, one at a time. Only tell me which layer to look in if I'm stuck. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Show%20me%20the%20CSS%20for%20one%20KineticIntro%20Scene%20and%20ask%20me%20to%20translate%20each%20property%20into%20one%20of%20my%20functions%2C%20one%20at%20a%20time.%20Only%20tell%20me%20which%20layer%20to%20look%20in%20if%20I%27m%20stuck.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Show%20me%20the%20CSS%20for%20one%20KineticIntro%20Scene%20and%20ask%20me%20to%20translate%20each%20property%20into%20one%20of%20my%20functions%2C%20one%20at%20a%20time.%20Only%20tell%20me%20which%20layer%20to%20look%20in%20if%20I%27m%20stuck.%20No%20code.)
+
+
+  </script>
+  <script type="text/markdown">
+    ### ✏️ Your code for layer 09
+
+    This cell is your `src/09-kinetic-intro.js`. When editing locally, change it and everything below re-runs by itself.
+
+    **Stuck?** Ask a study buddy that gives hints, not answers: [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next.)
+  </script>
+  <script type="module" pinned>
+    layer08; // run after the layer before
+    // Layer 09 · KineticIntro — the recreation.
+    // Read the chapter first (docs/09-kinetic-intro.md). Each comment below is a spec; the tests check it.
+    (function (MS) {
+      // KineticIntro's numbers. Its frame is 1080 × 1920; at another width, multiply
+      // every length in pixels (font sizes, spacing, blurs, gaps) by k = width ÷ 1080.
+      //   colors   ink #EAF0FA, muted #8A93A6, primary #5B8CFF
+      //   easing   APPLE = cubic-bezier(0.16, 1, 0.3, 1), SMOOTH = cubic-bezier(0.6, 0, 0.2, 1)
+      //   "clamp"  means extrapolateLeft and extrapolateRight are both "clamp"
+      // Tip: make your easing functions inside the functions that use them (or the
+      // first time they're needed), not when this file loads.
+
+      /**
+       * Where a KineticIntro Scene is at frame n. The scene runs from frame a to b.
+       * Options (defaults): a, b, enterFrom (1), exitTo (1), blurIn (0), blurOut (0),
+       * enterDur (26), exitDur (22), pushTo (1.04).
+       *   enter   = interpolate(n, [a, a + enterDur], [0, 1]), clamped, eased with APPLE
+       *   exit    = interpolate(n, [b − exitDur, b], [0, 1]), clamped, eased with SMOOTH
+       *   push    = interpolate(n, [a, b], [1, pushTo]), clamped
+       * Return { visible, scale, opacity, blur }:
+       *   visible = n is from a − 2 to b + 2 (both included)
+       *   scale   = lerp(enterFrom, 1, enter) × push × lerp(1, exitTo, exit)
+       *   opacity = the smaller of enter and 1 − exit
+       *   blur    = (1 − enter) × blurIn + exit × blurOut, or 0 if that's 0.15 or less
+       */
+      function sceneState(n, opts) {
+        throw MS.todo("sceneState");
+      }
+
+      /**
+       * KineticIntro's MaskUp: how far below its slot a word is at frame n, as a
+       * percentage of the word's own height. It rises from 110 at frame `at` to 0 at
+       * frame at + dur (default 22), clamped, eased with APPLE.
+       */
+      function maskUp(n, at, dur) {
+        throw MS.todo("maskUp");
+      }
+
+      /**
+       * Where the point (x, y) of a w × h box falls along a CSS linear-gradient(deg),
+       * as a number from 0 (where the gradient starts) to 1 (where it ends).
+       * 0deg points up, 90deg points right (angles go clockwise). The gradient line
+       * runs through the box's center in that direction, and is just long enough
+       * that its two ends touch the box's corners: |w × sin| + |h × cos| long.
+       */
+      function linearGradientT(x, y, w, h, deg) {
+        throw MS.todo("linearGradientT");
+      }
+
+      /**
+       * Blend `color` onto pixel (x, y) like CSS's mix-blend-mode: overlay. Like your
+       * blendPixel (layer 01), but where the two overlap, the color becomes
+       * B(backdrop, color) instead of the color itself. With every channel as a
+       * number from 0 to 1 (divide by 255), for each of red, green and blue:
+       *   B = 2 × Cb × Cs                      if the backdrop Cb ≤ 0.5
+       *   B = 1 − 2 × (1 − Cb) × (1 − Cs)      otherwise
+       *   αo = αs + αb × (1 − αs)
+       *   Co = ((1 − αb) × αs × Cs + αb × αs × B + (1 − αs) × αb × Cb) ÷ αo
+       * (s is the color you blend, b the pixel already there, o the result.) Store
+       * Co and αo back as 0–255. Pixels outside the frame, and a result with αo = 0,
+       * leave the frame unchanged.
+       */
+      function blendOverlay(frame, x, y, color) {
+        throw MS.todo("blendOverlay");
+      }
+
+      /**
+       * KineticIntro's background, as a new width × height frame, using your
+       * fillRadialGradient (layer 01):
+       *   radial-gradient(70% 60% at 50% 38%, #1A2740, #0B0D12)
+       *   then over it, blended normally,
+       *   radial-gradient(60% 40% at 50% 45%, rgba(91, 140, 255, 0.22), transparent 60%)
+       * "70% 60%" are the ellipse's x and y radii as fractions of width and height.
+       * "transparent 60%" means the glow has faded out 60% of the way to its edge.
+       * Use alpha 56 for 0.22, and fade the glow to the same blue with alpha 0.
+       */
+      function background(width, height) {
+        throw MS.todo("background");
+      }
+
+      /**
+       * An inset box-shadow, as a width × height frame: CSS's
+       *   box-shadow: inset 0 0 <radius>px rgba(0, 0, 0, alpha)
+       * A blur radius of r means a Gaussian blur with σ = r ÷ 2. Make a frame that's
+       * the size of the screen plus a margin of Math.ceil(3σ) + 2 on every side,
+       * opaque black except for a transparent hole the size of the screen in the
+       * middle. Blur it with your blur(σ), then cut the middle out (drop the margin)
+       * with its alpha multiplied by `alpha`.
+       */
+      function vignette(width, height, radius, alpha) {
+        throw MS.todo("vignette");
+      }
+
+      /**
+       * The layer (for renderLayers) of word i at frame n, in a frame `width` wide
+       * (and Math.round(width × 16 ÷ 9) high); null when the word's scene isn't visible.
+       * The words are "DESIGN.", "ANIMATE.", "RENDER.". Word i's scene: a = 40 × i,
+       * b = a + 48, enterFrom 0.8, exitTo 1.5, blurIn 14, blurOut 16.
+       * - The text: textSprite, 150 px, weight 900, family "Inter", ink, letterSpacing −4 px.
+       * - The mask: a frame the size of the text sprite, with the text drawn into it
+       *   moved down by maskUp(n, a + 2) percent of the text's height. Anything that
+       *   lands outside it is cut off.
+       * - The sprite: that mask frame in the middle of a bigger frame with
+       *   pad = Math.ceil(3 × 16 × k) + 2 empty pixels on every side, room for the blur.
+       * - The layer: { sprite, matrix, opacity, blur }, where the matrix scales the
+       *   sprite by the scene's scale around the sprite's center and puts that center
+       *   in the middle of the frame, opacity is the scene's, and blur is the scene's × k.
+       * (Remember: renderLayers blurs before the matrix, like CSS.)
+       */
+      function wordLayer(n, i, width) {
+        throw MS.todo("wordLayer");
+      }
+
+      /**
+       * The lockup's layer at frame n (null when its scene isn't visible). Its scene:
+       * a = 120, b = 180, enterFrom 0.86, exitTo 1, blurIn 14, exitDur 2.
+       * - Title: textSprites "MOTION", "·", "STUDIO" side by side (96 px, weight 900,
+       *   "Inter", letterSpacing −3 px); the "·" is primary, the rest ink.
+       * - Subtitle: textSprite "built in code" (36 px, weight 500, "Inter", muted,
+       *   letterSpacing 2 px), Math.round(22 × k) below the title, faded by
+       *   interpolate(n, [150, 168], [0, 1]), clamped.
+       * - The sprite: the title above the subtitle, each centered (round positions
+       *   to whole pixels), with pad = Math.ceil(3 × 14 × k) + 2 empty pixels around.
+       * - The light sweep, after the title and before the subtitle: over the title's
+       *   box grown by Math.round(16 × k) on every side, for each pixel, with p its
+       *   center's linearGradientT(…, 100deg) × 100 and s = interpolate(n, [140, 172],
+       *   [−20, 130]) clamped, blendOverlay white with alpha 0.5 × max(0, 1 − |p − s| ÷ 12),
+       *   in 0–255 (skip pixels where that's 0).
+       * - The layer: as for the words, from the lockup's scene.
+       */
+      function lockupLayer(n, width) {
+        throw MS.todo("lockupLayer");
+      }
+
+      /**
+       * KineticIntro: a composition `width` wide (default 1080), Math.round(width × 16 ÷ 9)
+       * high, 30 fps, 180 frames. Each frame is the background, then with your
+       * renderLayers: the three words, the lockup, and on top the vignette
+       * (radius 280 × k, alpha 0.7). The background and vignette never change: make
+       * them once, when the composition is made, not for every frame.
+       */
+      function kineticIntro(width) {
+        throw MS.todo("kineticIntro");
+      }
+
+      Object.assign(MS, { sceneState, maskUp, linearGradientT, blendOverlay, background, vignette, wordLayer, lockupLayer, kineticIntro });
+    })(globalThis.MS = globalThis.MS || {});
+
+    const layer09 = true;
+  </script>
+  <script type="module">
+    layer09;
+    const report09 = (() => {
+      const MS = globalThis.MS;
+      MS.tests = MS.tests.filter(t => t.layer !== "09");
+      MS.visuals = MS.visuals.filter(v => v.layer !== "09");
+    // tests/09-kinetic-intro.test.js — PROVIDED. Read a failing test to see what's expected.
+    (function (MS) {
+      const L = "09";
+      const near = (t, got, want, eps, msg) => t.close(got, want, eps, msg);
+      const state = (t, s, want, msg) => {
+        t.ok(s && typeof s === "object", `${msg}: expected { visible, scale, opacity, blur }, got ${s}`);
+        t.eq(s.visible, want[0], msg + ", visible");
+        near(t, s.scale, want[1], 1e-6, msg + ", scale");
+        near(t, s.opacity, want[2], 1e-6, msg + ", opacity");
+        near(t, s.blur, want[3], 1e-6, msg + ", blur");
+      };
+      const closePixel = (t, got, want, eps, msg) => { t.ok(got, msg + ": no pixel"); want.forEach((w, i) => near(t, got[i], w, eps, `${msg}, ${["red", "green", "blue", "alpha"][i]}`)); };
+      // Text depends on the fonts a computer has, so tests that measure text use the bitmap font everywhere.
+      const bitmapOnly = fn => { const real = MS.createCanvas; MS.createCanvas = () => null; try { return fn(); } finally { MS.createCanvas = real; } };
+      const WORD2 = { a: 40, b: 88, enterFrom: 0.8, exitTo: 1.5, blurIn: 14, blurOut: 16 };   // "ANIMATE."
+
+      MS.test(L, "sceneState: a scene is on screen from 2 frames before `a` to 2 frames after `b`", t => {
+        t.eq(MS.sceneState(37, WORD2).visible, false, "frame 37");
+        t.eq(MS.sceneState(38, WORD2).visible, true, "frame 38");
+        t.eq(MS.sceneState(90, WORD2).visible, true, "frame 90");
+        t.eq(MS.sceneState(91, WORD2).visible, false, "frame 91");
+      });
+
+      MS.test(L, "sceneState: at `a` it starts small, invisible and fully blurred", t => {
+        state(t, MS.sceneState(40, WORD2), [true, 0.8, 0, 14], "frame 40");
+        state(t, MS.sceneState(38, WORD2), [true, 0.8, 0, 14], "frame 38, before it starts: held, like a clamp");
+      });
+
+      MS.test(L, "sceneState: it enters along cubic-bezier(0.16, 1, 0.3, 1)", t => {
+        state(t, MS.sceneState(45, WORD2), [true, 0.951602543, 0.738269926, 3.664221036], "frame 45, 5 frames in");
+      });
+
+      MS.test(L, "sceneState: in the middle, it pushes in slowly and steadily toward pushTo", t => {
+        state(t, MS.sceneState(66, WORD2), [true, 1.021666667, 1, 0], "frame 66: 26 of 48 frames along the push");
+      });
+
+      MS.test(L, "sceneState: it exits along cubic-bezier(0.6, 0, 0.2, 1), growing toward exitTo", t => {
+        state(t, MS.sceneState(77, WORD2), [true, 1.394039897, 0.29531467, 11.274965283], "frame 77");
+        state(t, MS.sceneState(88, WORD2), [true, 1.56, 0, 16], "frame 88: gone, and 1.04 × 1.5 = 1.56 times as big");
+      });
+
+      MS.test(L, "sceneState: a blur of 0.15 or less counts as no blur", t => {
+        const s = { a: 0, b: 100, blurIn: 14, blurOut: 16 };
+        near(t, MS.sceneState(15, s).blur, 0.2075, 1e-4, "frame 15 (0.21 is kept)");
+        t.eq(MS.sceneState(16, s).blur, 0, "frame 16 (0.146 becomes 0)");
+        t.eq(MS.sceneState(80, s).blur, 0, "frame 80 (0.142 becomes 0)");
+        near(t, MS.sceneState(81, s).blur, 0.3481, 1e-4, "frame 81");
+      });
+
+      MS.test(L, "sceneState: the defaults are KineticIntro's (enterDur 26, exitDur 22, pushTo 1.04)", t => {
+        state(t, MS.sceneState(13, { a: 0, b: 60 }), [true, 1.008666667, 0.971779105, 0], "frame 13");
+        state(t, MS.sceneState(26, { a: 0, b: 60 }), [true, 1.017333333, 1, 0], "frame 26: fully in");
+        state(t, MS.sceneState(49, { a: 0, b: 60 }), [true, 1.032666667, 0.29531467, 0], "frame 49: 11 frames into the exit");
+      });
+
+      MS.test(L, "sceneState: a short scene can enter and exit at once; opacity is the smaller of the two", t => {
+        state(t, MS.sceneState(10, { a: 0, b: 20, enterFrom: 0.5, exitTo: 2, blurIn: 4, blurOut: 6 }), [true, 1.759664865, 0.214712778, 4.981150411], "a 20-frame scene, frame 10");
+      });
+
+      MS.test(L, "maskUp: the word rises from 110% below its slot to 0, along the enter curve", t => {
+        near(t, MS.maskUp(10, 12), 110, 1e-9, "before it starts");
+        near(t, MS.maskUp(12, 12), 110, 1e-9, "at the start");
+        near(t, MS.maskUp(17, 12), 22.499047301, 1e-6, "5 frames in");
+        near(t, MS.maskUp(34, 12), 0, 1e-9, "22 frames in: home");
+        near(t, MS.maskUp(15, 10, 10), 3.104298421, 1e-6, "a 10-frame rise, half way");
+      });
+
+      MS.test(L, "linearGradientT: 90deg runs left to right, 180deg top to bottom, 0deg bottom to top", t => {
+        near(t, MS.linearGradientT(50, 20, 200, 100, 90), 0.25, 1e-9, "90deg");
+        near(t, MS.linearGradientT(50, 20, 200, 100, 180), 0.2, 1e-9, "180deg");
+        near(t, MS.linearGradientT(50, 20, 200, 100, 0), 0.8, 1e-9, "0deg");
+      });
+
+      MS.test(L, "linearGradientT: at any angle, the gradient line just reaches the corners", t => {
+        near(t, MS.linearGradientT(0, 0, 200, 100, 100), 0, 1e-9, "100deg: the top-left corner is 0");
+        near(t, MS.linearGradientT(200, 100, 200, 100, 100), 1, 1e-9, "100deg: the bottom-right corner is 1");
+        near(t, MS.linearGradientT(30, 70, 200, 100, 100), 0.194561245, 1e-6, "100deg: a point inside");
+        near(t, MS.linearGradientT(10, 10, 40, 40, 45), 0.5, 1e-9, "45deg: on the diagonal through the middle");
+      });
+
+      const overlay = (bg, c) => { const f = MS.createFrame(1, 1); MS.setPixel(f, 0, 0, bg); MS.blendOverlay(f, 0, 0, c); return MS.getPixel(f, 0, 0); };
+
+      MS.test(L, "blendOverlay: dark backdrops get darker, light ones lighter", t => {
+        closePixel(t, overlay([60, 60, 60], [255, 255, 255, 128]), [90, 90, 90, 255], 1, "half-white over dark grey");
+        closePixel(t, overlay([200, 180, 40], [255, 255, 255, 128]), [228, 218, 60, 255], 1, "half-white over a mix of light and dark channels");
+        closePixel(t, overlay([100, 150, 200], [0, 0, 0, 255]), [0, 45, 145, 255], 1, "black over a blue");
+        closePixel(t, overlay([128, 128, 128], [200, 100, 20]), [200, 101, 21, 255], 1, "over mid-grey, an opaque color nearly keeps itself");
+      });
+
+      MS.test(L, "blendOverlay: over transparent pixels it's an ordinary blend", t => {
+        closePixel(t, overlay([0, 0, 0, 0], [255, 255, 255, 128]), [255, 255, 255, 128], 1, "half-white over nothing");
+        closePixel(t, overlay([200, 100, 50, 128], [90, 200, 30, 200]), [145, 169, 24, 228], 1, "both partly transparent");
+        const f = MS.createFrame(2, 2);
+        MS.blendOverlay(f, 5, 1, [255, 0, 0]);
+        t.deep(Array.from(f.data), new Array(16).fill(0), "a pixel outside the frame changes nothing");
+      });
+
+      MS.test(L, "background: KineticIntro's two radial gradients", t => {
+        const bg = MS.background(108, 192);
+        t.deep([bg.width, bg.height], [108, 192], "size");
+        closePixel(t, MS.getPixel(bg, 54, 73), [36, 55, 94, 255], 1, "near the center of the background gradient");
+        closePixel(t, MS.getPixel(bg, 54, 86), [38, 58, 101, 255], 1, "the center of the glow");
+        closePixel(t, MS.getPixel(bg, 0, 0), [12, 14, 20, 255], 1, "the top-left corner");
+        closePixel(t, MS.getPixel(bg, 107, 191), [11, 13, 18, 255], 1, "the bottom-right corner: #0B0D12");
+        closePixel(t, MS.getPixel(bg, 20, 150), [14, 18, 27, 255], 1, "lower left");
+      });
+
+      MS.test(L, "vignette: an inset shadow, darkest in the corners and clear in the middle", t => {
+        const v = MS.vignette(108, 192, 28, 0.7);
+        t.deep([v.width, v.height], [108, 192], "size");
+        closePixel(t, MS.getPixel(v, 0, 0), [0, 0, 0, 132], 2, "a corner: about 0.7 × 3/4 of 255");
+        closePixel(t, MS.getPixel(v, 0, 96), [0, 0, 0, 87], 2, "the middle of an edge: about 0.7 × 1/2 of 255");
+        closePixel(t, MS.getPixel(v, 54, 0), [0, 0, 0, 87], 2, "the middle of the top edge");
+        closePixel(t, MS.getPixel(v, 10, 10), [0, 0, 0, 76], 2, "10 pixels in from a corner");
+        t.close(MS.getPixel(v, 54, 96)[3], 0, 0, "the middle of the frame: alpha");
+      });
+
+      MS.test(L, "wordLayer: nothing while the word is off screen", t => {
+        t.eq(MS.wordLayer(37, 1, 108), null, "frame 37, the second word");
+        t.eq(MS.wordLayer(91, 1, 108), null, "frame 91, the second word");
+      });
+
+      MS.test(L, "wordLayer: opacity and scale from sceneState, blur scaled to the frame size", t => {
+        const layer = MS.wordLayer(77, 1, 216), s = MS.sceneState(77, WORD2);
+        t.ok(layer && layer.sprite, "a layer with a sprite");
+        near(t, layer.opacity, s.opacity, 1e-9, "opacity");
+        near(t, layer.blur, s.blur * 0.2, 1e-9, "blur: the frame is 216 wide, 0.2 of 1080");
+        const [cx, cy] = MS.transformPoint(layer.matrix, layer.sprite.width / 2, layer.sprite.height / 2);
+        near(t, cx, 108, 1e-9, "the sprite's center lands in the middle of the frame (x)");
+        near(t, cy, 192, 1e-9, "the sprite's center lands in the middle of the frame (y)");
+        const [ex] = MS.transformPoint(layer.matrix, layer.sprite.width / 2 + 10, layer.sprite.height / 2);
+        near(t, ex - cx, 10 * s.scale, 1e-9, "10 sprite pixels become 10 × scale frame pixels");
+      });
+
+      MS.test(L, "wordLayer: the sprite is the word's box plus padding for the blur, and the mask hides the word at first", t => {
+        bitmapOnly(() => {
+          const text = MS.textSprite("ANIMATE.", { size: 30, weight: 900, family: "Inter", letterSpacing: -0.8 });
+          const pad = Math.ceil(3 * 16 * 0.2) + 2;
+          const late = MS.wordLayer(66, 1, 216);
+          t.deep([late.sprite.width, late.sprite.height], [text.width + 2 * pad, text.height + 2 * pad], "sprite size");
+          let ink = 0, early = MS.wordLayer(42, 1, 216);
+          for (let i = 3; i < late.sprite.data.length; i += 4) ink += late.sprite.data[i];
+          t.ok(ink > 0, "at frame 66 the word is in its slot");
+          let hidden = 0;
+          for (let i = 3; i < early.sprite.data.length; i += 4) hidden += early.sprite.data[i];
+          t.eq(hidden, 0, "at frame 42 (the rise starts at 42) the word is still below its slot, so nothing shows");
+        });
+      });
+
+      MS.test(L, "lockupLayer: on from frame 118, with the subtitle fading in from 150", t => {
+        t.eq(MS.lockupLayer(117, 216), null, "frame 117");
+        bitmapOnly(() => {
+          const early = MS.lockupLayer(146, 216), late = MS.lockupLayer(170, 216);
+          t.ok(early && late, "layers at frames 146 and 170");
+          near(t, late.opacity, MS.sceneState(170, { a: 120, b: 180, enterFrom: 0.86, exitTo: 1, blurIn: 14, exitDur: 2 }).opacity, 1e-9, "opacity at 170");
+          const bottom = l => { let s = 0; const s0 = l.sprite; for (let y = Math.floor(s0.height * 0.6); y < s0.height; y++) for (let x = 0; x < s0.width; x++) s += s0.data[(y * s0.width + x) * 4 + 3]; return s; };
+          t.eq(bottom(early), 0, "at 146 the subtitle (the lower part of the sprite) is invisible");
+          t.ok(bottom(late) > 0, "at 170 it's there");
+          // The "·" is primary blue. Overlay lifts a mid-dark color less than an ordinary blend would.
+          const dot = MS.getPixel(MS.lockupLayer(155, 216).sprite, 83, 19);
+          t.ok(dot && Math.abs(dot[0] - 130) <= 1 && Math.abs(dot[1] - 189) <= 1, "at 155 the sweep crosses the blue dot and overlays it to about [130, 189, 255], got " + dot);
+        });
+      });
+
+      MS.test(L, "kineticIntro: 1080 × 1920 at 30 fps for 6 seconds, scaled by width", t => {
+        const c = MS.kineticIntro(108);
+        t.deep([c.width, c.height, c.fps, c.durationInFrames], [108, 192, 30, 180], "width, height, fps, durationInFrames");
+      });
+
+      MS.test(L, "kineticIntro: a frame is the background, the words, the lockup and the vignette, in that order", t => {
+        bitmapOnly(() => {
+          for (const n of [10, 60, 150]) {
+            const got = MS.renderFrame(MS.kineticIntro(108), n);
+            const want = MS.background(108, 192);
+            const layers = [0, 1, 2].map(i => MS.wordLayer(n, i, 108)).concat([MS.lockupLayer(n, 108), { sprite: MS.vignette(108, 192, 28, 0.7) }]);
+            MS.renderLayers(want, layers.filter(Boolean));
+            let worst = 0;
+            for (let i = 0; i < want.data.length; i++) worst = Math.max(worst, Math.abs(want.data[i] - got.data[i]));
+            t.ok(worst <= 1, `frame ${n}: differs from the layers drawn by hand by up to ${worst}`);
+          }
+        });
+      });
+
+      // ---- pictures ----
+      MS.animation(L, "KineticIntro, rebuilt from pixels up (real fonts in a browser, the bitmap font elsewhere)", () => MS.kineticIntro(216));
+
+      MS.visual(L, "The pieces at frame 156: background, the vignette on its own, and the lockup's sprite with its light sweep", () => {
+        const W = 216, H = 384, bg = MS.background(W, H), v = MS.vignette(W, H, 56, 0.7), lock = MS.lockupLayer(156, W);
+        const f = MS.createFrame(3 * W + 8, H);
+        MS.clearFrame(f, [40, 44, 56]);
+        MS.drawTransformed(f, bg, MS.translate(0, 0));
+        MS.drawTransformed(f, v, MS.translate(W + 4, 0));
+        MS.drawTransformed(f, lock.sprite, MS.translate(2 * W + 8 + (W - lock.sprite.width) / 2, (H - lock.sprite.height) / 2));
+        return f;
+      });
+    })(globalThis.MS = globalThis.MS || {});
+
+      return MS.runLayerReport("09");
+    })();
+    const el09 = document.createElement("div");
+    el09.innerHTML = report09.html;
+    display(el09);
+  </script>
+  <script type="text/markdown">
+    ### Predict, then run
+
+    Guess first, then run.
+
+
+  </script>
+  <script type="module">
+    layer09; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 1: "DESIGN." runs from frame 0 to 48. Half way, at frame 24, how big is it?
+        const myGuess = null; // TODO: your guess, to 3 decimals (1 = its normal size)
+        const s = MS.sceneState(24, { a: 0, b: 48, enterFrom: 0.8, exitTo: 1.5, blurIn: 14, blurOut: 16 });
+        MS.reveal("the scale at frame 24", myGuess, Math.round(s.scale * 1000) / 1000);
+      });
+      display(out);
+    }
+  </script>
+  <script type="module">
+    layer09; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 2: the vignette at half size (540 × 960, blur radius 140, alpha 0.7).
+        // What's the alpha of the very top-left pixel, from 0 to 255?
+        const myGuess = null; // TODO: your guess
+        MS.reveal("the corner's alpha", myGuess, MS.getPixel(MS.vignette(540, 960, 140, 0.7), 0, 0)[3]);
+      });
+      display(out);
+    }
+  </script>
+  <script type="module">
+    layer09; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 3: overlay opaque black onto a light grey [200, 200, 200].
+        // What's the red value afterwards?
+        const myGuess = null; // TODO: your guess, 0 to 255
+        const f = MS.createFrame(1, 1);
+        MS.clearFrame(f, [200, 200, 200]);
+        MS.blendOverlay(f, 0, 0, [0, 0, 0]);
+        MS.reveal("red after overlaying black", myGuess, MS.getPixel(f, 0, 0)[0]);
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    <details><summary>Answers</summary>
+
+    1. 1.02. It finished entering a few frames ago (26 frames of APPLE get very close to 1 early), and the push has been growing it the whole time: 4% over 48 frames is 2% by half way. The push is so slow you never see it as motion, only as the word feeling alive.
+    2. 134, about 0.7 × ¾ of 255. A corner pixel is close to two edges, so the blurred black reaches it from two sides: only about a quarter of the area around it is the transparent hole. Halfway down an edge it's about half, so the alpha there is about 0.7 × ½ of 255.
+    3. 145. Over a light backdrop, overlay screens, so even black only pulls 200 down to 145: overlay keeps the light parts light. Over a dark grey, the same black would give pure black.
+
+    </details>
+
+    ### Break it
+
+    Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.
+
+    #### 1. A window with no frame
+
+
+  </script>
+  <script type="module">
+    layer09; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 1: why does the window go in the sprite?
+        // TODO(break-it), in src/09-kinetic-intro.js → wordLayer:
+        //   skip the window: draw the text straight into the padded sprite, moved down by maskUp, and
+        //   leave out the frame that cuts it off.
+        const layer = MS.wordLayer(50, 1, 216);
+        let below = 0;
+        const s = layer.sprite, bottom = Math.floor(s.height * 0.75);
+        for (let y = bottom; y < s.height; y++) for (let x = 0; x < s.width; x++) below += s.data[(y * s.width + x) * 4 + 3];
+        console.log("ink in the bottom quarter of the sprite at frame 50: " + below);
+        // TODO: before the change, how much ink is below the window? After it, what would the viewer see under the word?
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    #### 2. Overlay, backwards
+
+
+  </script>
+  <script type="module">
+    layer09; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 2: whose color decides?
+        // TODO(break-it), in src/09-kinetic-intro.js → blendOverlay:
+        //   choose between the two formulas with the SOURCE color (Cs ≤ 0.5) instead of the backdrop's.
+        for (const grey of [30, 100, 200]) {
+          const f = MS.createFrame(1, 1);
+          MS.clearFrame(f, [grey, grey, grey]);
+          MS.blendOverlay(f, 0, 0, [255, 255, 255, 128]);
+          console.log("half-white over grey " + grey + " → " + MS.getPixel(f, 0, 0)[0]);
+        }
+        // TODO: before the change, the white lifts light greys more than dark ones. After it? (That other blend mode has a name: hard-light.)
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    #### 3. Make it every frame
+
+
+  </script>
+  <script type="module">
+    layer09; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 3: what does "make it once" save?
+        // TODO(break-it), in src/09-kinetic-intro.js → kineticIntro:
+        //   make the background and the vignette inside render, for every frame.
+        const comp = MS.kineticIntro(216);
+        const t0 = Date.now();
+        for (let n = 0; n < 180; n += 18) MS.renderFrame(comp, n);
+        console.log("10 frames: " + (Date.now() - t0) + " ms");
+        // TODO: how much slower is it after the change? How long would all 180 frames take at 1080 wide?
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    ### Checkpoint
+
+    When all 21 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, and every dot asks one small question about a piece of KineticIntro: a dot that gets a wrong answer flies off its letter. Text is drawn with the bitmap font here, so the picture is the same on every computer. Its traps: scenes with every option changed, frames before a scene starts and after it ends, a two-frame exit, masks that haven't started or have long finished, gradient angles all the way round, overlay where one side is transparent, the background and vignette at other sizes, layers at other widths, and whole frames compared with your own pieces drawn by hand. The three questions are below.
+
+
+  </script>
+  <script type="module" pinned>
+    layer09; // after your code
+    // Checkpoint 09 · KineticIntro. Replace each null with your answer.
+    MS.answers("09", {
+      // 1. For how many frames is "ANIMATE." (a = 40, b = 88) completely opaque, opacity exactly 1?
+      q1: null,
+      // 2. The light sweep's center s moves from −20% to 130% between frames 140 and 172.
+      //    What's the first whole frame at which it has reached the middle (s ≥ 50)?
+      q2: null,
+      // 3. At full size (1080 wide), how many pixels wide is the margin around the
+      //    vignette's hole?
+      q3: null,
+    });
+    const answers09 = true;
+  </script>
+  <script type="module">
+    answers09; report09; // after your answers and this layer's tests
+    {
+      const cp = MS.runCheckpoint("09", MS.runTests("09"));
+      const el = document.createElement("div");
+      el.innerHTML = MS.checkpointHTML(cp);
+      display(el);
+    }
+  </script>
+  <script type="text/markdown">
+
+    ### In the real world
+
+    - Remotion's [`interpolate`](https://www.remotion.dev/docs/interpolate) with [`Easing.bezier`](https://www.remotion.dev/docs/easing) is exactly your layers 04 and 05, and [`<AbsoluteFill>`](https://www.remotion.dev/docs/absolute-fill) is a full-frame flexbox container; KineticIntro centers its words inside one.
+    - Chrome draws a Remotion frame with its compositor: each Scene with a transform, filter or opacity can get its own GPU layer, much like your sprites, and blends them in an order very like `renderLayers`.
+    - CSS's [`isolation: isolate`](https://developer.mozilla.org/en-US/docs/Web/CSS/isolation) makes a stacking context on purpose, so blend modes inside it can't reach outside it.
+    - Big shadows and blurs are among the most expensive things a page can draw, which is why browsers try to draw them once and reuse the result: "make it once", done for you.
+
+    ### Going further (optional)
+
+    - **Read the original.** The [Compositing and Blending spec](https://www.w3.org/TR/compositing-1/#blending) lists all the separable blend modes with their formulas. Add `screen`, `multiply` and `soft-light` to your `blendOverlay` as options and try each on the sweep.
+    - Cache the text sprites: they only depend on the word, not on n. How much faster is a frame?
+    - Render KineticIntro at full size, 1080 × 1920, and time one frame. Which piece takes longest?
 
   </script>
 </notebook>
