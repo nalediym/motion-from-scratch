@@ -12,9 +12,9 @@ KineticIntro is mostly words: **DESIGN.**, **ANIMATE.**, **RENDER.**, then **MOT
 
 ### Two kinds of fonts
 
-**Bitmap fonts** store each character as a grid of on/off pixels. Arcade machines, early terminals, and the first Macintosh used them; Susan Kare drew the original Mac fonts on graph paper in 1983–84. They're simple and fast, but they only look right at one size.
+**Bitmap fonts** store each character as a grid of on/off pixels. Arcade machines, early terminals, and the first Macintosh used them; Susan Kare drew the original Mac fonts on graph paper in 1983–84. They're simple and fast, but they only look right at one size. ([Computer font: bitmap fonts](https://en.wikipedia.org/wiki/Computer_font#Bitmap_fonts); [Susan Kare](https://en.wikipedia.org/wiki/Susan_Kare).)
 
-**Outline fonts** (TrueType, OpenType) store each character as curves, so they can be drawn at any size. Drawing one means rasterizing the curves into pixels with antialiasing, which is the "which pixels does this shape cover?" problem from layer 01, done very well. That's what the browser does when you write `font-size: 150px`.
+**Outline fonts** ([TrueType](https://developer.apple.com/fonts/TrueType-Reference-Manual/), [OpenType](https://learn.microsoft.com/en-us/typography/opentype/spec/)) store each character as curves, so they can be drawn at any size. Drawing one means rasterizing the curves into pixels with antialiasing, which is the "which pixels does this shape cover?" problem from layer 01, done very well. That's what the browser does when you write `font-size: 150px`.
 
 You're building a bitmap font renderer because it shows the whole pipeline with no magic: _character → lookup → grid → pixels_.
 
@@ -34,7 +34,7 @@ You're building a bitmap font renderer because it shows the whole pipeline with 
                                   (each # becomes a 3 × 3 block)
 ```
 
-Reading it is a nested loop: for each row `r`, for each column `c`, if the cell is `#`, fill a `scale × scale` square at `(x + c × scale, y + r × scale)`. Scaling by repeating each pixel as a block like this is called **nearest-neighbor** scaling. It's why pixel art stays crisp.
+Reading it is a nested loop: for each row `r`, for each column `c`, if the cell is `#`, fill a `scale × scale` square at `(x + c × scale, y + r × scale)`. Scaling by repeating each pixel as a block like this is called **[nearest-neighbor](https://en.wikipedia.org/wiki/Nearest-neighbor_interpolation)** scaling. It's why pixel art stays crisp.
 
 ### Laying out a line
 
@@ -50,20 +50,20 @@ Text layout is the job of deciding where each glyph goes. Ours is the simplest p
 ```
 
 - **Advance** is how far you move right after each glyph: its width plus the tracking.
-- **Tracking** is uniform extra space between all letters. (Kerning, which tightens specific pairs like "AV", is a different thing. Our font skips it.)
+- **Tracking** is uniform extra space between all letters (CSS calls it [`letter-spacing`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/letter-spacing)). ([Kerning](https://en.wikipedia.org/wiki/Kerning), which tightens specific pairs like "AV", is a different thing. Our font skips it.)
 - Notice that tracking only goes *between* glyphs. The last glyph doesn't get a gap after it.
 
 **Alignment needs measuring first.** To center text on `x`, you need its total width before drawing the first glyph, so the left edge is `x − width / 2`. Real layout engines work in the same two passes: measure everything, then place everything. KineticIntro centers every word, so you'll use this constantly.
 
 ### Characters are trickier than they look
 
-- **Case.** The font has only uppercase. Mapping `"g"` to `"G"` is a tiny case of what real fonts do with **fallback**: when the font lacks a character, find a substitute.
-- **Missing characters.** When there's no substitute, show **tofu**: an empty box. (Google's font family Noto is named for "no more tofu".) Tofu is ugly on purpose. It tells you something is missing instead of silently skipping it.
-- **What counts as one character?** `"MOTION·STUDIO"` has 13 characters, and `·` is one of them. But try `"👋".length` in the console: it says 2. JavaScript strings count 16-bit units, and many emoji take two. `for (const ch of text)` and `[...text]` walk real characters. A plain `for (let i = 0; i < text.length; i++)` splits that emoji in half. Pick your loop carefully.
+- **Case.** The font has only uppercase. Mapping `"g"` to `"G"` (with [`toUpperCase`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toUpperCase)) is a tiny case of what real fonts do with **fallback**: when the font lacks a character, find a substitute.
+- **Missing characters.** When there's no substitute, show **tofu**: an empty box. (Google's font family [Noto](https://fonts.google.com/noto) is named for "no more tofu".) Tofu is ugly on purpose. It tells you something is missing instead of silently skipping it.
+- **What counts as one character?** `"MOTION·STUDIO"` has 13 characters, and `·` is one of them. But try `"👋".length` in the console: it says 2. JavaScript strings count 16-bit units ([`String.length`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/length)), and characters beyond the first 65,536 take two, called a [surrogate pair](https://www.unicode.org/faq/utf_bom.html) in Unicode's UTF-16 encoding. [`for...of`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...of) and [spread](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax) (`[...text]`) walk real characters. A plain `for (let i = 0; i < text.length; i++)` splits that emoji in half. Pick your loop carefully.
 
 ### Sizing for the real video
 
-KineticIntro sets its words at a font size of 150 px in a 1080 px wide frame. Font size is the height of the font's whole design box, not of a capital letter. In Inter, the font it uses, capitals are about 73% of that, so roughly 110 px tall. Our capitals are 7 cells tall, so a scale of about 16 matches. Can **ANIMATE.** fit across 1080 pixels at scale 16 with tracking 1? How large can the scale get before it doesn't? Work it out with `measureText` once it passes.
+KineticIntro sets its words at a font size of 150 px in a 1080 px wide frame. Font size is the height of the font's whole design box (the "em"), not of a capital letter ([`font-size`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-size)). In Inter, the font it uses, capitals are about 73% of that, so roughly 110 px tall. Our capitals are 7 cells tall, so a scale of about 16 matches. Can **ANIMATE.** fit across 1080 pixels at scale 16 with tracking 1? How large can the scale get before it doesn't? Work it out with `measureText` once it passes.
 
 ## Your turn
 
@@ -175,9 +175,16 @@ console.log(MS.asciiFrame(f));
 
 ## In the real world
 
-- Canvas's [`measureText`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/measureText) and `textAlign` do what you just did, for outline fonts, with kerning and shaping on top.
-- Text shaping engines like HarfBuzz handle what our font ignores: kerning, ligatures, scripts that join letters, and right-to-left text.
+- Canvas's [`measureText`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/measureText) and [`textAlign`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/textAlign) do what you just did, for outline fonts, with kerning and shaping on top.
+- Text shaping engines like [HarfBuzz](https://harfbuzz.github.io/) handle what our font ignores: kerning, ligatures, scripts that join letters, and right-to-left text.
 - In Motion Studio's `KineticIntro.tsx`, each word is centered with flexbox and drawn by the browser at a 150 px font size. In layer 07 you'll switch to real fonts too, so you can compare your pixel version with the browser's directly.
+
+## Read the originals
+
+- [OpenType specification](https://learn.microsoft.com/en-us/typography/opentype/spec/) and [Apple's TrueType Reference Manual](https://developer.apple.com/fonts/TrueType-Reference-Manual/): how outline fonts store glyphs as curves.
+- [Unicode FAQ: UTF-8, UTF-16 and UTF-32](https://www.unicode.org/faq/utf_bom.html): why one emoji is two JavaScript "characters".
+- [HarfBuzz](https://harfbuzz.github.io/): the text-shaping engine inside Chrome, Firefox and Android, and what shaping means.
+- [MDN: measureText](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/measureText): the browser's version of your `measureText`.
 
 ## Study buddy prompts
 

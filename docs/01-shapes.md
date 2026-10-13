@@ -12,7 +12,7 @@ KineticIntro has a glowing radial background, words that fade in and out, and a 
 
 ### Colors as text: hex
 
-Designers write colors like `#5B8CFF`. That's three bytes written in base 16 (hexadecimal), two digits each:
+Designers write colors like `#5B8CFF` (the CSS [hex color](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/hex-color) notation). That's three bytes written in base 16 ([hexadecimal](https://en.wikipedia.org/wiki/Hexadecimal)), two digits each:
 
 ```text
    #  5B   8C   FF
@@ -21,11 +21,11 @@ Designers write colors like `#5B8CFF`. That's three bytes written in base 16 (he
       └─────────── red   = 0x5B =  5×16 + 11 =  91
 ```
 
-JavaScript can read base-16 text for you (look up `parseInt`'s second argument). There are two common approaches: cut the string into three 2-character pieces, or read all six digits as one number and pull bytes out of it with bit shifts (`>>`) and masks (`& 255`). Either is fine. The second shows you how colors are often packed in memory.
+JavaScript can read base-16 text for you (look up [`parseInt`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt)'s second argument, the radix). There are two common approaches: cut the string into three 2-character pieces, or read all six digits as one number and pull bytes out of it with bit shifts ([`>>`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift)) and masks ([`& 255`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND)). Either is fine. The second shows you how colors are often packed in memory.
 
 ### Rasterizing: which pixels does a shape cover?
 
-A rectangle from x = 2 to x = 6 is an idea with perfect edges. The screen only has whole pixels. Turning shapes into pixels is called **rasterization**, and the rule almost every renderer uses is: _a pixel belongs to the shape if its **center** is inside._
+A rectangle from x = 2 to x = 6 is an idea with perfect edges. The screen only has whole pixels. Turning shapes into pixels is called **[rasterization](https://en.wikipedia.org/wiki/Rasterisation)**, and the rule almost every renderer uses is: _a pixel belongs to the shape if its **center** is inside._
 
 ```text
         0     1     2     3     4     5     6     7
@@ -56,13 +56,13 @@ A pixel is inside a circle if its center is no farther than `r` from the circle'
 
 You *could* test every pixel in the frame. For a small circle on a 1080 × 1920 frame that's 2 million tests to draw maybe 300 pixels. Instead, only visit the circle's **bounding box**: from `cx − r` to `cx + r` in each direction.
 
-Jagged edges like these are called **aliasing**. Real renderers soften them with **antialiasing**: a pixel that's 40% covered gets 40% of the color. See **Going further**.
+Jagged edges like these are called **aliasing**. Real renderers soften them with **[antialiasing](https://en.wikipedia.org/wiki/Spatial_anti-aliasing)**: a pixel that's 40% covered gets 40% of the color. See **Going further**.
 
 ### Alpha blending: painting with see-through paint
 
 Here's the big one. When you paint a half-transparent red over a blue pixel, the result is a mix. When you paint it over an empty, fully transparent pixel, it should still be red, just see-through.
 
-This was worked out in 1984 by Thomas Porter and Tom Duff at Lucasfilm, in a paper called "Compositing Digital Images". It's how film effects layered spaceships over backgrounds, and how every browser layers one element over another. Their "over" operation, with alphas written as 0 to 1:
+This was worked out in 1984 by Thomas Porter and Tom Duff at Lucasfilm, in a paper called ["Compositing Digital Images"](https://keithp.com/~keithp/porterduff/p253-porter.pdf) (SIGGRAPH '84; the link is the original paper as a PDF). It's how film effects layered spaceships over backgrounds, and how every browser layers one element over another. Their "over" operation, with alphas written as 0 to 1:
 
 ```text
   a = alpha of the new color (source)     b = alpha of the existing pixel (destination)
@@ -80,7 +80,7 @@ Read it as coverage. The new paint covers fraction `a` of the pixel. Of what's l
   blue = (0 + 255×1×0.5) / 1 ≈ 127       alpha = 0.5 → 128
 ```
 
-Colors stored this way are called **straight alpha**. Many renderers store colors already multiplied by alpha instead (**premultiplied alpha**), because then the formula needs no division. That choice has consequences, which you'll explore below.
+Colors stored this way are called **straight alpha**. Many renderers store colors already multiplied by alpha instead (**premultiplied alpha**), because then the formula needs no division. Porter and Duff wrote "over" for premultiplied colors in the paper; the formula above is the same equation with the division put back so it works on straight colors. Browsers follow the [W3C Compositing and Blending spec](https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcover), which names this operator **source-over**. That choice has consequences, which you'll explore below.
 
 ### Gradients: one color per position
 
@@ -95,7 +95,7 @@ A gradient answers one question per pixel: _how far along am I, from 0 to 1?_ Th
 
 A vertical gradient gets `t` from the row. A radial gradient gets `t` from distance to a center point. Dividing each axis by its own radius (`rx`, `ry`) stretches the circle into an ellipse.
 
-That's exactly what CSS does. KineticIntro's background is written in CSS as:
+That's exactly what CSS does: [`radial-gradient()`](https://developer.mozilla.org/en-US/docs/Web/CSS/gradient/radial-gradient), defined in the [CSS Images spec](https://www.w3.org/TR/css-images-3/#radial-gradients), which says the first size is the horizontal radius and the second the vertical, each as a percentage of the box. KineticIntro's background is written in CSS as:
 
 ```text
   radial-gradient(70% 60% at 50% 38%, #1A2740, #0B0D12)
@@ -107,7 +107,7 @@ When your tests pass, `tests.html` draws that exact background. It's the first r
 
 ## Your turn
 
-1. **hex.** What should happen with `"#FFF"`, `"blue"`, or `"#12345G"`? A regular expression like `/^#?[0-9a-f]{6}$/i` is one way to check. Can you explain each part of it?
+1. **hex.** What should happen with `"#FFF"`, `"blue"`, or `"#12345G"`? A [regular expression](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions) like `/^#?[0-9a-f]{6}$/i` is one way to check. Can you explain each part of it?
 2. **blendPixel.** Turn both alphas into 0–1 first. Handle the case where `outAlpha` is 0. What would dividing by 0 put in the pixel?
 3. **fillRect.** Round the four edges, then clip them to the frame *before* looping. Why is clipping first better than letting `blendPixel` ignore off-screen pixels?
 4. **fillCircle.** Compute the bounding box, clip it, then test each pixel's center.
@@ -226,9 +226,16 @@ console.log("20 circles of radius 8:", Date.now() - start, "ms");
 
 ## In the real world
 
-- Canvas's `globalAlpha` and CSS `opacity` both use Porter–Duff "over".
-- Browsers usually keep pixels premultiplied internally. That's why a canvas pixel with very low alpha can come back from `getImageData` with slightly different colors than you put in: precision was lost in the multiply and divide.
+- Canvas's [`globalAlpha`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalAlpha) and CSS [`opacity`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/opacity) both use Porter–Duff "over"; canvas exposes the full set of operators as [`globalCompositeOperation`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation).
+- Browsers usually keep pixels premultiplied internally. That's why a canvas pixel with very low alpha can come back from [`getImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/getImageData) with slightly different colors than you put in: precision was lost in the multiply and divide.
 - Motion Studio's `KineticIntro.tsx` paints its background with the CSS gradient above, then adds a second radial glow and a dark vignette on top. Those are three layers blended "over" each other, which you can now do by hand.
+
+## Read the originals
+
+- [Porter & Duff, "Compositing Digital Images" (1984)](https://keithp.com/~keithp/porterduff/p253-porter.pdf): the paper that defined "over" and eleven other ways to combine images. Short and readable.
+- [Alvy Ray Smith, "Alpha and the History of Digital Compositing" (1995)](http://alvyray.com/Memos/CG/Microsoft/7_alpha.pdf): how the alpha channel was invented, by one of its inventors.
+- [W3C Compositing and Blending: source-over](https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcover): how browsers are required to blend.
+- [CSS Images: radial gradients](https://www.w3.org/TR/css-images-3/#radial-gradients): the definition behind KineticIntro's background.
 
 ## Study buddy prompts
 

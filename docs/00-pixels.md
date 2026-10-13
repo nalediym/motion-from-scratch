@@ -12,14 +12,14 @@ Every frame of the KineticIntro you'll build in layer 09 is 1080 × 1920 pixels.
 
 ### A pixel is three or four numbers
 
-Your screen is a grid of tiny lights. Each one mixes red, green and blue light, and how bright each color glows is a number from 0 (off) to 255 (full). Why 255? Each channel gets one **byte**: 8 bits, which can hold 2⁸ = 256 different values, 0 through 255.
+Your screen is a grid of tiny lights. Each one mixes red, green and blue light, and how bright each color glows is a number from 0 (off) to 255 (full). Why 255? Each channel gets one **[byte](https://en.wikipedia.org/wiki/Byte)**: 8 bits, which can hold 2⁸ = 256 different values, 0 through 255.
 
 ```text
   [255,   0,   0]  red          [  0,   0,   0]  black (all off)
   [255, 255, 255]  white        [ 91, 140, 255]  Motion Studio's blue
 ```
 
-A fourth number, **alpha**, says how opaque the pixel is: 255 is solid, 0 is invisible. Alpha doesn't matter yet, but layer 01 is all about it. So one pixel is 4 bytes: **R, G, B, A**.
+A fourth number, **[alpha](https://en.wikipedia.org/wiki/Alpha_compositing)**, says how opaque the pixel is: 255 is solid, 0 is invisible. Alpha doesn't matter yet, but layer 01 is all about it. So one pixel is 4 bytes: **R, G, B, A**.
 
 ### Memory is one long line
 
@@ -46,12 +46,12 @@ Look at the numbers for a while before writing `pixelIndex`. Going one step righ
 
 ### Why a Uint8ClampedArray
 
-JavaScript has **typed arrays**: fixed-size blocks of raw numbers, much faster than normal arrays because every slot is the same type. `Uint8ClampedArray` means:
+JavaScript has **[typed arrays](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Typed_arrays)**: fixed-size blocks of raw numbers, much faster than normal arrays because every slot is the same type. [`Uint8ClampedArray`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8ClampedArray) means:
 
 - **Uint8**: each slot is an unsigned 8-bit integer, 0–255. Exactly one channel.
-- **Clamped**: if you store something out of range, it's pinned to the nearest edge instead of wrapping around. Store 300 and you get 255; store −5 and you get 0; store 127.6 and it rounds to 128.
+- **Clamped**: if you store something out of range, it's pinned to the nearest edge instead of wrapping around. Store 300 and you get 255; store −5 and you get 0; store 127.6 and it rounds to 128. The exact rule is the [ToUint8Clamp](https://tc39.es/ecma262/#sec-touint8clamp) operation in the ECMAScript specification, the document that defines JavaScript.
 
-The browser uses this exact type for the pixels of a canvas (`ImageData.data`), which is why you're using it. Compare it with its unclamped cousin `Uint8Array`, where 300 wraps around to 44 (300 − 256). For colors, wrapping is a disaster: a pixel that should be "a bit brighter than white" would turn nearly black.
+The browser uses this exact type for the pixels of a canvas ([`ImageData.data`](https://developer.mozilla.org/en-US/docs/Web/API/ImageData/data)), which is why you're using it. The HTML standard [defines `ImageData`](https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#the-imagedata-interface) as RGBA bytes stored left to right, row by row from the top: the same layout you're about to build. Compare it with its unclamped cousin [`Uint8Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array), where 300 wraps around to 44 (300 − 256). For colors, wrapping is a disaster: a pixel that should be "a bit brighter than white" would turn nearly black.
 
 ### The edge of the world
 
@@ -70,7 +70,7 @@ This "wrap-around" bug is real and common: shapes that hang off the right edge r
 
 ### Getting it on screen
 
-Your frame is just numbers in memory. To see it, `lib/present.js` (provided) copies them into a `<canvas>`:
+Your frame is just numbers in memory. To see it, `lib/present.js` (provided) wraps them in an [`ImageData`](https://developer.mozilla.org/en-US/docs/Web/API/ImageData) and copies them into a [`<canvas>`](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API) with [`putImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/putImageData):
 
 ```text
   your frame.data ──► new ImageData(data, w, h) ──► ctx.putImageData(...)
@@ -96,9 +96,9 @@ One frame is 1080 × 1920 × 4 = 8,294,400 bytes, about 8.3 MB. 180 frames is ab
 
 Work through `src/00-pixels.js` top to bottom. Each function's comment is its spec. Some questions to guide you, in order:
 
-1. **createFrame.** How many bytes does a `width × height` frame need? What does a brand-new typed array contain? What counts as a "positive whole number", and is `2.5` one?
+1. **createFrame.** How many bytes does a `width × height` frame need? What does a brand-new typed array contain? What counts as a "positive whole number", and is `2.5` one? ([`Number.isInteger`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isInteger) may help.)
 2. **pixelIndex.** Use the grid above. What do you multiply `y` by to skip whole rows? Why the final `× 4`?
-3. **setPixel.** What order do you do things in: round, check bounds, compute index, write? What happens if you compute the index before checking bounds? What should alpha be when the color only has three numbers?
+3. **setPixel.** What order do you do things in: round ([`Math.floor`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/floor)), check bounds, compute index, write? What happens if you compute the index before checking bounds? What should alpha be when the color only has three numbers?
 4. **getPixel.** Why return a *new* array instead of a piece of `frame.data`? (Hint: what happens if the caller changes it?)
 5. **clearFrame.** You could call `setPixel` for every pixel. That works. Is there a way that touches `frame.data` directly with a single loop? Which is faster, and why?
 
@@ -216,6 +216,15 @@ Which test fails with `Uint8Array`, and why would wrapping be a disaster for col
 - Video cards keep the image being shown in a region of memory literally called the framebuffer, scanned out to the display many times a second.
 - Remotion doesn't touch pixels directly. It draws with the browser, then takes a screenshot of each frame, which is a full framebuffer like yours. You'll see that in layer 10.
 
+## Read the originals
+
+The documents that define what you used in this layer:
+
+- [ECMAScript: ToUint8Clamp](https://tc39.es/ecma262/#sec-touint8clamp): the exact clamping and round-half-to-even rule behind `Uint8ClampedArray`.
+- [ECMAScript: TypedArray objects](https://tc39.es/ecma262/#sec-typedarray-objects): how typed arrays work, including why a write to index `1.5` is ignored.
+- [HTML Standard: the ImageData interface](https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#the-imagedata-interface): the browser's framebuffer, with the same RGBA row-by-row layout as yours.
+- [MDN: JavaScript typed arrays](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Typed_arrays): a friendlier tour of the same ideas.
+
 ## Study buddy prompts
 
 Paste one of these into Claude Code, Codex or ChatGPT. The repo's `CLAUDE.md` and `AGENTS.md` already tell coding agents not to hand you answers.
@@ -226,4 +235,4 @@ Paste one of these into Claude Code, Codex or ChatGPT. The repo's `CLAUDE.md` an
 
 ## Going further (optional)
 
-- Write `fillFrameFast(frame, color)` using `Uint32Array` over the same buffer (`new Uint32Array(frame.data.buffer)`) to set a whole pixel in one write. Time it against `clearFrame` on a 1080 × 1920 frame. Then look up **endianness** to understand why the byte order inside that 32-bit number looks backwards.
+- Write `fillFrameFast(frame, color)` using [`Uint32Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint32Array) over the same [buffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer) (`new Uint32Array(frame.data.buffer)`) to set a whole pixel in one write. Time it against `clearFrame` on a 1080 × 1920 frame. Then look up **[endianness](https://en.wikipedia.org/wiki/Endianness)** to understand why the byte order inside that 32-bit number looks backwards.
