@@ -22,9 +22,9 @@ In 1959, Paul de Casteljau, a mathematician at Citroën, found a way to describe
 
 ```text
   control values:   0           p1           p2           1
-  lerp by u:              a            b            c             a = lerp(0, p1, u), …
-  lerp again:                    d            e                   d = lerp(a, b, u), …
-  and once more:                      B(u)                        B(u) = lerp(d, e, u)
+                          ●            ●            ●             each ● is u of the way from
+                                 ●            ●                   the value on its left to the
+                                      B(u)                        value on its right, one row up
 ```
 
 Run it once with the x values and once with the y values, and you get the point (x, y) on the curve at parameter `u`. Multiply the lerps out and you get a cubic polynomial in `u` instead, which is how browsers write it. Either way works. `bezierSlope` is that polynomial's derivative: how fast the curve moves along one axis as `u` grows.
@@ -62,10 +62,10 @@ Newton's method has a weak spot: where the curve goes flat, the slope is near ze
 ```text
   [0 ─────────────────────────────── 1]    x at 0.5 too big?   keep the left half
   [0 ─────────────── 0.5]                  x at 0.25 too small? keep the right half
-          [0.25 ──── 0.5]                  … 24 halvings make the gap smaller than 1e-7
+          [0.25 ──── 0.5]                  … until the x at the middle is within 1e-7
 ```
 
-It's slow but sure, so real solvers use both. [WebKit's `UnitBezier`](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h), the code behind Safari's CSS animations, takes a first guess from a table of 11 samples, tries up to 4 Newton steps, and bisects if they don't get close enough.
+The gap is in `u`, but the spec's 1e-7 is about `x`, and an easing curve's x can change up to 3 times faster than `u`, so it can take about 25 halvings. It's slow but sure, so real solvers use both. [WebKit's `UnitBezier`](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h), the code behind Safari's CSS animations, takes a first guess from a table of 11 samples, tries up to 4 Newton steps, and bisects if they don't get close enough.
 
 ### Only x has to behave
 
@@ -77,7 +77,7 @@ The y values have no such rule. A y control point above 1 makes the value **over
 
 Work through `src/05-easing.js` top to bottom. Each function's comment is its spec. Some questions to guide you, in order:
 
-1. **bezierPoint.** Which layer 04 function can you build it from? What should it give at `u` = 0 and `u` = 1, whatever `p1` and `p2` are?
+1. **bezierPoint.** What should it give at `u` = 0 and `u` = 1, whatever `p1` and `p2` are? Work the picture above by hand for `p1` = 0.1, `p2` = 0.7 and `u` = 0.5 before you run anything.
 2. **bezierSlope.** If you multiplied the lerps out into a polynomial, how do you take its derivative? The test "bezierSlope is how fast bezierPoint changes" lets you check your answer numerically.
 3. **solveBezierX.** What's a good first guess for `u`? When should you stop trusting Newton's method? If you use bisection, what tells you which half to keep?
 4. **cubicBezier.** It returns a function. What does that function do with x = −0.5? Where do x1 and x2 get checked: once, or on every call?

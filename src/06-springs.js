@@ -45,8 +45,9 @@
 
   /**
    * The first frame from which spring() stays within threshold × |to − from|
-   * of `to` for every frame up to 10 seconds (frame 10 × fps). Return
-   * Infinity if it's still outside at 10 seconds.
+   * of `to` (exactly on the edge counts as within) for every frame up to
+   * 10 seconds (frame 10 × fps). Return Infinity if it's still outside at
+   * 10 seconds.
    */
   function settleFrame({ fps, from = 0, to = 1, config, threshold = 0.005 } = {}) {
     throw MS.todo("settleFrame");

@@ -1071,7 +1071,7 @@
       // One family of curves per letter. Each dot gets a curve [x1, y1, x2, y2] and
       // a point on it, u (or, for the last letter, an x outside the curve).
       const FAMILIES = [
-        { trap: "everyday", curves: [[0.25, 0.1, 0.25, 1], [0.16, 1, 0.3, 1], [0.6, 0, 0.2, 1], [0.42, 0, 0.58, 1]], us: [0.2, 0.33, 0.47, 0.6, 0.74] },
+        { trap: "everyday", curves: [[0.25, 0.1, 0.25, 1], [0.16, 1, 0.3, 1], [0.6, 0, 0.2, 1], [0.42, 0, 0.58, 1]], us: [0.2, 0.33, 0.47, 0.6, 0.73] },
         { trap: "flat start", curves: [[0, 0.6, 0.4, 1], [0, 0.8, 0.6, 1], [0, 0.5, 0.25, 1]], us: [0.03, 0.06, 0.1, 0.16] },
         { trap: "flat middle", curves: [[1, 0, 0, 1], [1, 0.2, 0, 0.8], [0.95, 0.05, 0.05, 0.95]], us: [0.3, 0.38, 0.44, 0.56, 0.62] },
         { trap: "overshoot", curves: [[0.34, 1.56, 0.64, 1], [0.7, -0.4, 0.4, 1.4], [0.5, -0.5, 0.5, 1.5]], us: [0.5, 0.65, 0.8, 0.92] },
@@ -1737,7 +1737,7 @@
             () => { const b = MS.stts([5, 6, 5, 6]); return u32at(b, 12) === 4 && is(u32s(b, 16, 8), [1, 5, 1, 6, 1, 5, 1, 6]); },
             () => { const b = MS.stts([7, 7, 9, 9, 9]); return b.length === 32 && is(u32s(b, 12, 5), [2, 2, 7, 3, 9]); },
             () => is(MS.stts([]), [0, 0, 0, 16, ...ascii("stts"), 0, 0, 0, 0, 0, 0, 0, 0]),
-            () => { const b = MS.stts(new Array(500).fill(3003)); return b.length === 24 && is(u32s(b, 12, 3), [1, 500, 3003]); },
+            () => { const b = MS.stts(new Array(500).fill(3754)); return b.length === 24 && is(u32s(b, 12, 3), [1, 500, 3754]); },
           ],
         },
         { // O: the sample tables
@@ -3825,7 +3825,7 @@
             0        10        20
     ```
 
-    - **"extend"**, Remotion's default, keeps going along the end segment's line: 1.2, and still growing.
+    - **"extend"**, Remotion's default, keeps going along the end segment's line: 1.2, and still growing. With several keyframes, "the end segment" means the **first** segment before the first keyframe and the **last** one after the last keyframe.
     - **"clamp"** holds the end value: 1.
     - **"identity"** returns the input itself: 20. It only makes sense when input and output measure the same thing.
 
@@ -3840,7 +3840,7 @@
       t → t × t     ●●─●──●───●─────●──────●───────●────────●      slow start, fast finish
     ```
 
-    Each dot is where the value is after another eighth of the time. Because easing works on `t`, the start and end don't move: `t` = 0 still gives the first output and `t` = 1 the last. Easing only changes *when* the value gets there. With several keyframes, every segment gets its own trip from 0 to 1, so the easing starts over at each keyframe. Layer 05 builds real easing curves; this layer just calls whatever function it's given.
+    Each dot is where the value is after another eighth of the time. Because easing works on `t`, the start and end don't move: `t` = 0 still gives the first output and `t` = 1 the last. Easing only changes *when* the value gets there. With several keyframes, every segment gets its own trip from 0 to 1, so the easing starts over at each keyframe. Past the ends, with "extend", `t` goes below 0 or above 1, and the easing is applied to it there too: with `t × t`, the extension curves instead of running straight. Layer 05 builds real easing curves; this layer just calls whatever function it's given.
 
     #### Colors are four numbers
 
@@ -3859,7 +3859,7 @@
     2. **inverseLerp.** If `lerp(a, b, t)` gives `v`, what's `t`? Why does `a === b` have to be an error?
     3. **clamp.** What should `clamp(1.3, 0, 1)` and `clamp(−0.2, 0, 1)` give?
     4. **interpolate.** Check the ranges first; the spec lists what to reject. Then, on paper, for an inputRange of `[0, 4, 6]`: which segment do the inputs −1, 0, 4, 5 and 9 use? Last, for each option: does it act on the input, on `t`, or on the output?
-    5. **interpolateColors.** Which function you've already written mixes two colors? Which one already finds the segment and clamps?
+    5. **interpolateColors.** What's the same about interpolating a color and interpolating a number, and what are the two differences? Is there anything you've already written that you can lean on?
 
     Run the tests after each function. A failing test tells you exactly what it expected.
 
@@ -4239,7 +4239,7 @@
 
     ### In the real world
 
-    - Remotion's [`interpolate()`](https://www.remotion.dev/docs/interpolate) is this function: same arguments, same "extend" default, same options, plus a fourth extrapolation, "wrap".
+    - Remotion's [`interpolate()`](https://www.remotion.dev/docs/interpolate) is this function at heart: same arguments, same "extend" default, the same "clamp" and "identity", plus a fourth extrapolation, "wrap". Newer versions add more on top: a different easing for each segment, `posterize` to update only every few frames, and outputs that aren't plain numbers, like CSS transform strings.
     - CSS animations are keyframes on a 0–100% input range. An [`@keyframes`](https://developer.mozilla.org/en-US/docs/Web/CSS/@keyframes) rule lists values at percentages, the browser interpolates every frame between them, and [`animation-timing-function`](https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timing-function) eases each pair of keyframes separately, the way your easing restarts every segment.
     - GPUs have lerp built in: GLSL's [`mix()`](https://registry.khronos.org/OpenGL-Refpages/gl4/html/mix.xhtml) is lerp, and [`smoothstep()`](https://registry.khronos.org/OpenGL-Refpages/gl4/html/smoothstep.xhtml) is a clamped `inverseLerp` with easing built in.
 
@@ -4274,9 +4274,9 @@
 
     ```text
       control values:   0           p1           p2           1
-      lerp by u:              a            b            c             a = lerp(0, p1, u), …
-      lerp again:                    d            e                   d = lerp(a, b, u), …
-      and once more:                      B(u)                        B(u) = lerp(d, e, u)
+                              ●            ●            ●             each ● is u of the way from
+                                     ●            ●                   the value on its left to the
+                                          B(u)                        value on its right, one row up
     ```
 
     Run it once with the x values and once with the y values, and you get the point (x, y) on the curve at parameter `u`. Multiply the lerps out and you get a cubic polynomial in `u` instead, which is how browsers write it. Either way works. `bezierSlope` is that polynomial's derivative: how fast the curve moves along one axis as `u` grows.
@@ -4314,10 +4314,10 @@
     ```text
       [0 ─────────────────────────────── 1]    x at 0.5 too big?   keep the left half
       [0 ─────────────── 0.5]                  x at 0.25 too small? keep the right half
-              [0.25 ──── 0.5]                  … 24 halvings make the gap smaller than 1e-7
+              [0.25 ──── 0.5]                  … until the x at the middle is within 1e-7
     ```
 
-    It's slow but sure, so real solvers use both. [WebKit's `UnitBezier`](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h), the code behind Safari's CSS animations, takes a first guess from a table of 11 samples, tries up to 4 Newton steps, and bisects if they don't get close enough.
+    The gap is in `u`, but the spec's 1e-7 is about `x`, and an easing curve's x can change up to 3 times faster than `u`, so it can take about 25 halvings. It's slow but sure, so real solvers use both. [WebKit's `UnitBezier`](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h), the code behind Safari's CSS animations, takes a first guess from a table of 11 samples, tries up to 4 Newton steps, and bisects if they don't get close enough.
 
     #### Only x has to behave
 
@@ -4329,7 +4329,7 @@
 
     Work through `src/05-easing.js` top to bottom. Each function's comment is its spec. Some questions to guide you, in order:
 
-    1. **bezierPoint.** Which layer 04 function can you build it from? What should it give at `u` = 0 and `u` = 1, whatever `p1` and `p2` are?
+    1. **bezierPoint.** What should it give at `u` = 0 and `u` = 1, whatever `p1` and `p2` are? Work the picture above by hand for `p1` = 0.1, `p2` = 0.7 and `u` = 0.5 before you run anything.
     2. **bezierSlope.** If you multiplied the lerps out into a polynomial, how do you take its derivative? The test "bezierSlope is how fast bezierPoint changes" lets you check your answer numerically.
     3. **solveBezierX.** What's a good first guess for `u`? When should you stop trusting Newton's method? If you use bisection, what tells you which half to keep?
     4. **cubicBezier.** It returns a function. What does that function do with x = −0.5? Where do x1 and x2 get checked: once, or on every call?
@@ -4816,7 +4816,7 @@
 
     1. **springForce.** If the position is past the target, which way should the force point? How do you fill in config values that are missing without losing the ones you were given?
     2. **stepSpring.** Which comes first, the new velocity or the new position? Why must the state you were given stay unchanged? (Think about frame = f(n).)
-    3. **spring.** How many 1 ms steps is frame 5 at 24 fps? What should frame 0 give, whatever the config?
+    3. **spring.** How many 1 ms steps is frame 5 at 48 fps? What should frame 0 give, whatever the config?
     4. **dampingRatio.** What makes ζ exactly 1?
     5. **settleFrame.** If frame 20 is inside the zone but frame 25 is outside, can frame 20 be the answer? Do you need to call `spring()` for every frame, or can you keep stepping one simulation?
 
@@ -4884,8 +4884,9 @@
 
       /**
        * The first frame from which spring() stays within threshold × |to − from|
-       * of `to` for every frame up to 10 seconds (frame 10 × fps). Return
-       * Infinity if it's still outside at 10 seconds.
+       * of `to` (exactly on the edge counts as within) for every frame up to
+       * 10 seconds (frame 10 × fps). Return Infinity if it's still outside at
+       * 10 seconds.
        */
       function settleFrame({ fps, from = 0, to = 1, config, threshold = 0.005 } = {}) {
         throw MS.todo("settleFrame");
@@ -4956,7 +4957,7 @@
       });
 
       MS.test(L, "spring rounds each frame to a whole number of 1 ms steps", t => {
-        t.close(MS.spring({ frame: 7, fps: 24 }), 1.1135651208793387, 1e-9, "frame 7 at 24 fps is 291.67 ms → 292 steps");
+        t.close(MS.spring({ frame: 7, fps: 48 }), 0.5934350170124664, 1e-9, "frame 7 at 48 fps is 145.83 ms → 146 steps");
         t.close(MS.spring({ frame: 20, fps: 30, config: { damping: 200 } }), 0.2826860556738996, 1e-9, "frame 20 at 30 fps is 666.67 ms → 667 steps");
       });
 

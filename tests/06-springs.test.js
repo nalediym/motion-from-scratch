@@ -52,7 +52,7 @@
   });
 
   MS.test(L, "spring rounds each frame to a whole number of 1 ms steps", t => {
-    t.close(MS.spring({ frame: 7, fps: 24 }), 1.1135651208793387, 1e-9, "frame 7 at 24 fps is 291.67 ms → 292 steps");
+    t.close(MS.spring({ frame: 7, fps: 48 }), 0.5934350170124664, 1e-9, "frame 7 at 48 fps is 145.83 ms → 146 steps");
     t.close(MS.spring({ frame: 20, fps: 30, config: { damping: 200 } }), 0.2826860556738996, 1e-9, "frame 20 at 30 fps is 666.67 ms → 667 steps");
   });
 

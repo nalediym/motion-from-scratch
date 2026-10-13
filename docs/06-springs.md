@@ -69,7 +69,7 @@ Work through `src/06-springs.js` top to bottom. Each function's comment is its s
 
 1. **springForce.** If the position is past the target, which way should the force point? How do you fill in config values that are missing without losing the ones you were given?
 2. **stepSpring.** Which comes first, the new velocity or the new position? Why must the state you were given stay unchanged? (Think about frame = f(n).)
-3. **spring.** How many 1 ms steps is frame 5 at 24 fps? What should frame 0 give, whatever the config?
+3. **spring.** How many 1 ms steps is frame 5 at 48 fps? What should frame 0 give, whatever the config?
 4. **dampingRatio.** What makes ζ exactly 1?
 5. **settleFrame.** If frame 20 is inside the zone but frame 25 is outside, can frame 20 be the answer? Do you need to call `spring()` for every frame, or can you keep stepping one simulation?
 

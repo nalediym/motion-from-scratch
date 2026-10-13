@@ -76,7 +76,7 @@ Before the first keyframe and after the last, `interpolate` has to make somethin
         0        10        20
 ```
 
-- **"extend"**, Remotion's default, keeps going along the end segment's line: 1.2, and still growing.
+- **"extend"**, Remotion's default, keeps going along the end segment's line: 1.2, and still growing. With several keyframes, "the end segment" means the **first** segment before the first keyframe and the **last** one after the last keyframe.
 - **"clamp"** holds the end value: 1.
 - **"identity"** returns the input itself: 20. It only makes sense when input and output measure the same thing.
 
@@ -91,7 +91,7 @@ One more option, `easing`, is a function that reshapes `t` before it's mapped to
   t → t × t     ●●─●──●───●─────●──────●───────●────────●      slow start, fast finish
 ```
 
-Each dot is where the value is after another eighth of the time. Because easing works on `t`, the start and end don't move: `t` = 0 still gives the first output and `t` = 1 the last. Easing only changes *when* the value gets there. With several keyframes, every segment gets its own trip from 0 to 1, so the easing starts over at each keyframe. Layer 05 builds real easing curves; this layer just calls whatever function it's given.
+Each dot is where the value is after another eighth of the time. Because easing works on `t`, the start and end don't move: `t` = 0 still gives the first output and `t` = 1 the last. Easing only changes *when* the value gets there. With several keyframes, every segment gets its own trip from 0 to 1, so the easing starts over at each keyframe. Past the ends, with "extend", `t` goes below 0 or above 1, and the easing is applied to it there too: with `t × t`, the extension curves instead of running straight. Layer 05 builds real easing curves; this layer just calls whatever function it's given.
 
 ### Colors are four numbers
 
@@ -110,7 +110,7 @@ Work through `src/04-interpolate.js` top to bottom. Each function's comment is i
 2. **inverseLerp.** If `lerp(a, b, t)` gives `v`, what's `t`? Why does `a === b` have to be an error?
 3. **clamp.** What should `clamp(1.3, 0, 1)` and `clamp(−0.2, 0, 1)` give?
 4. **interpolate.** Check the ranges first; the spec lists what to reject. Then, on paper, for an inputRange of `[0, 4, 6]`: which segment do the inputs −1, 0, 4, 5 and 9 use? Last, for each option: does it act on the input, on `t`, or on the output?
-5. **interpolateColors.** Which function you've already written mixes two colors? Which one already finds the segment and clamps?
+5. **interpolateColors.** What's the same about interpolating a color and interpolating a number, and what are the two differences? Is there anything you've already written that you can lean on?
 
 Run the tests after each function. A failing test tells you exactly what it expected.
 
@@ -221,7 +221,7 @@ MS.answers("04", {
 
 ## In the real world
 
-- Remotion's [`interpolate()`](https://www.remotion.dev/docs/interpolate) is this function: same arguments, same "extend" default, same options, plus a fourth extrapolation, "wrap".
+- Remotion's [`interpolate()`](https://www.remotion.dev/docs/interpolate) is this function at heart: same arguments, same "extend" default, the same "clamp" and "identity", plus a fourth extrapolation, "wrap". Newer versions add more on top: a different easing for each segment, `posterize` to update only every few frames, and outputs that aren't plain numbers, like CSS transform strings.
 - CSS animations are keyframes on a 0–100% input range. An [`@keyframes`](https://developer.mozilla.org/en-US/docs/Web/CSS/@keyframes) rule lists values at percentages, the browser interpolates every frame between them, and [`animation-timing-function`](https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timing-function) eases each pair of keyframes separately, the way your easing restarts every segment.
 - GPUs have lerp built in: GLSL's [`mix()`](https://registry.khronos.org/OpenGL-Refpages/gl4/html/mix.xhtml) is lerp, and [`smoothstep()`](https://registry.khronos.org/OpenGL-Refpages/gl4/html/smoothstep.xhtml) is a clamped `inverseLerp` with easing built in.
 
