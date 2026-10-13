@@ -30,6 +30,10 @@
   .btn-row .btn { text-decoration: none; }
   .buddy { border: 1px dashed var(--pencil); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
   .small { font-size: 0.88rem; color: var(--muted); }
+  .chrome summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
+  .chrome[open] { display: flex; flex-direction: column; gap: 10px; }
+  .chrome ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+  .shortcut { width: 100%; font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--code-ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; resize: vertical; }
 </style>
 </head>
 <body>
@@ -48,8 +52,14 @@
       <article class="way">
         <span class="tag">Fastest · nothing to install</span>
         <h3>In your browser</h3>
-        <p>Read each layer and write its code side by side. Tests and pictures run on the page, and your code saves in this browser.</p>
+        <p>Read each layer and write its code side by side. Tests and pictures run on the page. Your code saves in this browser, and a progress link carries it to another device.</p>
         <a class="btn" href="guide.html">Open the guide</a>
+      </article>
+      <article class="way">
+        <span class="tag">Cloud editor · GitHub account</span>
+        <h3>GitHub Codespaces</h3>
+        <p>A full VS Code in your browser with a terminal, Node and Claude Code already set up. Nothing to install, and your work lives in git. GitHub's free monthly hours cover this course.</p>
+        <a class="btn" data-link="codespaces" href="#" target="_blank" rel="noopener">Open in Codespaces</a>
       </article>
       <article class="way">
         <span class="tag">Notebook · Google account</span>
@@ -92,6 +102,18 @@
       <h3>Stuck? Bring a study buddy</h3>
       <p>These links open a new chat with the course's tutor rules already filled in: it asks questions and gives one hint at a time, but never writes your code. You need to be signed in.</p>
       <span class="btn-row"><a class="btn" data-link="claude" href="#" target="_blank" rel="noopener">Open Claude</a><a class="btn ghost" data-link="chatgpt" href="#" target="_blank" rel="noopener">Open ChatGPT</a></span>
+      <details class="chrome" id="chrome">
+        <summary>Using Claude in Chrome? Set up <code>/tutor</code></summary>
+        <p>The <a href="https://support.claude.com/en/articles/12012173-get-started-with-claude-in-chrome" target="_blank" rel="noopener">Claude in Chrome</a> extension can read the guide and look at your pictures with you, so you don't have to paste anything. It needs a paid Claude plan.</p>
+        <ol>
+          <li>Copy the text below.</li>
+          <li>In Claude's side panel, save it as a shortcut named <strong>tutor</strong>. Type <code>/</code> in the chat to find shortcuts.</li>
+          <li>On the guide, type <code>/tutor</code>. Claude reads the layer's <em>What your tutor sees</em> panel: your code, your test results and the hint level you've chosen with <em>Hint please</em>.</li>
+        </ol>
+        <textarea class="shortcut" readonly rows="7" data-shortcut aria-label="Tutor shortcut text"></textarea>
+        <span class="btn-row"><button class="btn ghost" type="button" data-copy-shortcut>Copy shortcut text</button></span>
+        <p class="small">The rules live in your own shortcut on purpose: Claude in Chrome treats text on a web page as information, not as instructions, so a page can't tell it how to behave.</p>
+      </details>
       <p class="small">Using <strong>Claude Code</strong>? Download the code, then open the folder in the Claude desktop app's Code tab, or run <code>claude</code> inside it. It reads <code>CLAUDE.md</code> on its own and can run the tests to see where you are. Codex reads <code>AGENTS.md</code> the same way.</p>
     </div>
   </section>
@@ -115,8 +137,16 @@
 <script>
 (async function () {
   const C = MS.COURSE;
-  const links = { colab: C.colab, zip: C.zip, repo: C.repo, deno: C.repo + "/blob/main/notebooks/jupyter-deno.ipynb", observable: C.observable, claude: C.claudeLink(null), chatgpt: C.chatgptLink(null) };
+  const links = { codespaces: C.codespaces, colab: C.colab, zip: C.zip, repo: C.repo, deno: C.repo + "/blob/main/notebooks/jupyter-deno.ipynb", observable: C.observable, claude: C.claudeLink(null), chatgpt: C.chatgptLink(null) };
   document.querySelectorAll("[data-link]").forEach(a => { a.href = links[a.dataset.link]; });
+  const sc = document.querySelector("[data-shortcut]");
+  sc.value = C.chromeShortcut;
+  if (location.hash === "#chrome") document.getElementById("chrome").open = true;
+  document.querySelector("[data-copy-shortcut]").addEventListener("click", e => {
+    const b = e.currentTarget, done = t => { b.textContent = t; setTimeout(() => (b.textContent = "Copy shortcut text"), 1600); };
+    try { navigator.clipboard.writeText(sc.value).then(() => done("Copied"), () => { sc.select(); done("Press Ctrl/⌘ + C"); }); }
+    catch (err) { sc.select(); done("Press Ctrl/⌘ + C"); }
+  });
   const map = document.getElementById("map");
   const render = scores => {
     map.innerHTML = MS.COURSE.layers.map(l => {

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion from Scratch · Showcase</title>
+<meta name="description" content="A video engine built from scratch, one pixel at a time, running right in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,700;112,800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;600&family=Silkscreen&display=swap">
+<link rel="stylesheet" href="lib/style.css">
+<style>
+  .engine { width: 100%; border: 0; display: block; min-height: 160px; background: transparent; }
+  .cta { border: 2px solid var(--ink); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; background: var(--paper); }
+  .cta .btn { align-self: flex-start; text-decoration: none; }
+  .small { font-size: 0.85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:14px">
+    <div class="pegbar" aria-hidden="true"><i></i><i></i><i></i></div>
+    <span class="eyebrow">Motion from Scratch · Showcase</span>
+    <h1 data-title>A video engine, built from scratch</h1>
+    <p class="lede">Every picture on this page was drawn just now, in your browser, by code a learner wrote themselves, starting from a single pixel.</p>
+  </header>
+  <p data-status>Loading the engine…</p>
+  <iframe class="engine" data-frame sandbox="allow-scripts" title="The learner's engine, running" hidden></iframe>
+  <section class="cta">
+    <h2>Build your own</h2>
+    <p>Motion from Scratch is a free course. Start with one pixel, add one idea per layer, and finish by rendering a real motion-graphics intro as an MP4. No install, and an AI study buddy that gives hints, not answers.</p>
+    <a class="btn" href="index.html">Start the course</a>
+  </section>
+  <p class="small">The code from the link runs in a sealed-off frame, so it can't read or change anything else on this site.</p>
+</div>
+
+<script src="lib/course.js"></script>
+<script src="lib/share.js"></script>
+<script>
+// Runs inside the sandboxed frame: load the course libraries and the learner's
+// code, run the tests, and draw every picture. Passed in as source text.
+function renderer(P) {
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  globalThis.MS = {};
+  P.libs.forEach(s => new Function(s)());
+  const C = MS.COURSE, out = document.getElementById("out"), errors = {};
+  for (const id of P.order) { try { new Function(P.src[id])(); } catch (e) { errors[id] = e.name + ": " + e.message; } }
+  P.tests.forEach(s => new Function(s)());
+  for (const id of P.shown) {
+    const l = C.layers.find(x => x.id === id);
+    const results = MS.runTests(id), pass = results.filter(r => r.status === "pass").length;
+    const sec = document.createElement("section");
+    sec.className = "layer";
+    sec.innerHTML = '<h2><span class="num">' + id + "</span> " + esc(l.title) + "</h2>" +
+      '<p class="meta">' + esc(l.builds) + ' · <span class="pill ' + (pass === results.length ? "pass" : "fail") + '">' + pass + " / " + results.length + " tests pass</span></p>" +
+      (errors[id] ? '<p class="err">' + esc(errors[id]) + "</p>" : "") +
+      '<div class="pics"></div><details><summary>See the code</summary><pre><code>' + esc(P.src[id]) + "</code></pre></details>";
+    const pics = sec.querySelector(".pics");
+    const add = (frame, caption, cls) => {
+      const fig = document.createElement("figure"), cap = document.createElement("figcaption");
+      if (cls) fig.className = cls;
+      fig.appendChild(MS.present(frame, document.createElement("canvas"), Math.max(1, Math.min(5, Math.floor(260 / frame.width)))));
+      cap.textContent = caption;
+      fig.appendChild(cap);
+      pics.appendChild(fig);
+    };
+    for (const v of MS.visuals.filter(v => v.layer === id)) { try { add(v.fn(), v.name); } catch (e) { /* not working yet: skip */ } }
+    try {
+      const cp = MS.runCheckpoint(id, results);
+      if (!cp.locked && cp.mystery.ok && cp.mystery.frame) add(cp.mystery.frame, "Checkpoint mystery picture, drawn correctly", "mystery");
+    } catch (e) { /* skip */ }
+    if (!pics.children.length) pics.outerHTML = '<p class="meta">No pictures from this layer yet.</p>';
+    out.appendChild(sec);
+  }
+  const report = () => parent.postMessage({ mfsHeight: document.documentElement.scrollHeight }, "*");
+  report();
+  new ResizeObserver(report).observe(document.body);
+}
+
+(async function () {
+  const status = document.querySelector("[data-status]"), frame = document.querySelector("[data-frame]");
+  const fail = text => { status.textContent = text; };
+  const m = location.hash.match(/^#s=(.+)$/);
+  if (!m) return fail("This link doesn't include a showcase. Learners make one in the guide, under “Save, move or share your work”.");
+  let data;
+  try { data = await MS.share.unpack(m[1]); } catch (e) { return fail("This showcase link didn’t open: " + e.message); }
+  if (!data || data.kind !== "showcase" || typeof data.src !== "object") return fail("This isn't a showcase link.");
+
+  const ready = MS.COURSE.layers.filter(l => l.ready);
+  const shown = ready.map(l => l.id).filter(id => typeof data.src[id] === "string");
+  if (!shown.length) return fail("This showcase is empty: no code has been written yet.");
+  const name = typeof data.name === "string" ? data.name.trim().slice(0, 40) : "";
+  if (name) { document.querySelector("[data-title]").textContent = name + "’s video engine"; document.title = name + "’s video engine · Motion from Scratch"; }
+
+  // Layers below the highest shown one still need loading (their starter code if
+  // the learner hasn't written them), because each layer builds on the ones below.
+  const order = ready.map(l => l.id).filter(id => id <= shown[shown.length - 1]);
+  const get = p => fetch(p).then(r => { if (!r.ok) throw new Error(p + ": " + r.status); return r.text(); });
+  let libs, tests, stubs, css;
+  try {
+    const files = id => MS.COURSE.files(ready.find(l => l.id === id));
+    [libs, tests, stubs, css] = await Promise.all([
+      Promise.all(["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/present.js", "lib/checkpoint.js", "lib/checkpoint-data.js"].map(get)),
+      Promise.all(shown.map(id => get(files(id).test))),
+      Promise.all(order.map(id => typeof data.src[id] === "string" ? data.src[id] : get(files(id).src))),
+      get("lib/style.css"),
+    ]);
+  } catch (e) { return fail("Couldn't load the course files (" + e.message + "). Open this link from the course website."); }
+  const src = {};
+  order.forEach((id, i) => { src[id] = stubs[i]; });
+
+  // JSON with "<" escaped can't close the <script> it sits in.
+  const payload = JSON.stringify({ libs, tests, src, order, shown }).replace(/</g, "\\u003c");
+  const extra = "body{margin:0;padding:2px}main{display:flex;flex-direction:column;gap:28px}" +
+    ".layer{display:flex;flex-direction:column;gap:10px;border-top:2px solid var(--ink);padding-top:14px}" +
+    ".layer h2{display:flex;align-items:center;gap:10px}.meta{font-size:.9rem;color:var(--muted)}.err{color:var(--fail);font-family:var(--mono);font-size:.85rem}" +
+    ".pics{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}figure{margin:0;display:flex;flex-direction:column;gap:6px;max-width:100%}" +
+    "canvas{max-width:100%;image-rendering:pixelated}figcaption{font-size:.82rem;color:var(--muted);max-width:280px}" +
+    ".mystery canvas{outline:3px solid var(--pass);outline-offset:2px}pre{max-height:420px;overflow:auto}details summary{cursor:pointer;color:var(--pencil);font-weight:700}";
+  window.addEventListener("message", e => {
+    if (e.source === frame.contentWindow && e.data && typeof e.data.mfsHeight === "number") frame.style.height = Math.min(Math.ceil(e.data.mfsHeight) + 4, 30000) + "px";
+  });
+  frame.srcdoc = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,700;112,800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;600&family=Silkscreen&display=swap">' +
+    "<style>" + css.replace(/<\//g, "<\\/") + extra + '</style></head><body><main id="out"></main><script>(' + renderer.toString() + ")(" + payload + ");<\/script></body></html>";
+  frame.hidden = false;
+  status.hidden = true;
+})();
+</script>
+</body>
+</html>

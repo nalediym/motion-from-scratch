@@ -150,6 +150,19 @@ body { padding-block: 24px 80px; }
 .howto summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .howto ol { margin: 10px 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
 .howto p { font-size: 0.92rem; }
+.share[open] { display: flex; flex-direction: column; gap: 12px; }
+.share-row { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.share-name { font-size: 0.85rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; max-width: 280px; }
+.share-name input, .share-fallback { font: inherit; font-size: 0.9rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; }
+.share-status { font-size: 0.88rem; min-height: 1.2em; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-row .btn { text-decoration: none; }
+.banner { max-width: 760px; border: 2px solid var(--key); background: var(--paper); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.hint-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 0.82rem; color: var(--muted); }
+.linkish { font: inherit; font-size: 0.8rem; background: none; border: 0; padding: 0; color: var(--pencil); text-decoration: underline; cursor: pointer; }
+.tutor-sees { border: 1px dashed var(--line); border-radius: 6px; padding: 8px 10px; font-size: 0.85rem; }
+.tutor-sees summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
+.tutor-sees pre { margin: 8px 0 0; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11.5px; }
 @media (max-width: 960px) {
   .chapter { grid-template-columns: minmax(0, 1fr); }
   .bench { position: static; max-height: none; }
@@ -170,10 +183,26 @@ body { padding-block: 24px 80px; }
       <li><strong>Run tests</strong> (or press ⌘/Ctrl + Enter). Failing tests show the value they expected and what they got; pictures appear as your code works.</li>
       <li><strong>Break it</strong> with the chapter's experiments.</li>
       <li><strong>Pass the checkpoint</strong> at the end of the chapter. When its tab shows ★, move to the next layer.</li>
-      <li><strong>Stuck?</strong> Every cell and study-buddy callout has links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers.</li>
+      <li><strong>Stuck?</strong> Every cell and study-buddy callout has links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers. <em>Hint please</em> in the workbench sets how much help a tutor may give.</li>
     </ol>
-    <p>Want to keep your work outside this browser? Use <strong>Copy</strong> and paste into the matching file in <a href="https://github.com/nalediym/motion-from-scratch">the repo</a>, or work in <a href="https://colab.research.google.com/github/nalediym/motion-from-scratch/blob/main/notebooks/colab.ipynb" target="_blank" rel="noopener">Google Colab</a>. All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
+    <p>Your work saves in this browser. To move it to another device or show it off, use <strong>Save, move or share</strong> below. All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
   </details>
+  <details class="howto share" id="save">
+    <summary>Save, move or share your work</summary>
+    <div class="share-row">
+      <p><strong>Progress link.</strong> Your code, guesses and checkpoint answers, packed into one link. Bookmark it, or open it on another device to pick up where you left off. It holds your answers, so keep it to yourself.</p>
+      <span class="btn-row"><button class="btn" type="button" data-share="progress">Copy progress link</button></span>
+    </div>
+    <div class="share-row">
+      <p><strong>Showcase link.</strong> A page that runs your engine and shows everything it draws, for anyone you send it to. It includes your code but not your checkpoint answers.</p>
+      <label class="share-name">Name to show (optional) <input type="text" maxlength="40" autocomplete="nickname" data-share-name></label>
+      <span class="btn-row"><button class="btn ghost" type="button" data-share="showcase">Copy showcase link</button><a class="btn ghost" data-share-open href="showcase.html" target="_blank" rel="noopener">Open it</a></span>
+    </div>
+    <p class="share-status" data-share-status aria-live="polite"></p>
+    <input class="share-fallback" type="text" readonly data-share-fallback hidden aria-label="Link to copy">
+    <p class="bench-note">Nothing is uploaded. Your work rides in the part of the link after the #, which browsers never send to a server.</p>
+  </details>
+  <div class="banner" data-progress-banner hidden></div>
   <nav class="tabs" aria-label="Layers"><a class="tab" href="#layer-00" data-layer="00"><span class="num">00</span>Pixels</a><a class="tab" href="#layer-01" data-layer="01"><span class="num">01</span>Shapes & blending</a><a class="tab" href="#layer-02" data-layer="02"><span class="num">02</span>Glyphs</a><span class="tab soon" title="Coming soon"><span class="num">03</span>Time</span><span class="tab soon" title="Coming soon"><span class="num">04</span>Interpolate</span><span class="tab soon" title="Coming soon"><span class="num">05</span>Easing</span><span class="tab soon" title="Coming soon"><span class="num">06</span>Springs</span><span class="tab soon" title="Coming soon"><span class="num">07</span>Hand-off to canvas</span><span class="tab soon" title="Coming soon"><span class="num">08</span>Scenes</span><span class="tab soon" title="Coming soon"><span class="num">09</span>KineticIntro</span><span class="tab soon" title="Coming soon"><span class="num">10</span>Export</span></nav>
 </div>
 
@@ -334,7 +363,7 @@ MS.answers("00", {
   //    What does it hold? Answer as an array of 4 numbers.
   q3: null,
 });</textarea>
-<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
+<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a data-ask-cp="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask Claude</a> · <a data-ask-cp="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
 <div class="cp-result" data-cp-out hidden></div>
 </div>
 <h3 data-anchor="in-the-real-world">In the real world</h3>
@@ -358,7 +387,9 @@ MS.answers("00", {
       <button class="btn ghost" type="button" data-reset>Reset to stub</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
-    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers): <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">ChatGPT</a></p>
+    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers). The link brings your code and test results along: <a data-ask="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Claude</a> · <a data-ask="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">ChatGPT</a></p>
+    <div class="hint-row"><button class="btn ghost" type="button" data-hint>Hint please</button><span data-hint-level></span><button class="linkish" type="button" data-hint-reset>start over</button></div>
+    <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send the same thing.</p><pre data-tutor-text></pre></details>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
     <div class="visuals" data-visuals></div>
@@ -547,7 +578,7 @@ MS.answers("01", {
   //    (Check what Math.round does with exact halves.)
   q3: null,
 });</textarea>
-<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
+<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a data-ask-cp="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask Claude</a> · <a data-ask-cp="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
 <div class="cp-result" data-cp-out hidden></div>
 </div>
 <h3 data-anchor="in-the-real-world">In the real world</h3>
@@ -570,7 +601,9 @@ MS.answers("01", {
       <button class="btn ghost" type="button" data-reset>Reset to stub</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
-    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers): <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">ChatGPT</a></p>
+    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers). The link brings your code and test results along: <a data-ask="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Claude</a> · <a data-ask="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">ChatGPT</a></p>
+    <div class="hint-row"><button class="btn ghost" type="button" data-hint>Hint please</button><span data-hint-level></span><button class="linkish" type="button" data-hint-reset>start over</button></div>
+    <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send the same thing.</p><pre data-tutor-text></pre></details>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
     <div class="visuals" data-visuals></div>
@@ -725,7 +758,7 @@ MS.answers("02", {
   //    which pixel column gets the first ink?
   q3: null,
 });</textarea>
-<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
+<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a data-ask-cp="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask Claude</a> · <a data-ask-cp="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27m%20working%20on%20this%20layer%27s%20checkpoint.%20Don%27t%20give%20me%20any%20answers%20or%20tell%20me%20if%20a%20specific%20answer%20is%20right.%20Ask%20me%20how%20I%27m%20working%20each%20question%20out%2C%20and%20help%20me%20reason%20through%20the%20mystery%20picture%27s%20hints." target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
 <div class="cp-result" data-cp-out hidden></div>
 </div>
 <h3 data-anchor="in-the-real-world">In the real world</h3>
@@ -746,7 +779,9 @@ MS.answers("02", {
       <button class="btn ghost" type="button" data-reset>Reset to stub</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
-    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers): <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">ChatGPT</a></p>
+    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers). The link brings your code and test results along: <a data-ask="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Claude</a> · <a data-ask="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">ChatGPT</a></p>
+    <div class="hint-row"><button class="btn ghost" type="button" data-hint>Hint please</button><span data-hint-level></span><button class="linkish" type="button" data-hint-reset>start over</button></div>
+    <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send the same thing.</p><pre data-tutor-text></pre></details>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
     <div class="visuals" data-visuals></div>
@@ -778,6 +813,28 @@ MS.answers("02", {
   MS.COURSE.colab = "https://colab.research.google.com/github/nalediym/motion-from-scratch/blob/main/notebooks/colab.ipynb";
   MS.COURSE.observable = "https://nalediym.github.io/motion-from-scratch/observable/observable.html";
   MS.COURSE.zip = "https://github.com/nalediym/motion-from-scratch/archive/refs/heads/main.zip";
+  MS.COURSE.codespaces = "https://codespaces.new/nalediym/motion-from-scratch?quickstart=1";
+
+  // The hint ladder from AGENTS.md, one line per rung. The guide's "Hint please"
+  // button lets the learner choose how far up the ladder a tutor may go.
+  MS.COURSE.hintLevels = [
+    "ask what I expected, what happened and what I've tried",
+    "point at a failing test's expected vs actual values",
+    "ask a concept question and point to the chapter section",
+    "explain with an analogy or ASCII diagram, using different numbers",
+    "point at the line to look at and ask about it",
+  ];
+  // Saved by the learner as a Claude in Chrome shortcut. The rules live in the
+  // learner's own shortcut, because the extension treats text on a web page as
+  // information, not as instructions.
+  MS.COURSE.chromeShortcut = [
+    "You're my study buddy for Motion from Scratch, a course where I build a video engine from single pixels up.",
+    "On the course page, open the \"What your tutor sees\" panel for the layer I'm on and read it: it has my code, my test results, my checkpoint status and the hint level I allow.",
+    "Rules: never write, finish or fix my code, and never type into the page's code editors. Never give, confirm or rule out checkpoint answers.",
+    "Ask me questions first. Stay at or below my hint level: " + MS.COURSE.hintLevels.map((h, i) => `${i + 1}) ${h}`).join("; ") + ".",
+    "You may look at the pictures on the page, and run a Predict or Break it block with me once I've told you my guess.",
+    "Start by asking what I'm working on.",
+  ].join(" ");
 
   // A short version of AGENTS.md that fits in a link. Chat apps get the
   // full rules if the learner pastes AGENTS.md; this is the one-click version.
@@ -803,9 +860,51 @@ MS.answers("02", {
     ? `I'm doing this prediction: "${title}". Don't tell me the answer. Ask me how I'm reasoning about it, and help me check my thinking.`
     : `I'm doing this break-it experiment: "${title}". Don't tell me what will happen. Ask me what I observed before and after the change, and help me explain why.`;
 
+  MS.COURSE.checkpointAsk = "I'm working on this layer's checkpoint. Don't give me any answers or tell me if a specific answer is right. Ask me how I'm working each question out, and help me reason through the mystery picture's hints.";
+
   MS.COURSE.files = function (layer) {
     const base = `${layer.id}-${layer.slug}`;
     return { src: `src/${base}.js`, test: `tests/${base}.test.js`, doc: `docs/${base}.md`, checkpoint: `checkpoints/${base}.js` };
+  };
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="lib-share">// lib/share.js — packs a learner's work into a link and back. PROVIDED.
+// Used by the guide's progress and showcase links and by showcase.html.
+// The work rides in the URL fragment (after #), which browsers never send to
+// a server: JSON → deflate (when the browser supports CompressionStream) →
+// base64url. The first letter says which: "z" compressed, "j" plain JSON.
+(function (MS) {
+  const toB64u = bytes => {
+    let s = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  };
+  const fromB64u = text => {
+    const s = atob(text.replace(/-/g, "+").replace(/_/g, "/"));
+    const bytes = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+    return bytes;
+  };
+  const through = (bytes, stream) =>
+    new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer().then(b => new Uint8Array(b));
+
+  MS.share = {
+    async pack(obj) {
+      const json = new TextEncoder().encode(JSON.stringify(obj));
+      if (typeof CompressionStream === "function") return "z" + toB64u(await through(json, new CompressionStream("deflate-raw")));
+      return "j" + toB64u(json);
+    },
+    async unpack(text) {
+      const kind = text[0];
+      if (kind !== "z" && kind !== "j") throw new Error("this isn't a Motion from Scratch link.");
+      if (kind === "z" && typeof DecompressionStream !== "function") throw new Error("this browser can't open compressed links. Try a recent Chrome, Firefox, Safari or Edge.");
+      try {
+        const bytes = fromB64u(text.slice(1));
+        return JSON.parse(new TextDecoder().decode(kind === "z" ? await through(bytes, new DecompressionStream("deflate-raw")) : bytes));
+      } catch (e) {
+        throw new Error("the link looks damaged or cut off. Try copying it again.");
+      }
+    },
   };
 })(globalThis.MS = globalThis.MS || {});
 </script>
@@ -1863,6 +1962,147 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   const escH = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const mark = { pass: "✓", fail: "✗", todo: "·" };
 
+  // ---- tools/guide-runtime.js: spliced into guide.html's script by build-guide.js ----
+  // Not a standalone file. It shares the page script's scope ($, store, run,
+  // codeFor, escH) and is placed before the chapters start running.
+
+  run($("lib-course")); run($("lib-share"));
+  const C = MS.COURSE, share = MS.share;
+  const state = {};                                   // per layer: { results, cp, error }
+  const layerOf = id => C.layers.find(l => l.id === id);
+  const level = id => Math.min(5, Math.max(1, parseInt(store.get("mfs-hint-" + id), 10) || 1));
+  const listIds = ids => ids.length > 1 ? "layers " + ids.slice(0, -1).join(", ") + " and " + ids[ids.length - 1] : "layer " + ids[0];
+
+  // ---------- "What your tutor sees" ----------
+  // Plain text that Claude in Chrome (or any tutor) can read. Statuses only:
+  // checkpoint answers never appear here.
+  function cpLine(cp) {
+    if (cp.locked) return "Checkpoint: locked until every test passes";
+    const word = { right: "right", wrong: "not yet", blank: "blank" };
+    return "Checkpoint: " + (cp.complete ? "passed ★" : "unlocked") +
+      "; mystery picture " + (cp.mystery.ok ? "correct" : "not quite" + (cp.mystery.hints.length ? " (the runner says: " + cp.mystery.hints.join(" ") + ")" : "")) +
+      "; questions " + cp.questions.map(q => q.n + " " + word[q.status]).join(", ");
+  }
+  function tutorText(id) {
+    const l = layerOf(id), s = state[id] || {}, lv = level(id);
+    const out = [
+      "Motion from Scratch · Layer " + id + " · " + l.title + " (" + l.builds + ")",
+      "Hint level the learner allows: " + lv + " of 5 (" + C.hintLevels[lv - 1] + ")",
+    ];
+    if (s.error) out.push("Code error: " + s.error);
+    else if (s.results) {
+      const pass = s.results.filter(r => r.status === "pass").length, bad = s.results.filter(r => r.status !== "pass");
+      out.push("Tests: " + pass + " / " + s.results.length + " passing");
+      bad.slice(0, 8).forEach(r => out.push("  " + (r.status === "todo" ? "· not written yet: " + r.name : "✗ " + r.name + (r.message ? " (" + r.message + ")" : ""))));
+      if (bad.length > 8) out.push("  …and " + (bad.length - 8) + " more");
+    }
+    if (s.cp) out.push(cpLine(s.cp));
+    out.push("", "Learner's code (src/" + id + "-" + l.slug + ".js):", codeFor(id));
+    return out.join("\n");
+  }
+  function afterRun(id) {
+    const sec = document.getElementById("layer-" + id);
+    if (!sec) return;
+    const pre = sec.querySelector("[data-tutor-text]");
+    if (pre) pre.textContent = tutorText(id);
+    const lv = level(id), label = sec.querySelector("[data-hint-level]"), more = sec.querySelector("[data-hint]");
+    if (label) label.textContent = "Hint level " + lv + " of 5: " + C.hintLevels[lv - 1];
+    if (more) more.disabled = lv >= 5;
+  }
+
+  // ---------- Ask links that bring the learner's code along ----------
+  function askText(id, maxCode) {
+    const s = state[id] || {}, lv = level(id);
+    const parts = ["My hint level is " + lv + " of 5, so go no further than: " + C.hintLevels[lv - 1] + "."];
+    if (s.error) parts.push("My code doesn't load: " + s.error + ".");
+    else if (s.results) {
+      const pass = s.results.filter(r => r.status === "pass").length;
+      const fail = s.results.filter(r => r.status === "fail"), todo = s.results.filter(r => r.status === "todo").length;
+      parts.push(pass + " of " + s.results.length + " tests pass" + (todo ? ", " + todo + " not written yet" : "") + ".");
+      if (fail.length) parts.push("Failing: " + fail.slice(0, 3).map(r => r.name + (r.message ? " (" + r.message + ")" : "")).join("; ") + ".");
+    }
+    let code = codeFor(id);
+    if (code.length > maxCode) code = code.slice(0, maxCode) + "\n// …cut off here; ask me for the rest";
+    parts.push("My code so far:\n" + code);
+    return parts.join(" ");
+  }
+  // Chat apps reject very long links, so trim the code until the link fits.
+  const fit = make => { for (let max = 2400; ; max -= 400) { const href = make(max); if (href.length <= 7000 || max <= 0) return href; } };
+  const linkFor = (who, id, text) => (who === "claude" ? C.claudeLink : C.chatgptLink)(layerOf(id), text);
+  const wireAsk = (a, build) => ["pointerdown", "focus", "click"].forEach(ev => a.addEventListener(ev, () => { a.href = build(); }));
+
+  document.querySelectorAll(".chapter").forEach(sec => {
+    const id = sec.dataset.layer;
+    sec.querySelectorAll("[data-ask]").forEach(a => wireAsk(a, () => fit(max => linkFor(a.dataset.ask, id, askText(id, max)))));
+    sec.querySelector("[data-hint]").addEventListener("click", () => { store.set("mfs-hint-" + id, String(Math.min(5, level(id) + 1))); afterRun(id); });
+    sec.querySelector("[data-hint-reset]").addEventListener("click", () => { store.set("mfs-hint-" + id, "1"); afterRun(id); });
+    sec.querySelector(".editor").addEventListener("input", () => afterRun(id));
+  });
+  document.querySelectorAll(".cpcell").forEach(cell => {
+    const id = cell.dataset.layer;
+    cell.querySelectorAll("[data-ask-cp]").forEach(a => wireAsk(a, () =>
+      linkFor(a.dataset.askCp, id, C.checkpointAsk + (state[id] && state[id].cp ? " Where I am: " + cpLine(state[id].cp) + "." : ""))));
+  });
+
+  // ---------- Save, move or share ----------
+  const shareBox = document.getElementById("save");
+  const status = shareBox.querySelector("[data-share-status]"), fallback = shareBox.querySelector("[data-share-fallback]");
+  const nameIn = shareBox.querySelector("[data-share-name]"), openA = shareBox.querySelector("[data-share-open]");
+  nameIn.value = store.get("mfs-share-name") || "";
+  const here = () => location.href.split("#")[0];
+  function collect(kind) {
+    const src = {};
+    document.querySelectorAll(".chapter").forEach(sec => {
+      const id = sec.dataset.layer, v = sec.querySelector(".editor").value;
+      if (v !== $("stub-" + id)) src[id] = v;
+    });
+    if (kind === "showcase") return { v: 1, kind: "showcase", name: nameIn.value.trim().slice(0, 40), src };
+    const cp = {}, tries = {};
+    document.querySelectorAll(".cpcell").forEach(c => { const t = c.querySelector("textarea"); if (t.value !== t.defaultValue) cp[c.dataset.layer] = t.value; });
+    document.querySelectorAll(".tryit").forEach(c => { const t = c.querySelector(".tryit-code"); if (t.value !== t.defaultValue) tries[c.dataset.key] = t.value; });
+    return { v: 1, kind: "progress", src, cp, try: tries };
+  }
+  async function linkOf(kind) {
+    const data = await share.pack(collect(kind));
+    return kind === "showcase" ? new URL("showcase.html", here()).href + "#s=" + data : here() + "#progress=" + data;
+  }
+  shareBox.querySelectorAll("[data-share]").forEach(b => b.addEventListener("click", async () => {
+    const kind = b.dataset.share, what = kind === "progress" ? "Progress link" : "Showcase link";
+    const empty = Object.keys(collect(kind).src).length ? "" : " You haven't changed any code yet, so there isn't much in it.";
+    let url;
+    try { url = await linkOf(kind); } catch (e) { status.textContent = "Couldn't make the link: " + e.message; return; }
+    try { await navigator.clipboard.writeText(url); fallback.hidden = true; status.textContent = what + " copied." + empty; }
+    catch (e) { fallback.hidden = false; fallback.value = url; fallback.select(); status.textContent = what + " is in the box below. Copy it from there." + empty; }
+  }));
+  const refreshOpen = () => linkOf("showcase").then(u => { openA.href = u; }, () => {});
+  shareBox.addEventListener("toggle", () => { if (shareBox.open) refreshOpen(); });
+  nameIn.addEventListener("input", () => { store.set("mfs-share-name", nameIn.value); refreshOpen(); });
+  ["pointerdown", "focus"].forEach(ev => openA.addEventListener(ev, refreshOpen));
+
+  // ---------- Opening a progress link ----------
+  const banner = document.querySelector("[data-progress-banner]");
+  const incoming = location.hash.match(/^#progress=(.+)$/);
+  const clearHash = () => history.replaceState(null, "", location.pathname + location.search);
+  if (incoming) share.unpack(incoming[1]).then(data => {
+    if (!data || data.kind !== "progress") throw new Error("it isn't a progress link.");
+    const ids = new Set(C.layers.filter(l => l.ready).map(l => l.id));
+    const tryKeys = new Set([...document.querySelectorAll(".tryit")].map(c => c.dataset.key));
+    const ok = v => typeof v === "string" && v.length < 300000;
+    const writes = [];
+    for (const [id, v] of Object.entries(data.src || {})) if (ids.has(id) && ok(v)) writes.push(["mfs-src-" + id, v]);
+    for (const [id, v] of Object.entries(data.cp || {})) if (ids.has(id) && ok(v)) writes.push(["mfs-cp-" + id, v]);
+    for (const [k, v] of Object.entries(data.try || {})) if (tryKeys.has(k) && ok(v)) writes.push(["mfs-try-" + k, v]);
+    const withCode = Object.keys(data.src || {}).filter(id => ids.has(id)).sort();
+    banner.hidden = false;
+    banner.innerHTML = "<p><strong>This link holds saved work" + (withCode.length ? ", including your code for " + listIds(withCode) : "") + ".</strong> " +
+      "Load it into this browser? It replaces the work saved here for those parts. Only load links you made yourself, because the code in them runs on this page.</p>" +
+      '<span class="btn-row"><button class="btn" type="button" data-load>Load my work</button><button class="btn ghost" type="button" data-skip>Not now</button></span>';
+    banner.querySelector("[data-load]").addEventListener("click", () => { writes.forEach(([k, v]) => store.set(k, v)); clearHash(); location.reload(); });
+    banner.querySelector("[data-skip]").addEventListener("click", () => { clearHash(); banner.hidden = true; });
+  }).catch(e => { banner.hidden = false; banner.textContent = "This progress link didn't open: " + e.message; });
+  // ---- end of tools/guide-runtime.js ----
+
+
   // Fresh MS with the libraries plus your code for layers up to this one.
   // Returns an error message, or null when everything loaded.
   function prepare(id) {
@@ -1882,9 +2122,10 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     const vis = section.querySelector("[data-visuals]");
     errBox.hidden = true; list.innerHTML = ""; vis.innerHTML = "";
     const err = prepare(id);
-    if (err) { errBox.hidden = false; errBox.textContent = err; return; }
+    if (err) { errBox.hidden = false; errBox.textContent = err; state[id] = { error: err }; afterRun(id); return; }
     run($("test-" + id));
     const results = MS.runTests(id);
+    state[id] = { results };
     const passed = results.filter(r => r.status === "pass").length;
     section.querySelector("[data-score]").textContent = passed + " / " + results.length;
     renderCheckpoint(id, results);
@@ -1933,6 +2174,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     try { run(saved !== null ? saved : cell.querySelector("textarea").value); }
     catch (e) { out.hidden = false; out.innerHTML = '<p class="cp-hint">Your answers did not load: ' + escH(e.message) + "</p>"; return; }
     const cp = MS.runCheckpoint(id, results);
+    (state[id] = state[id] || {}).cp = cp; afterRun(id);
     const mark = { right: "✓", wrong: "✗ not yet", blank: "✏️ blank" };
     out.hidden = false;
     if (cp.locked) { out.innerHTML = '<p class="cp-head">🔒 Locked: ' + cp.testsLeft + " test(s) still to pass. Use the workbench, then run this again.</p>"; }

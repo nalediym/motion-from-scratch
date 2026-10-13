@@ -1,0 +1,19 @@
+{
+  // Open in GitHub Codespaces: a cloud VS Code with Node and Claude Code ready.
+  // The course pages open in a preview tab; run `node tests/run.js` in the terminal.
+  "name": "Motion from Scratch",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  },
+  "postAttachCommand": {
+    "course pages": "node tools/serve.js"
+  },
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": { "label": "Course pages", "onAutoForward": "openPreview" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["README.md", "docs/00-pixels.md", "src/00-pixels.js"] }
+  }
+}

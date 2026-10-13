@@ -29,7 +29,8 @@ Pick one way to work. Every option has the same chapters, starter code and tests
 
 | Way | Good for | Start |
 |---|---|---|
-| **Interactive guide** | Fastest; nothing to install. Code saves in your browser | [Open the guide](https://nalediym.github.io/motion-from-scratch/guide.html) |
+| **Interactive guide** | Fastest; nothing to install. Code saves in your browser, and a progress link moves it between devices | [Open the guide](https://nalediym.github.io/motion-from-scratch/guide.html) |
+| **GitHub Codespaces** | A cloud VS Code with a terminal, Node and Claude Code set up; your work lives in git | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nalediym/motion-from-scratch?quickstart=1) |
 | **Google Colab** | A notebook in your Google Drive | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nalediym/motion-from-scratch/blob/main/notebooks/colab.ipynb) |
 | **Your own editor** | Working with Claude Code or Codex as a study buddy | `git clone https://github.com/nalediym/motion-from-scratch` or [download the ZIP](https://github.com/nalediym/motion-from-scratch/archive/refs/heads/main.zip) |
 | **Jupyter / VS Code** | A local JavaScript notebook (Deno kernel) | [`notebooks/jupyter-deno.ipynb`](notebooks/jupyter-deno.ipynb) |
@@ -41,7 +42,7 @@ Pick one way to work. Every option has the same chapters, starter code and tests
 2. Read `docs/00-pixels.md`, then fill in `src/00-pixels.js`.
 3. Check your work: open `tests.html`, or run `node tests/run.js` in a terminal.
 
-You don't need Node to take the course; the browser runs everything. Node lets you (and an AI study buddy) run the same tests from a terminal. Run `node tools/pictures.js 01` to save a layer's pictures as PNG files.
+You don't need Node to take the course; the browser runs everything. Node lets you (and an AI study buddy) run the same tests from a terminal. Run `node tools/pictures.js 01` to save a layer's pictures as PNG files, or `node tools/serve.js` to open the pages at `http://localhost:8000`.
 
 **Predict, then run and Break it, in a terminal:** `node tools/try.js 00` lists a layer's blocks, and `node tools/try.js 00 p1` or `node tools/try.js 00 b2` runs one against your code. To fill in a guess, copy the block into `scratch.js`, replace `null`, and run `node tools/try.js --file scratch.js`. In the guide and the notebooks every block is already an editable cell with a Run button.
 
@@ -55,12 +56,15 @@ Each chapter explains what's happening underneath, with diagrams. Along the way,
 
 **Every layer ends with a checkpoint.** When all of a layer's tests pass, its checkpoint unlocks: your own code draws a *mystery picture* through deliberate traps (get every rule right and a hidden word appears; get one wrong and it tells you which rule to look at), and you answer three questions in `checkpoints/NN-*.js`. The answers are stored only as fingerprints, so the repo can't spoil them. A layer is **★ complete** when the picture and all three answers are right. `node tests/run.js`, `tests.html`, the course map, the guide and the notebooks all show it. You're done with the course when layer 10 exports your KineticIntro as an MP4.
 
+**Save and show your work.** In the guide, *Save, move or share* makes a **progress link** (your code and answers, to open on another device) and a **showcase link** (a page that runs your engine and shows what it draws, for anyone). Nothing is uploaded: the work rides in the link itself. In Codespaces or a fork, your work lives in git instead.
+
 ## Study buddy
 
 Stuck? Ask an AI, and it won't do the work for you.
 
 - **Claude Code or Codex:** open this folder in the agent. `CLAUDE.md` and `AGENTS.md` tell it to ask questions first, climb a hint ladder one step at a time, and never write your solution. It can run the tests to see exactly where you are.
 - **Claude.ai or ChatGPT in one click:** each chapter has *Study buddy* callouts placed where they help, and every code cell and checkpoint has its own **Ask Claude · Ask ChatGPT** links. They open a new chat with the tutor rules and that exact question filled in. You need to be signed in. (These links use a URL format the chat apps support but don't officially document.)
+- **Claude in Chrome:** save the course's tutor text as a `/tutor` shortcut ([setup on the course home](https://nalediym.github.io/motion-from-scratch/#chrome)). On the guide it reads the layer's *What your tutor sees* panel, so there's nothing to paste, and *Hint please* sets how far it may go.
 - **Any other chat:** paste the contents of `AGENTS.md` as your first message, then your question and your code.
 
 ## Layout
@@ -76,6 +80,7 @@ tools/      pictures.js for learners; build scripts for maintainers
 index.html  course map, ways to start, and progress
 guide.html  the interactive guide
 tests.html  results and pictures
+showcase.html  runs a learner's engine from a showcase link
 ```
 
 **Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/build.js` and commit the results. When a mystery or a checkpoint question changes, regenerate the fingerprints with `node tools/checkpoint-data.js --solution <your solution> --answers <answer key>`, then run `node tools/build.js` again; keep both of those files out of the repo. CI checks they're up to date, then publishes the site to GitHub Pages.

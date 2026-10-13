@@ -48,12 +48,12 @@ function tryCell(l, kind, n, codeText) {
 </div>`;
 }
 function checkpointCell(l, codeText) {
-  const ask = "I'm working on this layer's checkpoint. Don't give me any answers or tell me if a specific answer is right. Ask me how I'm working each question out, and help me reason through the mystery picture's hints.";
+  const ask = C.checkpointAsk;
   const rows = Math.min(20, codeText.split("\n").length + 1);
   return `<div class="cpcell" data-layer="${l.id}">
 <div class="tryit-head"><span class="tryit-tag">Checkpoint ${l.id}</span><span>Unlocks when every test passes. Fill in your answers, then run.</span></div>
 <textarea class="tryit-code" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint ${l.id} answers">${esc(codeText)}</textarea>
-<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a href="${C.claudeLink(l, ask)}" target="_blank" rel="noopener">Ask Claude</a> · <a href="${C.chatgptLink(l, ask)}" target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
+<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a data-ask-cp="claude" href="${C.claudeLink(l, ask)}" target="_blank" rel="noopener">Ask Claude</a> · <a data-ask-cp="chatgpt" href="${C.chatgptLink(l, ask)}" target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
 <div class="cp-result" data-cp-out hidden></div>
 </div>`;
 }
@@ -132,6 +132,7 @@ const chapters = ready.map(l => {
 const embed = (id, text) => `<script type="text/plain" id="${id}">${text.replace(/<\/script/gi, "<\\/script")}</script>`;
 const sources = [
   embed("lib-course", read("lib/course.js")),
+  embed("lib-share", read("lib/share.js")),
   embed("lib-font", read("lib/font5x7.js")),
   embed("lib-check", read("lib/check.js")),
   embed("lib-present", read("lib/present.js")),
@@ -170,7 +171,9 @@ const sections = chapters.map(({ l, lede, html }) => `
       <button class="btn ghost" type="button" data-reset>Reset to stub</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
-    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers): <a href="${C.claudeLink(l)}" target="_blank" rel="noopener">Claude</a> · <a href="${C.chatgptLink(l)}" target="_blank" rel="noopener">ChatGPT</a></p>
+    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers). The link brings your code and test results along: <a data-ask="claude" href="${C.claudeLink(l)}" target="_blank" rel="noopener">Claude</a> · <a data-ask="chatgpt" href="${C.chatgptLink(l)}" target="_blank" rel="noopener">ChatGPT</a></p>
+    <div class="hint-row"><button class="btn ghost" type="button" data-hint>Hint please</button><span data-hint-level></span><button class="linkish" type="button" data-hint-reset>start over</button></div>
+    <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send the same thing.</p><pre data-tutor-text></pre></details>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
     <div class="visuals" data-visuals></div>
@@ -237,6 +240,19 @@ body { padding-block: 24px 80px; }
 .howto summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .howto ol { margin: 10px 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
 .howto p { font-size: 0.92rem; }
+.share[open] { display: flex; flex-direction: column; gap: 12px; }
+.share-row { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.share-name { font-size: 0.85rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; max-width: 280px; }
+.share-name input, .share-fallback { font: inherit; font-size: 0.9rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; }
+.share-status { font-size: 0.88rem; min-height: 1.2em; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-row .btn { text-decoration: none; }
+.banner { max-width: 760px; border: 2px solid var(--key); background: var(--paper); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.hint-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 0.82rem; color: var(--muted); }
+.linkish { font: inherit; font-size: 0.8rem; background: none; border: 0; padding: 0; color: var(--pencil); text-decoration: underline; cursor: pointer; }
+.tutor-sees { border: 1px dashed var(--line); border-radius: 6px; padding: 8px 10px; font-size: 0.85rem; }
+.tutor-sees summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
+.tutor-sees pre { margin: 8px 0 0; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11.5px; }
 @media (max-width: 960px) {
   .chapter { grid-template-columns: minmax(0, 1fr); }
   .bench { position: static; max-height: none; }
@@ -257,10 +273,26 @@ body { padding-block: 24px 80px; }
       <li><strong>Run tests</strong> (or press ⌘/Ctrl + Enter). Failing tests show the value they expected and what they got; pictures appear as your code works.</li>
       <li><strong>Break it</strong> with the chapter's experiments.</li>
       <li><strong>Pass the checkpoint</strong> at the end of the chapter. When its tab shows ★, move to the next layer.</li>
-      <li><strong>Stuck?</strong> Every cell and study-buddy callout has links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers.</li>
+      <li><strong>Stuck?</strong> Every cell and study-buddy callout has links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers. <em>Hint please</em> in the workbench sets how much help a tutor may give.</li>
     </ol>
-    <p>Want to keep your work outside this browser? Use <strong>Copy</strong> and paste into the matching file in <a href="${C.repo}">the repo</a>, or work in <a href="${C.colab}" target="_blank" rel="noopener">Google Colab</a>. All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
+    <p>Your work saves in this browser. To move it to another device or show it off, use <strong>Save, move or share</strong> below. All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
   </details>
+  <details class="howto share" id="save">
+    <summary>Save, move or share your work</summary>
+    <div class="share-row">
+      <p><strong>Progress link.</strong> Your code, guesses and checkpoint answers, packed into one link. Bookmark it, or open it on another device to pick up where you left off. It holds your answers, so keep it to yourself.</p>
+      <span class="btn-row"><button class="btn" type="button" data-share="progress">Copy progress link</button></span>
+    </div>
+    <div class="share-row">
+      <p><strong>Showcase link.</strong> A page that runs your engine and shows everything it draws, for anyone you send it to. It includes your code but not your checkpoint answers.</p>
+      <label class="share-name">Name to show (optional) <input type="text" maxlength="40" autocomplete="nickname" data-share-name></label>
+      <span class="btn-row"><button class="btn ghost" type="button" data-share="showcase">Copy showcase link</button><a class="btn ghost" data-share-open href="showcase.html" target="_blank" rel="noopener">Open it</a></span>
+    </div>
+    <p class="share-status" data-share-status aria-live="polite"></p>
+    <input class="share-fallback" type="text" readonly data-share-fallback hidden aria-label="Link to copy">
+    <p class="bench-note">Nothing is uploaded. Your work rides in the part of the link after the #, which browsers never send to a server.</p>
+  </details>
+  <div class="banner" data-progress-banner hidden></div>
   <nav class="tabs" aria-label="Layers">${tabs}</nav>
 </div>
 ${sections}
@@ -281,6 +313,8 @@ ${sources}
   const escH = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const mark = { pass: "✓", fail: "✗", todo: "·" };
 
+${read("tools/guide-runtime.js")}
+
   // Fresh MS with the libraries plus your code for layers up to this one.
   // Returns an error message, or null when everything loaded.
   function prepare(id) {
@@ -300,9 +334,10 @@ ${sources}
     const vis = section.querySelector("[data-visuals]");
     errBox.hidden = true; list.innerHTML = ""; vis.innerHTML = "";
     const err = prepare(id);
-    if (err) { errBox.hidden = false; errBox.textContent = err; return; }
+    if (err) { errBox.hidden = false; errBox.textContent = err; state[id] = { error: err }; afterRun(id); return; }
     run($("test-" + id));
     const results = MS.runTests(id);
+    state[id] = { results };
     const passed = results.filter(r => r.status === "pass").length;
     section.querySelector("[data-score]").textContent = passed + " / " + results.length;
     renderCheckpoint(id, results);
@@ -351,6 +386,7 @@ ${sources}
     try { run(saved !== null ? saved : cell.querySelector("textarea").value); }
     catch (e) { out.hidden = false; out.innerHTML = '<p class="cp-hint">Your answers did not load: ' + escH(e.message) + "</p>"; return; }
     const cp = MS.runCheckpoint(id, results);
+    (state[id] = state[id] || {}).cp = cp; afterRun(id);
     const mark = { right: "✓", wrong: "✗ not yet", blank: "✏️ blank" };
     out.hidden = false;
     if (cp.locked) { out.innerHTML = '<p class="cp-head">🔒 Locked: ' + cp.testsLeft + " test(s) still to pass. Use the workbench, then run this again.</p>"; }

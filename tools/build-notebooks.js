@@ -61,7 +61,7 @@ function withCodeCells(l, pushMd, pushBlock, pushCode) {
   }
   if (!inserted) pushCode();
 }
-const cpAsk = "I'm working on this layer's checkpoint. Don't give me any answers or tell me if a specific answer is right. Ask me how I'm working each question out, and help me reason through the mystery picture's hints.";
+const cpAsk = C.checkpointAsk;
 const blockIntro = (l, s) => s.kind === "checkpoint"
   ? `**Checkpoint ${l.id}** · unlocks when every test passes. Replace each \`null\` with your answer, run the cell, then run the one below it. Stuck? [Ask Claude](${C.claudeLink(l, cpAsk)}) · [Ask ChatGPT](${C.chatgptLink(l, cpAsk)})`
   :  `**${s.kind === "predict" ? `Predict ${s.n}` : `Break it ${s.n}`}** · ${s.kind === "predict" ? "replace `null` with your guess, then run the cell." : "run it, make the TODO change in your code, then run it again."} Stuck? [Ask Claude](${C.claudeLink(l, C.blockAsk(s.kind, s.title))}) · [Ask ChatGPT](${C.chatgptLink(l, C.blockAsk(s.kind, s.title))})`;

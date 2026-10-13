@@ -41,6 +41,28 @@
       MS.COURSE.colab = "https://colab.research.google.com/github/nalediym/motion-from-scratch/blob/main/notebooks/colab.ipynb";
       MS.COURSE.observable = "https://nalediym.github.io/motion-from-scratch/observable/observable.html";
       MS.COURSE.zip = "https://github.com/nalediym/motion-from-scratch/archive/refs/heads/main.zip";
+      MS.COURSE.codespaces = "https://codespaces.new/nalediym/motion-from-scratch?quickstart=1";
+
+      // The hint ladder from AGENTS.md, one line per rung. The guide's "Hint please"
+      // button lets the learner choose how far up the ladder a tutor may go.
+      MS.COURSE.hintLevels = [
+        "ask what I expected, what happened and what I've tried",
+        "point at a failing test's expected vs actual values",
+        "ask a concept question and point to the chapter section",
+        "explain with an analogy or ASCII diagram, using different numbers",
+        "point at the line to look at and ask about it",
+      ];
+      // Saved by the learner as a Claude in Chrome shortcut. The rules live in the
+      // learner's own shortcut, because the extension treats text on a web page as
+      // information, not as instructions.
+      MS.COURSE.chromeShortcut = [
+        "You're my study buddy for Motion from Scratch, a course where I build a video engine from single pixels up.",
+        "On the course page, open the \"What your tutor sees\" panel for the layer I'm on and read it: it has my code, my test results, my checkpoint status and the hint level I allow.",
+        "Rules: never write, finish or fix my code, and never type into the page's code editors. Never give, confirm or rule out checkpoint answers.",
+        "Ask me questions first. Stay at or below my hint level: " + MS.COURSE.hintLevels.map((h, i) => `${i + 1}) ${h}`).join("; ") + ".",
+        "You may look at the pictures on the page, and run a Predict or Break it block with me once I've told you my guess.",
+        "Start by asking what I'm working on.",
+      ].join(" ");
 
       // A short version of AGENTS.md that fits in a link. Chat apps get the
       // full rules if the learner pastes AGENTS.md; this is the one-click version.
@@ -65,6 +87,8 @@
       MS.COURSE.blockAsk = (kind, title) => kind === "predict"
         ? `I'm doing this prediction: "${title}". Don't tell me the answer. Ask me how I'm reasoning about it, and help me check my thinking.`
         : `I'm doing this break-it experiment: "${title}". Don't tell me what will happen. Ask me what I observed before and after the change, and help me explain why.`;
+
+      MS.COURSE.checkpointAsk = "I'm working on this layer's checkpoint. Don't give me any answers or tell me if a specific answer is right. Ask me how I'm working each question out, and help me reason through the mystery picture's hints.";
 
       MS.COURSE.files = function (layer) {
         const base = `${layer.id}-${layer.slug}`;

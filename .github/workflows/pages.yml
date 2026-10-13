@@ -44,7 +44,7 @@ jobs:
       - name: Assemble the site
         run: |
           mkdir -p _site/observable
-          cp -r index.html guide.html tests.html scratch.js lib src tests checkpoints docs notebooks tools LICENSE README.md AGENTS.md _site/
+          cp -r index.html guide.html tests.html showcase.html scratch.js lib src tests checkpoints docs notebooks tools LICENSE README.md AGENTS.md _site/
           rm -rf _site/notebooks/.observable
           cp -r notebooks/.observable/dist/. _site/observable/
           touch _site/.nojekyll
