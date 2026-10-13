@@ -1,5 +1,5 @@
-// Checkpoint 01 · Shapes & blending. Replace each null with your answer, then run:
-//   node tests/run.js 01
+// Checkpoint 01 · Shapes & blending. Replace each null with your answer.
+// Check with: node tests/run.js 01
 MS.answers("01", {
   // 1. You blend [255, 255, 255, 128] (half-transparent white) over an opaque black pixel.
   //    What is the pixel afterwards? Answer as [r, g, b, a].

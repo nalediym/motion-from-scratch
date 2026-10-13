@@ -1,5 +1,5 @@
 // Layer 01 · Shapes & blending — rectangles, circles, alpha, gradients.
-// Read docs/01-shapes.md first. Run `node tests/run.js 01` to check your work.
+// Read the chapter first (docs/01-shapes.md). Each comment below is a spec; the tests check it.
 // You can (and should) use your layer 00 functions here.
 (function (MS) {
   /**

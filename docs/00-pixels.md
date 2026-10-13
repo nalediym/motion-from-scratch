@@ -4,7 +4,6 @@ _A framebuffer is memory you can see._
 
 **You'll write:** `createFrame`, `pixelIndex`, `setPixel`, `getPixel`, `clearFrame` in `src/00-pixels.js`
 **Check it:** `node tests/run.js 00`, or open `tests.html`
-**Time:** one or two sittings
 
 Every frame of the KineticIntro you'll build in layer 09 is 1080 × 1920 pixels. Before anything can move, you need somewhere to put those pixels and a way to change them one at a time. That place is called a **framebuffer**, and by the end of this layer you'll have written one.
 
@@ -44,7 +43,7 @@ Here's a frame 4 pixels wide and 3 tall, with each cell showing where that pixel
 
 Look at the numbers for a while before writing `pixelIndex`. Going one step right adds the same amount each time. Going one step down adds a different, bigger amount. What is each amount, and why? If you can say that out loud, the formula writes itself.
 
-> **Study buddy:** "Don't give me code. Ask me questions until I can explain why the pixel index is (y × width + x) × 4." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Don%27t%20give%20me%20code.%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20the%20pixel%20index%20is%20%28y%20%C3%97%20width%20%2B%20x%29%20%C3%97%204.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Don%27t%20give%20me%20code.%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20the%20pixel%20index%20is%20%28y%20%C3%97%20width%20%2B%20x%29%20%C3%97%204.)
+> **Study buddy:** "Don't give me code. Ask me questions until I can explain what pixelIndex multiplies y by, and why there's a × 4." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Don%27t%20give%20me%20code.%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20pixelIndex%20multiplies%20y%20by%2C%20and%20why%20there%27s%20a%20%C3%97%204.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Don%27t%20give%20me%20code.%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20pixelIndex%20multiplies%20y%20by%2C%20and%20why%20there%27s%20a%20%C3%97%204.)
 
 ### Why a Uint8ClampedArray
 
@@ -53,9 +52,9 @@ JavaScript has **[typed arrays](https://developer.mozilla.org/en-US/docs/Web/Jav
 - **Uint8**: each slot is an unsigned 8-bit integer, 0–255. Exactly one channel.
 - **Clamped**: if you store something out of range, it's pinned to the nearest edge instead of wrapping around. Store 300 and you get 255; store −5 and you get 0; store 127.6 and it rounds to 128. The exact rule is the [ToUint8Clamp](https://tc39.es/ecma262/#sec-touint8clamp) operation in the ECMAScript specification, the document that defines JavaScript.
 
-The browser uses this exact type for the pixels of a canvas ([`ImageData.data`](https://developer.mozilla.org/en-US/docs/Web/API/ImageData/data)), which is why you're using it. The HTML standard [defines `ImageData`](https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#the-imagedata-interface) as RGBA bytes stored left to right, row by row from the top: the same layout you're about to build. Compare it with its unclamped cousin [`Uint8Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array), where 300 wraps around to 44 (300 − 256). For colors, wrapping is a disaster: a pixel that should be "a bit brighter than white" would turn nearly black.
+The browser uses this exact type for the pixels of a canvas ([`ImageData.data`](https://developer.mozilla.org/en-US/docs/Web/API/ImageData/data)), which is why you're using it. The HTML standard [defines `ImageData`](https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#the-imagedata-interface) as RGBA bytes stored left to right, row by row from the top: the same layout you're about to build. Compare it with its unclamped cousin [`Uint8Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array), where 300 wraps around to 44 (300 − 256).
 
-> **Study buddy:** "Quiz me on Uint8ClampedArray versus Uint8Array with three predict-the-output questions." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Quiz%20me%20on%20Uint8ClampedArray%20versus%20Uint8Array%20with%20three%20predict-the-output%20questions.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Quiz%20me%20on%20Uint8ClampedArray%20versus%20Uint8Array%20with%20three%20predict-the-output%20questions.)
+> **Study buddy:** "Quiz me on Uint8ClampedArray versus Uint8Array with three predict-the-output questions." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Quiz%20me%20on%20Uint8ClampedArray%20versus%20Uint8Array%20with%20three%20predict-the-output%20questions.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Quiz%20me%20on%20Uint8ClampedArray%20versus%20Uint8Array%20with%20three%20predict-the-output%20questions.)
 
 ### The edge of the world
 
@@ -70,7 +69,7 @@ What should happen if someone calls `setPixel(frame, 4, 0, ...)` on a frame that
           └─ but the formula points here: (0, 1)
 ```
 
-This "wrap-around" bug is real and common: shapes that hang off the right edge reappear on the left, one row down. Your `setPixel` must check bounds itself instead of trusting the formula. Later layers will draw things that slide off-screen all the time, so this check is load-bearing.
+This wrap-around bug is real: shapes that hang off the right edge reappear on the left, one row down. `setPixel` must check bounds itself, and later layers slide things off-screen all the time.
 
 ### Getting it on screen
 
@@ -98,9 +97,9 @@ Work through `src/00-pixels.js` top to bottom. Each function's comment is its sp
 
 Run the tests after each function. A failing test tells you exactly which pixel was wrong.
 
-`tests.html` shows a checkerboard and a blue-and-orange XOR pattern under Layer 00 once your code works.
+Once it works, the test pictures show a checkerboard and a blue-and-orange XOR pattern.
 
-> **Study buddy:** "Here's my setPixel. Don't fix it. Tell me which test case would break it, and let me find the bug." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20setPixel.%20Don%27t%20fix%20it.%20Tell%20me%20which%20test%20case%20would%20break%20it%2C%20and%20let%20me%20find%20the%20bug.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test%27s%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20setPixel.%20Don%27t%20fix%20it.%20Tell%20me%20which%20test%20case%20would%20break%20it%2C%20and%20let%20me%20find%20the%20bug.)
+> **Study buddy:** "Here's my setPixel. Don't fix it. Tell me which test case would break it, and let me find the bug." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20setPixel.%20Don%27t%20fix%20it.%20Tell%20me%20which%20test%20case%20would%20break%20it%2C%20and%20let%20me%20find%20the%20bug.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Here%27s%20my%20setPixel.%20Don%27t%20fix%20it.%20Tell%20me%20which%20test%20case%20would%20break%20it%2C%20and%20let%20me%20find%20the%20bug.)
 
 ## Predict, then run
 
@@ -145,13 +144,10 @@ Once your tests pass, break things on purpose. Each **TODO** says what to change
 
 ### 1. Swap x and y
 
-```js
-// src/00-pixels.js → pixelIndex
-// TODO(break-it): swap x and y in your formula. Change nothing else.
-```
-
 ```js experiment
 // Break it 1: where do two pixels start, before and after the swap?
+// TODO(break-it), in src/00-pixels.js → pixelIndex:
+//   swap x and y in your formula. Change nothing else.
 const f = MS.createFrame(4, 2);   // 4 wide, 2 tall: data has 32 slots, 0 to 31
 console.log("pixelIndex(3, 0) =", MS.pixelIndex(f, 3, 0));
 console.log("pixelIndex(0, 1) =", MS.pixelIndex(f, 0, 1));
@@ -159,17 +155,14 @@ console.log("pixelIndex(0, 1) =", MS.pixelIndex(f, 0, 1));
 // Is either new number outside the 32 slots? What would setPixel do with it?
 ```
 
-Then run `node tests/run.js 00` and look at the XOR pattern in `tests.html`. Which tests catch the swap, and what happened to the picture?
+Then run the tests and look at the XOR pattern. Which tests catch the swap, and what happened to the picture?
 
 ### 2. Delete the bounds check
 
-```js
-// src/00-pixels.js → setPixel
-// TODO(break-it): comment out your check that (x, y) is inside the frame.
-```
-
 ```js experiment
 // Break it 2: draw one pixel just past the right edge.
+// TODO(break-it), in src/00-pixels.js → setPixel:
+//   comment out your check that (x, y) is inside the frame.
 const f = MS.createFrame(4, 3);
 MS.setPixel(f, 4, 0, [255, 255, 255]);   // x = width: there is no column 4
 console.log(MS.asciiFrame(f));
@@ -179,13 +172,10 @@ console.log(MS.asciiFrame(f));
 
 ### 3. Lose the clamping
 
-```js
-// src/00-pixels.js → createFrame
-// TODO(break-it): use Uint8Array instead of Uint8ClampedArray.
-```
-
 ```js experiment
 // Break it 3: out-of-range values, with and without clamping.
+// TODO(break-it), in src/00-pixels.js → createFrame:
+//   use Uint8Array instead of Uint8ClampedArray.
 const f = MS.createFrame(1, 1);
 MS.setPixel(f, 0, 0, [300, -5, 127.6]);
 console.log(MS.getPixel(f, 0, 0));
@@ -204,8 +194,7 @@ Your layer is **complete** when three things are true:
 3. **Three questions are answered correctly** in `checkpoints/00-pixels.js`. You may type an expression instead of a number, like `10 * 10`, or compute an answer with your own functions.
 
 ```js checkpoint
-// Checkpoint 00 · Pixels. Replace each null with your answer, then run:
-//   node tests/run.js 00
+// Checkpoint 00 · Pixels. Replace each null with your answer.
 MS.answers("00", {
   // 1. In a frame 12 pixels wide, at which index of data does pixel (7, 3) start?
   q1: null,
@@ -219,13 +208,10 @@ MS.answers("00", {
 
 ## In the real world
 
-- The browser's own version of your frame is [`ImageData`](https://developer.mozilla.org/en-US/docs/Web/API/ImageData). Same layout, same `Uint8ClampedArray`.
 - Video cards keep the image being shown in a region of memory literally called the framebuffer, scanned out to the display many times a second.
 - Remotion doesn't touch pixels directly. It draws with the browser, then takes a screenshot of each frame, which is a full framebuffer like yours. You'll see that in layer 10.
 
 ## Read the originals
-
-The documents that define what you used in this layer:
 
 - [ECMAScript: TypedArray objects](https://tc39.es/ecma262/#sec-typedarray-objects): how typed arrays work, including why a write to index `1.5` is ignored.
 

@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Check the generated guide and notebooks are up to date
+      - name: Check generated files are up to date
         run: |
           node tools/build.js
           if ! git diff --quiet -- docs/ checkpoints/ guide.html notebooks/; then

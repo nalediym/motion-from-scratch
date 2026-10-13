@@ -14,25 +14,23 @@
   .map li { display: grid; grid-template-columns: 52px 1fr auto; gap: 4px 14px; align-items: center; padding-block: 12px; border-bottom: 1px solid var(--line); }
   .map li:first-child { border-top: 1px solid var(--line); }
   .map .t { font-weight: 700; }
+  .map a.t { color: var(--ink); }
   .map .b { grid-column: 2 / 3; font-size: 0.9rem; color: var(--muted); }
-  .map .s { grid-row: 1 / 3; grid-column: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .map .s { grid-row: 1 / 3; grid-column: 3; display: flex; align-items: center; gap: 10px; }
   .map .s a { font-size: 0.85rem; }
   .map .num { grid-row: 1 / 3; justify-self: start; }
   .map li.soon { opacity: 0.55; }
-  .steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 10px; max-width: 66ch; }
   .ways { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
   .way { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
   .way:first-child { border-color: var(--key); }
   .way p { font-size: 0.93rem; flex: 1; }
   .way .btn { align-self: flex-start; text-decoration: none; }
   .tag { font-family: var(--pixel); font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .btn-row .btn { text-decoration: none; }
   .buddy { border: 1px dashed var(--pencil); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
   .small { font-size: 0.88rem; color: var(--muted); }
-  .chrome summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
-  .chrome[open] { display: flex; flex-direction: column; gap: 10px; }
-  .chrome ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+  details.fold summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
+  details.fold[open] { display: flex; flex-direction: column; gap: 10px; }
+  .fold ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 8px; max-width: 70ch; }
   .shortcut { width: 100%; font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--code-ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; resize: vertical; }
 </style>
 </head>
@@ -52,75 +50,48 @@
       <article class="way">
         <span class="tag">Fastest · nothing to install</span>
         <h3>In your browser</h3>
-        <p>Read each layer and write its code side by side. Tests and pictures run on the page. Your code saves in this browser, and a progress link carries it to another device.</p>
+        <p>Read each layer and write its code side by side. Tests and pictures run on the page, and your code saves in this browser.</p>
         <a class="btn" href="guide.html">Open the guide</a>
       </article>
       <article class="way">
         <span class="tag">Cloud editor · GitHub account</span>
         <h3>GitHub Codespaces</h3>
-        <p>A full VS Code in your browser with a terminal, Node and Claude Code already set up. Nothing to install, and your work lives in git. GitHub's free monthly hours cover this course.</p>
-        <a class="btn" data-link="codespaces" href="#" target="_blank" rel="noopener">Open in Codespaces</a>
-      </article>
-      <article class="way">
-        <span class="tag">Notebook · Google account</span>
-        <h3>Google Colab</h3>
-        <p>The whole course as one notebook. Save a copy to your Drive first, so your work is kept.</p>
-        <a class="btn" data-link="colab" href="#" target="_blank" rel="noopener">Open in Colab</a>
+        <p>A full VS Code in your browser with a terminal, Node and Claude Code set up. Your work lives in git, and GitHub's free monthly hours cover this course.</p>
+        <a class="btn ghost" data-link="codespaces" href="#" target="_blank" rel="noopener">Open in Codespaces</a>
       </article>
       <article class="way">
         <span class="tag">Best with an AI coding agent</span>
         <h3>Your own editor</h3>
-        <p>Download the code, write in <code>src/</code>, and check with <code>tests.html</code> or <code>node tests/run.js</code>.</p>
-        <span class="btn-row"><a class="btn" data-link="zip" href="#">Download ZIP</a><a class="btn ghost" data-link="repo" href="#" target="_blank" rel="noopener">GitHub</a></span>
-      </article>
-      <article class="way">
-        <span class="tag">Notebook · runs locally</span>
-        <h3>Jupyter or VS Code</h3>
-        <p>A JavaScript notebook using the Deno kernel. Install Deno, run <code>deno jupyter --install</code>, then open <code>notebooks/jupyter-deno.ipynb</code>.</p>
-        <a class="btn ghost" data-link="deno" href="#" target="_blank" rel="noopener">See the notebook</a>
-      </article>
-      <article class="way">
-        <span class="tag">Notebook · read online, edit locally</span>
-        <h3>Observable</h3>
-        <p>Read every chapter and watch the tests run online. To edit, download <code>notebooks/observable.html</code> and run it with Observable's free preview tool or Observable Desktop.</p>
-        <a class="btn ghost" data-link="observable" href="#" target="_blank" rel="noopener">Open in Observable view</a>
+        <p>Download the code, write in <code>src/</code>, and check with <code>tests.html</code> or <code>node tests/run.js</code>. Claude Code and Codex pick up the tutor rules from <code>CLAUDE.md</code> and <code>AGENTS.md</code> on their own.</p>
+        <span class="btn-row"><a class="btn ghost" data-link="zip" href="#">Download ZIP</a><a class="btn ghost" data-link="repo" href="#" target="_blank" rel="noopener">GitHub</a></span>
       </article>
     </div>
-
-    <h3 style="margin-top:8px">Then, for every layer</h3>
-    <ol class="steps">
-      <li><strong>Read</strong> the chapter. It explains what's happening underneath, with diagrams.</li>
-      <li><strong>Predict</strong>: each prediction block has a line for your guess. Fill it in, press Run, and it tells you whether you were right.</li>
-      <li><strong>Write</strong> the functions. Each comment in the starter code is the spec; each body says "not written yet" until you replace it.</li>
-      <li><strong>Check</strong> with the tests. A failing test tells you the exact value it expected and what it got. Pictures appear as your code starts working.</li>
-      <li><strong>Break it</strong>: each experiment has a TODO saying what to change in your code. Run it before and after the change, explain the difference, then undo it.</li>
-      <li><strong>Pass the checkpoint.</strong> When every test passes, the checkpoint unlocks: your code draws a mystery picture full of the chapter's traps, and you answer three questions. Both right means the layer is <strong>★ complete</strong>.</li>
-    </ol>
-    <p>You've finished the course when layer 10 exports your own KineticIntro as an MP4.</p>
+    <details class="fold">
+      <summary>Prefer a notebook? Colab, Jupyter or Observable</summary>
+      <ul>
+        <li><a data-link="colab" href="#" target="_blank" rel="noopener">Google Colab</a>: the whole course in one notebook. Save a copy to your Drive first, so your work is kept.</li>
+        <li><a data-link="deno" href="#" target="_blank" rel="noopener">Jupyter or VS Code</a>: install Deno, run <code>deno jupyter --install</code>, then open <code>notebooks/jupyter-deno.ipynb</code> with the Deno kernel.</li>
+        <li><a data-link="observable" href="#" target="_blank" rel="noopener">Observable</a>: read every chapter and watch the tests run online. To edit, download <code>notebooks/observable.html</code> and open it with Observable's free preview tool.</li>
+      </ul>
+    </details>
+    <p>Each layer: read, predict, write, test, break it, then pass the checkpoint. You're done when layer 10 exports your own KineticIntro as an MP4.</p>
 
     <div class="buddy">
       <h3>Stuck? Bring a study buddy</h3>
-      <p>These links open a new chat with the course's tutor rules already filled in: it asks questions and gives one hint at a time, but never writes your code. You need to be signed in.</p>
-      <span class="btn-row"><a class="btn" data-link="claude" href="#" target="_blank" rel="noopener">Open Claude</a><a class="btn ghost" data-link="chatgpt" href="#" target="_blank" rel="noopener">Open ChatGPT</a></span>
-      <details class="chrome" id="chrome">
+      <p>These open a new chat with the tutor rules filled in: questions and one hint at a time, never your code. You need to be signed in.</p>
+      <span class="btn-row"><a class="btn ghost" data-link="claude" href="#" target="_blank" rel="noopener">Ask Claude</a><a class="btn ghost" data-link="chatgpt" href="#" target="_blank" rel="noopener">Ask ChatGPT</a></span>
+      <details class="fold" id="chrome">
         <summary>Using Claude in Chrome? Set up <code>/tutor</code></summary>
-        <p>The <a href="https://support.claude.com/en/articles/12012173-get-started-with-claude-in-chrome" target="_blank" rel="noopener">Claude in Chrome</a> extension can read the guide and look at your pictures with you, so you don't have to paste anything. It needs a paid Claude plan.</p>
-        <ol>
-          <li>Copy the text below.</li>
-          <li>In Claude's side panel, save it as a shortcut named <strong>tutor</strong>. Type <code>/</code> in the chat to find shortcuts.</li>
-          <li>On the guide, type <code>/tutor</code>. Claude reads the layer's <em>What your tutor sees</em> panel: your code, your test results and the <em>Hint level</em> you've picked.</li>
-        </ol>
+        <p><a href="https://support.claude.com/en/articles/12012173-get-started-with-claude-in-chrome" target="_blank" rel="noopener">Claude in Chrome</a> (paid plans) reads the guide and looks at your pictures with you. Save the text below as a shortcut named <strong>tutor</strong> in its side panel, then type <code>/tutor</code> on the guide.</p>
         <textarea class="shortcut" readonly rows="7" data-shortcut aria-label="Tutor shortcut text"></textarea>
         <span class="btn-row"><button class="btn ghost" type="button" data-copy-shortcut>Copy shortcut text</button></span>
-        <p class="small">The rules live in your own shortcut on purpose: Claude in Chrome treats text on a web page as information, not as instructions, so a page can't tell it how to behave.</p>
       </details>
-      <p class="small">Using <strong>Claude Code</strong>? Download the code, then open the folder in the Claude desktop app's Code tab, or run <code>claude</code> inside it. It reads <code>CLAUDE.md</code> on its own and can run the tests to see where you are. Codex reads <code>AGENTS.md</code> the same way.</p>
     </div>
   </section>
 
   <section style="display:flex;flex-direction:column;gap:14px">
     <h2>The layers</h2>
-    <p>Each layer is built only from the layers below it.</p>
+    <p>Each layer is built only from the layers below it. Layers 03–10 are coming.</p>
     <ul class="map" id="map"></ul>
   </section>
 
@@ -151,16 +122,18 @@
   const render = scores => {
     map.innerHTML = MS.COURSE.layers.map(l => {
       const f = MS.COURSE.files(l), sc = scores[l.id];
-      let pill = '<span class="pill soon">coming soon</span>';
+      let pill = "";
       if (l.ready && sc) pill = sc.cp && sc.cp.complete ? `<span class="pill pass">★ complete</span>`
         : sc.p === sc.n ? `<span class="pill fail">checkpoint open</span>`
         : sc.p ? `<span class="pill fail">${sc.p}/${sc.n} tests</span>` : `<span class="pill todo">not started</span>`;
-      const links = l.ready ? `<a href="${f.doc}">read</a><a href="tests.html#layer-${l.id}">tests</a>` : "";
-      return `<li class="${l.ready ? "" : "soon"}"><span class="num">${l.id}</span><span class="t">${l.title}</span><span class="s">${pill}${links}</span><span class="b">${l.builds}</span></li>`;
+      const title = l.ready ? `<a class="t" href="guide.html#layer-${l.id}">${l.title}</a>` : `<span class="t">${l.title}</span>`;
+      const links = l.ready ? `<a href="tests.html#layer-${l.id}">tests</a>` : "";
+      return `<li class="${l.ready ? "" : "soon"}"><span class="num">${l.id}</span>${title}<span class="s">${pill}${links}</span><span class="b">${l.builds}</span></li>`;
     }).join("");
   };
   render({});
   const { ready } = await MS.loadCourse();
+  MS.useGuideWork(ready);
   const scores = {};
   for (const l of ready) { const r = MS.runTests(l.id); const cp = MS.runCheckpoint(l.id, r); scores[l.id] = { p: r.filter(x => x.status === "pass").length, n: r.length, cp }; }
   render(scores);

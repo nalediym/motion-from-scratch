@@ -1,5 +1,5 @@
-// Checkpoint 02 · Glyphs. Replace each null with your answer, then run:
-//   node tests/run.js 02
+// Checkpoint 02 · Glyphs. Replace each null with your answer.
+// Check with: node tests/run.js 02
 MS.answers("02", {
   // 1. How wide, in pixels, is "HELLO, WORLD!" at scale 2 with tracking 1?
   q1: null,

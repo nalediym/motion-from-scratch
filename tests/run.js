@@ -44,7 +44,7 @@ for (const l of layers) {
   const results = MS.runTests(l.id);
   const p = results.filter(r => r.status === "pass").length;
   console.log(`\nLayer ${l.id} · ${l.title}  (${p}/${results.length} tests)`);
-  for (const r of results) {
+  for (const r of MS.quietTodos(results)) {
     console.log(`  ${icon[r.status]} ${r.name}${r.message ? `\n      ${r.message}` : ""}`);
     if (r.status === "pass") passed++; else if (r.status === "todo") todo++; else failed++;
   }
@@ -56,6 +56,6 @@ for (const l of layers) {
 }
 console.log(`\n${passed} passed · ${failed} failing · ${todo} not written yet · ${complete}/${layers.length} layer(s) complete`);
 if (nextUp && !nextUp.tests) console.log(`Next up: layer ${nextUp.layer.id} (${nextUp.layer.title}). Read ${MS.COURSE.files(nextUp.layer).doc}`);
-else if (nextUp) console.log(`Next up: the layer ${nextUp.layer.id} checkpoint. Answer the questions in ${MS.COURSE.files(nextUp.layer).checkpoint}, then run this again.`);
+else if (nextUp) console.log(`Next up: the layer ${nextUp.layer.id} checkpoint, above.`);
 else console.log("Every layer here is complete. Open tests.html to see your pictures.");
 process.exit(failed || todo || nextUp ? 1 : 0);

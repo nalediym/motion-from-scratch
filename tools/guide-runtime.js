@@ -19,7 +19,7 @@
       "; mystery picture " + (cp.mystery.ok ? "correct" : "not quite" + (cp.mystery.hints.length ? " (the runner says: " + cp.mystery.hints.join(" ") + ")" : "")) +
       "; questions " + cp.questions.map(q => q.n + " " + word[q.status]).join(", ");
   }
-  function tutorText(id) {
+  function tutorText(id, maxCode) {
     const l = layerOf(id), s = state[id] || {}, lv = level(id);
     const out = [
       "Motion from Scratch · Layer " + id + " · " + l.title + " (" + l.builds + ")",
@@ -33,7 +33,9 @@
       if (bad.length > 8) out.push("  …and " + (bad.length - 8) + " more");
     }
     if (s.cp) out.push(cpLine(s.cp));
-    out.push("", "Learner's code (src/" + id + "-" + l.slug + ".js):", codeFor(id));
+    let code = codeFor(id);
+    if (maxCode && code.length > maxCode) code = code.slice(0, maxCode) + "\n// …cut off here; ask me for the rest";
+    out.push("", "Learner's code (src/" + id + "-" + l.slug + ".js):", code);
     return out.join("\n");
   }
   function afterRun(id) {
@@ -48,21 +50,7 @@
   }
 
   // ---------- Ask links that bring the learner's code along ----------
-  function askText(id, maxCode) {
-    const s = state[id] || {}, lv = level(id);
-    const parts = ["My hint level is " + lv + " of 5, so go no further than: " + C.hintLevels[lv - 1] + "."];
-    if (s.error) parts.push("My code doesn't load: " + s.error + ".");
-    else if (s.results) {
-      const pass = s.results.filter(r => r.status === "pass").length;
-      const fail = s.results.filter(r => r.status === "fail"), todo = s.results.filter(r => r.status === "todo").length;
-      parts.push(pass + " of " + s.results.length + " tests pass" + (todo ? ", " + todo + " not written yet" : "") + ".");
-      if (fail.length) parts.push("Failing: " + fail.slice(0, 3).map(r => r.name + (r.message ? " (" + r.message + ")" : "")).join("; ") + ".");
-    }
-    let code = codeFor(id);
-    if (code.length > maxCode) code = code.slice(0, maxCode) + "\n// …cut off here; ask me for the rest";
-    parts.push("My code so far:\n" + code);
-    return parts.join(" ");
-  }
+  const askText = (id, maxCode) => "Help me with my code for this layer. Here's what my tutor panel shows:\n" + tutorText(id, maxCode);
   // Chat apps reject very long links, so trim the code until the link fits.
   const fit = make => { for (let max = 2400; ; max -= 400) { const href = make(max); if (href.length <= 7000 || max <= 0) return href; } };
   const linkFor = (who, id, text) => (who === "claude" ? C.claudeLink : C.chatgptLink)(layerOf(id), text);

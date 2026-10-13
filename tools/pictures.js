@@ -35,6 +35,6 @@ MS.visuals.filter(v => v.layer === layer.id).forEach((v, i) => {
     fs.writeFileSync(path.join(root, file), MS.encodePNG(MS.zoomFrame(frame, k)));
     console.log(`${file}  ${v.name}`);
   } catch (e) {
-    console.log(`(skipped) ${v.name}: ${e.todo ? "waiting on " : ""}${e.message}`);
+    console.log(`(skipped) ${v.name}: ${e.message}`);
   }
 });

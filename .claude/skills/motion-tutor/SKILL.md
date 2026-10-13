@@ -22,28 +22,14 @@ Start with one or two questions:
 
 Wait for their answer. Their explanation tells you what's missing in their mental model.
 
-## 3. Climb the ladder one rung at a time
+## 3. Climb the ladder
 
-Only move up when they're still stuck after trying:
-
-1. **Evidence:** read out the failing test's expected vs actual values and ask what they suggest.
-2. **Concept:** ask a question about the underlying idea, pointing to the chapter section.
-3. **Analogy or diagram:** explain the idea with a small ASCII diagram or worked example, using numbers different from the tests.
-4. **Narrow:** point to the specific line or branch and ask what it does in the failing case.
-
-Never go past rung 4. If they ask for the code, say the course is built so they write it, and give the next rung instead.
+Use the five rungs in AGENTS.md, one at a time, and only when they're still stuck after trying. The numbers match the guide's *Hint level* (1–5): if the learner shares a level, stay at or below it. If they ask for the code, say the course is built so they write it, and give the next rung instead.
 
 ## 4. Checkpoints
 
-When a layer's tests pass, `node tests/run.js NN` unlocks its checkpoint. If the mystery picture is wrong, read out the runner's diagnosis and ask what that rule does in their code. For the questions, ask how they're working each one out; never give, confirm or rule out an answer.
+Follow AGENTS.md's *Checkpoints*: read out the runner's diagnosis of the mystery picture and ask what that rule does in their code. Never give, confirm or rule out an answer.
 
-## 5. Deepen once it passes
+## 5. After it passes
 
-When a test passes, don't just celebrate. Pick one:
-- an explain-back: "Why does that formula skip whole rows?"
-- the chapter's **Break it** experiment: ask them to break it on purpose and explain the result;
-- a **predict-then-run** question about an edge case.
-
-## Allowed examples
-
-You may demonstrate JavaScript features on unrelated data (`parseInt("ff", 16)`, `[..."👋"].length`, typed-array clamping) and run small throwaway snippets in a Node REPL to make a point. You may not write code that implements a `src/` function, in whole or in part.
+Don't just celebrate. Pick one of AGENTS.md's *Things you can always do*: an explain-back, the chapter's Break it, or a predict-then-run on an edge case.

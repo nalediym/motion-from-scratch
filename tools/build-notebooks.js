@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// tools/build-notebooks.js — generates the three notebooks from docs/, src/
-// stubs and tests/, so they never drift from the repo. For maintainers:
-//   node tools/build-notebooks.js
+// tools/build-notebooks.js — builds the three notebooks from docs/, src/ stubs
+// and tests/. Run by tools/build.js.
 //
 //   notebooks/colab.ipynb          Google Colab (Python kernel; runs Node for tests)
 //   notebooks/jupyter-deno.ipynb   Jupyter / VS Code with the Deno kernel
@@ -9,6 +8,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const chapterText = require("./chapter-text");
 
 const root = path.join(__dirname, "..");
 const read = rel => fs.readFileSync(path.join(root, rel), "utf8");
@@ -18,15 +18,15 @@ const C = ctx.MS.COURSE;
 const ready = C.layers.filter(l => l.ready);
 fs.mkdirSync(path.join(root, "notebooks"), { recursive: true });
 
-// chapter text, adjusted for notebooks: headings shift down one level, and
-// links to repo files point at GitHub.
+// Chapter text for notebooks: terminal-only lines dropped, headings shifted
+// down one level, links to repo files pointed at GitHub.
 function chapter(l) {
-  let md = read(C.files(l).doc);
+  let md = chapterText(read(C.files(l).doc));
   md = md.replace(/^(#{1,3}) /gm, (_, h) => "#" + h + " ");
   md = md.replace(/\]\((?!https?:)([^)]+)\)/g, (_, u) => `](${C.repo}/blob/main/docs/${u})`);
   return md;
 }
-const buddyLinks = l => `**Stuck?** Ask a study buddy that gives hints, not answers: [open Claude](${C.claudeLink(l)}) · [open ChatGPT](${C.chatgptLink(l)})`;
+const buddyLinks = l => `**Stuck?** Ask a study buddy that gives hints, not answers: [Ask Claude](${C.claudeLink(l)}) · [Ask ChatGPT](${C.chatgptLink(l)})`;
 // Split a chapter into Markdown pieces and runnable blocks (```js predict / ```js experiment).
 function segments(l) {
   const md = chapter(l);
@@ -61,13 +61,22 @@ function withCodeCells(l, pushMd, pushBlock, pushCode) {
   }
   if (!inserted) pushCode();
 }
-const cpAsk = C.checkpointAsk;
-const blockIntro = (l, s) => s.kind === "checkpoint"
-  ? `**Checkpoint ${l.id}** · unlocks when every test passes. Replace each \`null\` with your answer, run the cell, then run the one below it. Stuck? [Ask Claude](${C.claudeLink(l, cpAsk)}) · [Ask ChatGPT](${C.chatgptLink(l, cpAsk)})`
-  :  `**${s.kind === "predict" ? `Predict ${s.n}` : `Break it ${s.n}`}** · ${s.kind === "predict" ? "replace `null` with your guess, then run the cell." : "run it, make the TODO change in your code, then run it again."} Stuck? [Ask Claude](${C.claudeLink(l, C.blockAsk(s.kind, s.title))}) · [Ask ChatGPT](${C.chatgptLink(l, C.blockAsk(s.kind, s.title))})`;
+// One line above each runnable block: its name and study-buddy links. The
+// chapter and the block's own comments already say what to do.
+const blockLinks = (l, s) => {
+  const ask = s.kind === "checkpoint" ? C.checkpointAsk : C.blockAsk(s.kind, s.title);
+  const label = s.kind === "checkpoint" ? `Checkpoint ${l.id}` : s.kind === "predict" ? `Predict ${s.n}` : `Break it ${s.n}`;
+  return `**${label}** · Stuck? [Ask Claude](${C.claudeLink(l, ask)}) · [Ask ChatGPT](${C.chatgptLink(l, ask)})`;
+};
 const lines = s => s.split("\n").map((x, i, a) => (i < a.length - 1 ? x + "\n" : x)).filter((x, i, a) => !(i === a.length - 1 && x === ""));
 const md = text => ({ cell_type: "markdown", metadata: {}, source: lines(text) });
 const code = (text, extra = {}) => ({ cell_type: "code", metadata: extra, execution_count: null, outputs: [], source: lines(text) });
+// Add a line to the Markdown cell just above, or start a new one.
+const note = (cells, text) => {
+  const last = cells[cells.length - 1];
+  if (last && last.cell_type === "markdown") last.source = lines(last.source.join("").replace(/\s+$/, "") + "\n\n" + text);
+  else cells.push(md(text));
+};
 const writeNb = (file, cells, metadata) => {
   cells = cells.map((c, i) => ({ id: `mfs-${String(i).padStart(3, "0")}`, ...c }));
   fs.writeFileSync(path.join(root, file), JSON.stringify({ cells, metadata, nbformat: 4, nbformat_minor: 5 }, null, 1) + "\n");
@@ -77,7 +86,7 @@ const writeNb = (file, cells, metadata) => {
 // ---------------------------------------------------------------- Colab
 {
   const cells = [
-    md(`# ${C.title}\n\n_${C.subtitle}._ Build a video engine from a single pixel up to a rebuilt motion-graphics intro, one layer at a time.\n\n## How to use this notebook\n\n1. **Save your own copy first:** File → Save a copy in Drive. Your code lives in this notebook, so the copy is how you keep your progress.\n2. **Run the setup cell** below once per session. It downloads the course and checks that Node is available (Colab includes it).\n3. **For each layer:** read the chapter, write your code in the cell that starts with \`%%writefile\`, run it, then run the test cell and the pictures cell.\n4. **New session?** Run setup again, then re-run your \`%%writefile\` cells (Runtime → Run before) so your earlier layers are back on disk.\n\nThe course map, interactive guide and repo: [${C.site}](${C.site}) · [${C.repo}](${C.repo})\n\n${buddyLinks(null)}`),
+    md(`# ${C.title}\n\n_${C.subtitle}._ Build a video engine from a single pixel up to a rebuilt motion-graphics intro, one layer at a time.\n\n## How to use this notebook\n\n1. **Save your own copy first:** File → Save a copy in Drive. Your code lives in this notebook, so the copy is how you keep your progress.\n2. **Run the setup cell** below once per session. It downloads the course and checks that Node is available (Colab includes it).\n3. **For each layer:** read the chapter, write your code in the cell that starts with \`%%writefile\`, run it, then run the test cell and the pictures cell.\n4. **New session?** Run setup again, then re-run your \`%%writefile\` cells (Runtime → Run before) so your earlier layers are back on disk.\n\n[Course home](${C.site}) · [GitHub](${C.repo})`),
     code(`#@title Setup: run once per session\nimport os, subprocess, glob\nif not os.path.exists("motion-from-scratch") and not os.getcwd().endswith("motion-from-scratch"):\n    subprocess.run(["git", "clone", "-q", "${C.repo}"], check=True)\nif not os.getcwd().endswith("motion-from-scratch"):\n    os.chdir("motion-from-scratch")\nnode = subprocess.run(["node", "--version"], capture_output=True, text=True)\nif node.returncode != 0:\n    print("Installing Node...")\n    subprocess.run("apt-get -qq update && apt-get -qq install -y nodejs > /dev/null", shell=True)\n    node = subprocess.run(["node", "--version"], capture_output=True, text=True)\nprint("Course ready. Node", node.stdout.strip())\n\nfrom IPython.display import Image, display\ndef run_js(code):
     """Run a Predict / Break it block against your code in src/."""
     open("scratch.js", "w").write(code)
@@ -91,7 +100,7 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
     withCodeCells(l,
       text => cells.push(md(text)),
       s => {
-        cells.push(md(blockIntro(l, s)));
+        note(cells, blockLinks(l, s));
         if (s.kind === "checkpoint") {
           cells.push(code(`%%writefile ${f.checkpoint}\n${s.code}\n`));
           cells.push(code(`# Tests + checkpoint for layer ${l.id}\n!node tests/run.js ${l.id}`));
@@ -104,7 +113,6 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
         cells.push(code(`# Pictures drawn by your code\npictures("${l.id}")`));
       });
   }
-  cells.push(md(`## What's next\n\nLayers 03–10 are on the way: time, interpolation, easing, springs, the hand-off to canvas, scenes, the KineticIntro rebuild, and MP4 export. Watch [the repo](${C.repo}) for updates.`));
   writeNb("notebooks/colab.ipynb", cells, {
     colab: { provenance: [], toc_visible: true },
     kernelspec: { name: "python3", display_name: "Python 3" },
@@ -115,14 +123,14 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
 // ---------------------------------------------------------------- Jupyter + Deno
 {
   const cells = [
-    md(`# ${C.title}\n\n_${C.subtitle}._ This notebook runs JavaScript directly, with the **Deno** kernel.\n\n## Set up once\n\n1. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/), then register its Jupyter kernel: \`deno jupyter --install\`\n2. Get the course: \`git clone ${C.repo}\`\n3. Open \`notebooks/jupyter-deno.ipynb\` in VS Code (with the Jupyter extension) or JupyterLab, and pick the **Deno** kernel.\n\n## How to use it\n\nRun the setup cell. Then for each layer: read the chapter, write your code in the code cell, run it, and run the check cell under it. Your code lives in this notebook; save it as you go.\n\n${buddyLinks(null)}`),
+    md(`# ${C.title}\n\n_${C.subtitle}._ This notebook runs JavaScript directly, with the **Deno** kernel.\n\n## Set up once\n\n1. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/), then register its Jupyter kernel: \`deno jupyter --install\`\n2. Get the course: \`git clone ${C.repo}\`\n3. Open \`notebooks/jupyter-deno.ipynb\` in VS Code (with the Jupyter extension) or JupyterLab, and pick the **Deno** kernel.\n\n## How to use it\n\nRun the setup cell. Then for each layer: read the chapter, write your code in the code cell, run it, and run the check cell under it. Your code lives in this notebook; save it as you go.`),
     code(`// Setup: loads the course helpers. Run once per session.\nconst base = Deno.cwd().endsWith("notebooks") ? ".." : ".";\nfor (const f of ["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/png.js", "lib/notebook.js", "lib/experiment.js", "lib/checkpoint.js", "lib/checkpoint-data.js"]) {\n  (0, eval)(await Deno.readTextFile(\`\${base}/\${f}\`));\n}\nasync function check(layerId) {\n  const layer = MS.COURSE.layers.find(l => l.id === layerId);\n  MS.loadTests(layerId, await Deno.readTextFile(\`\${base}/\${MS.COURSE.files(layer).test}\`));\n  const r = MS.runLayerReport(layerId);\n  return Deno.jupyter.display({ "text/html": r.html, "text/plain": \`\${r.passed} / \${r.total} passing\` }, { raw: true });\n}\nasync function checkpoint(layerId) {\n  const layer = MS.COURSE.layers.find(l => l.id === layerId);\n  MS.loadTests(layerId, await Deno.readTextFile(\`\${base}/\${MS.COURSE.files(layer).test}\`));\n  const cp = MS.runCheckpoint(layerId, MS.runTests(layerId));\n  return Deno.jupyter.display({ "text/html": MS.checkpointHTML(cp), "text/plain": MS.checkpointText(cp) }, { raw: true });\n}\n"Course helpers loaded"`),
   ];
   for (const l of ready) {
     withCodeCells(l,
       text => cells.push(md(text)),
       s => {
-        cells.push(md(blockIntro(l, s)));
+        note(cells, blockLinks(l, s));
         if (s.kind === "checkpoint") { cells.push(code(s.code)); cells.push(code(`await checkpoint("${l.id}")`)); }
         else cells.push(code(`{ // the braces let you re-run this cell\n${s.code}\n}`));
       },
@@ -141,10 +149,11 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
 // ---------------------------------------------------------------- Observable Notebook Kit
 {
   const indent = s => s.replace(/<\/script/gi, "<\\/script").split("\n").map(x => (x ? "    " + x : x)).join("\n");
-  const cell = (type, body, attrs = "") => `  <script type="${type}"${attrs}>\n${indent(body)}\n  </script>`;
+  const cell = (type, body, attrs = "") => ({ type, body, attrs });
+  const render = c => `  <script type="${c.type}"${c.attrs}>\n${indent(c.body)}\n  </script>`;
   const libs = ["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/png.js", "lib/notebook.js", "lib/experiment.js", "lib/checkpoint.js", "lib/checkpoint-data.js"].map(read).join("\n");
   const parts = [
-    cell("text/markdown", `# ${C.title}\n\n_${C.subtitle}._ Build a video engine from a single pixel up, one layer at a time.\n\n**On the web this notebook is read-and-run:** you can read every chapter and see the tests run on the starter code. To write your own code, use one of these:\n\n- **Edit locally with live reload:** download [observable.html](${C.repo}/blob/main/notebooks/observable.html), then run \`npx -p @observablehq/notebook-kit notebooks preview --root .\` in its folder and edit the file in any text editor.\n- **Observable Desktop** (macOS): open the same file and edit cells directly.\n- **No install at all:** use [the interactive guide](${C.site}guide.html) or [the Colab notebook](${C.colab}).\n\n${buddyLinks(null)}`),
+    cell("text/markdown", `# ${C.title}\n\n_${C.subtitle}._ Build a video engine from a single pixel up, one layer at a time.\n\n**On the web this notebook is read-and-run:** you can read every chapter and see the tests run on the starter code. To write your own code, use one of these:\n\n- **Edit locally with live reload:** download [observable.html](${C.repo}/blob/main/notebooks/observable.html), then run \`npx -p @observablehq/notebook-kit notebooks preview --root .\` in its folder and edit the file in any text editor.\n- **Observable Desktop** (macOS): open the same file and edit cells directly.\n- **No install at all:** use [the interactive guide](${C.site}guide.html) or [the Colab notebook](${C.colab}).`),
     cell("module", `${libs}\nconst base = globalThis.MS;\nconst MS = globalThis.MS;`, " hidden"),
   ];
   let prev = "base";
@@ -154,7 +163,9 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
     withCodeCells(l,
       text => parts.push(cell("text/markdown", text)),
       s => {
-        parts.push(cell("text/markdown", blockIntro(l, s)));
+        const last = parts[parts.length - 1];
+        if (last.type === "text/markdown") last.body = last.body.replace(/\s+$/, "") + "\n\n" + blockLinks(l, s);
+        else parts.push(cell("text/markdown", blockLinks(l, s)));
         if (s.kind === "checkpoint") {
           parts.push(cell("module", `${name}; // after your code\n${s.code}\nconst answers${l.id} = true;`, " pinned"));
           parts.push(cell("module", `answers${l.id}; report${l.id}; // after your answers and this layer's tests\n{\n  const cp = MS.runCheckpoint("${l.id}", MS.runTests("${l.id}"));\n  const el = document.createElement("div");\n  el.innerHTML = MS.checkpointHTML(cp);\n  display(el);\n}`));
@@ -170,7 +181,7 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
       });
     prev = name;
   }
-  const html = `<!doctype html>\n<notebook theme="light-dark(cotton, slate)">\n  <title>${C.title}</title>\n${parts.join("\n")}\n</notebook>\n`;
+  const html = `<!doctype html>\n<notebook theme="light-dark(cotton, slate)">\n  <title>${C.title}</title>\n${parts.map(render).join("\n")}\n</notebook>\n`;
   fs.writeFileSync(path.join(root, "notebooks/observable.html"), html);
   console.log(`notebooks/observable.html: ${parts.length} cells`);
 }

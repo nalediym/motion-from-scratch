@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 // tools/build-guide.js — builds guide.html from docs/, src/ stubs and tests/.
-// For course maintainers. Run from the repo root:  node tools/build-guide.js
-//
-// Keeps one source of truth: chapters live in docs/*.md, and the guide is
-// generated from them, so the repo and the interactive page never drift.
+// Run by tools/build.js. The page's own script is in tools/guide-runtime.js.
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const chapterText = require("./chapter-text");
 
 const root = path.join(__dirname, "..");
 const read = rel => fs.readFileSync(path.join(root, rel), "utf8");
@@ -26,7 +24,7 @@ function inline(s) {
   s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, t, u) => {
     const ext = /^https?:/.test(u);
     if (!ext && /\.md$/.test(u)) u = "#layer-" + u.slice(0, 2);         // chapter links jump within the guide
-    else if (!ext) u = "https://github.com/nalediym/motion-from-scratch/blob/main/docs/" + u;
+    else if (!ext) u = C.repo + "/blob/main/docs/" + u;
     return `<a href="${u}"${ext ? ' target="_blank" rel="noopener"' : ""}>${t}</a>`;
   });
   s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
@@ -37,11 +35,10 @@ function inline(s) {
 function tryCell(l, kind, n, codeText) {
   const title = ((codeText.split("\n").find(x => x.startsWith("// ")) || "").replace(/^\/\/\s*/, ""));
   const label = kind === "predict" ? `Predict ${n}` : `Break it ${n}`;
-  const hint = kind === "predict" ? "Replace <code>null</code> with your guess, then run." : "Run it, make the TODO change in your code, then run it again.";
   const ask = C.blockAsk(kind, title);
   const rows = Math.min(18, codeText.split("\n").length + 1);
   return `<div class="tryit" data-kind="${kind}" data-layer="${l.id}" data-key="${l.id}-${kind[0]}${n}">
-<div class="tryit-head"><span class="tryit-tag">${label}</span><span>${hint}</span></div>
+<div class="tryit-head"><span class="tryit-tag">${label}</span></div>
 <textarea class="tryit-code" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="${label} code">${esc(codeText)}</textarea>
 <div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button><span class="tryit-ask">Stuck? <a href="${C.claudeLink(l, ask)}" target="_blank" rel="noopener">Ask Claude</a> · <a href="${C.chatgptLink(l, ask)}" target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
 <pre class="tryit-out" hidden></pre>
@@ -51,7 +48,7 @@ function checkpointCell(l, codeText) {
   const ask = C.checkpointAsk;
   const rows = Math.min(20, codeText.split("\n").length + 1);
   return `<div class="cpcell" data-layer="${l.id}">
-<div class="tryit-head"><span class="tryit-tag">Checkpoint ${l.id}</span><span>Unlocks when every test passes. Fill in your answers, then run.</span></div>
+<div class="tryit-head"><span class="tryit-tag">Checkpoint ${l.id}</span></div>
 <textarea class="tryit-code" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint ${l.id} answers">${esc(codeText)}</textarea>
 <div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a data-ask-cp="claude" href="${C.claudeLink(l, ask)}" target="_blank" rel="noopener">Ask Claude</a> · <a data-ask-cp="chatgpt" href="${C.chatgptLink(l, ask)}" target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
 <div class="cp-result" data-cp-out hidden></div>
@@ -123,7 +120,7 @@ function markdown(md, l) {
 // ---------- assemble ----------
 const chapters = ready.map(l => {
   const f = COURSE.files(l);
-  const md = read(f.doc);
+  const md = chapterText(read(f.doc));
   const lede = (md.match(/^_(.+)_\s*$/m) || [, ""])[1];
   const body = md.replace(/^_(.+)_\s*$/m, "");             // lede rendered in the header
   return { l, lede, html: markdown(body, l) };
@@ -144,9 +141,10 @@ const sources = [
 ].join("\n");
 
 const style = read("lib/style.css");
-const tabs = COURSE.layers.map(l => l.ready
-  ? `<a class="tab" href="#layer-${l.id}" data-layer="${l.id}"><span class="num">${l.id}</span>${l.title}</a>`
-  : `<span class="tab soon" title="Coming soon"><span class="num">${l.id}</span>${l.title}</span>`).join("");
+const soon = COURSE.layers.filter(l => !l.ready);
+const tabs = ready.map(l => `<a class="tab" href="#layer-${l.id}" data-layer="${l.id}"><span class="num">${l.id}</span>${l.title}</a>`).join("") +
+  (soon.length ? `<span class="tab soon">${soon[0].id}–${soon[soon.length - 1].id} coming soon</span>` : "");
+const askTip = "Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers.";
 
 const sections = chapters.map(({ l, lede, html }) => `
 <section class="chapter" id="layer-${l.id}" data-layer="${l.id}">
@@ -171,14 +169,12 @@ const sections = chapters.map(({ l, lede, html }) => `
       <button class="btn ghost" type="button" data-reset>Reset to stub</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
-    <div class="help">
-      <p>Stuck? <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="claude" href="${C.claudeLink(l)}" target="_blank" rel="noopener">Ask Claude</a> · <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="chatgpt" href="${C.chatgptLink(l)}" target="_blank" rel="noopener">Ask ChatGPT</a></p>
-      <div class="level"><span class="tip" tabindex="0" data-tip="How much help a tutor may give you. 1 is questions only; 5 points at the line to look at. The Ask links and Claude in Chrome both follow it.">Hint level</span><span class="dots" role="radiogroup" aria-label="Hint level">${C.hintLevels.map((h, i) => `<button type="button" role="radio" aria-checked="false" data-level="${i + 1}" title="${i + 1}: ${h}" aria-label="Level ${i + 1}: ${h}"></button>`).join("")}</span><span class="level-now" data-hint-level></span></div>
-      <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send the same.</p><pre data-tutor-text></pre></details>
-    </div>
+    <p class="help">Stuck? <a class="tip" data-tip="${askTip}" data-ask="claude" href="${C.claudeLink(l)}" target="_blank" rel="noopener">Ask Claude</a> · <a class="tip" data-tip="${askTip}" data-ask="chatgpt" href="${C.chatgptLink(l)}" target="_blank" rel="noopener">Ask ChatGPT</a>
+      <span class="level"><span class="tip" tabindex="0" data-tip="How much help a tutor may give you. 1 is questions only; 5 points at the line to look at. The Ask links and Claude in Chrome both follow it.">Hint level</span><span class="dots" role="radiogroup" aria-label="Hint level">${C.hintLevels.map((h, i) => `<button type="button" role="radio" aria-checked="false" data-level="${i + 1}" title="${i + 1}: ${h}" aria-label="Level ${i + 1}: ${h}"></button>`).join("")}</span><span class="level-now" data-hint-level></span></span></p>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
     <div class="visuals" data-visuals></div>
+    <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send it too.</p><pre data-tutor-text></pre></details>
   </aside>
 </section>`).join("\n");
 
@@ -241,8 +237,6 @@ body { padding-block: 24px 80px; }
 .howto summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .howto ol { margin: 10px 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
 .howto p { font-size: 0.92rem; }
-.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.btn-row .btn { text-decoration: none; }
 .tabbar { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .tabbar .tabs { flex: 1 1 320px; min-width: 0; }
 .tools { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -251,18 +245,18 @@ body { padding-block: 24px 80px; }
 .tip::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: max-content; max-width: 260px; white-space: normal; text-align: left; font: 400 0.8rem/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--bg); background: var(--ink); padding: 8px 10px; border-radius: 6px; opacity: 0; pointer-events: none; transform: translateY(-3px); transition: opacity .12s, transform .12s; }
 .tools .tip::after { left: auto; right: 0; }
 .tip:hover::after, .tip:focus-visible::after { opacity: 1; transform: none; transition-delay: .25s; }
-@media (hover: none) { .tip::after { display: none; } }
+@media (hover: none) { .tip::after, .bench-actions kbd { display: none; } }
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 40; width: min(440px, calc(100vw - 32px)); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 0.9rem; }
 .toast input { font: inherit; font-size: 0.85rem; width: 100%; border: 0; border-radius: 4px; padding: 6px 8px; }
 .banner { max-width: 760px; border: 2px solid var(--key); background: var(--paper); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-.help { display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
-.level { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.help { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; font-size: 0.85rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+.level { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .dots { display: inline-flex; gap: 6px; }
 .dots button { width: 16px; height: 16px; padding: 0; border-radius: 50%; border: 2px solid var(--pencil); background: transparent; cursor: pointer; }
 .dots button.on { background: var(--pencil); }
 .dots button:focus-visible { outline: 2px solid var(--key); outline-offset: 2px; }
 .level-now { font-size: 0.8rem; }
-.tutor-sees { font-size: 0.85rem; }
+.tutor-sees { font-size: 0.85rem; border-top: 1px dashed var(--line); padding-top: 8px; }
 .tutor-sees summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .tutor-sees pre { margin: 8px 0 0; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11.5px; }
 @media (max-width: 960px) {
@@ -276,18 +270,18 @@ body { padding-block: 24px 80px; }
   <div class="pegbar" aria-hidden="true"><i></i><i></i><i></i></div>
   <span class="eyebrow">The interactive guide</span>
   <h1>${COURSE.title}</h1>
-  <p class="lede">${COURSE.subtitle}. Read a layer on the left and write its code on the right. Tests and pictures run in your browser.</p>
+  <p class="lede">${COURSE.subtitle}. Read a layer, then write its code in the workbench beside it. Tests and pictures run in your browser.</p>
   <details class="howto">
     <summary>How to use this guide</summary>
     <ol>
-      <li><strong>Read</strong> a layer on the left. Answer the <em>Predict, then run</em> questions before peeking.</li>
-      <li><strong>Write</strong> its functions in the workbench on the right. Your code saves in this browser as you type.</li>
+      <li><strong>Read</strong> a layer. Make each <em>Predict</em> guess before you peek.</li>
+      <li><strong>Write</strong> its functions in the workbench.</li>
       <li><strong>Run tests</strong> (or press ⌘/Ctrl + Enter). Failing tests show the value they expected and what they got; pictures appear as your code works.</li>
       <li><strong>Break it</strong> with the chapter's experiments.</li>
       <li><strong>Pass the checkpoint</strong> at the end of the chapter. When its tab shows ★, move to the next layer.</li>
-      <li><strong>Stuck?</strong> Every cell and study-buddy callout has links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers. The <em>Hint level</em> dots in the workbench set how much help a tutor may give.</li>
+      <li><strong>Stuck?</strong> The Ask Claude and Ask ChatGPT links open a chat with tutor rules filled in: hints and questions, never answers. The <em>Hint level</em> dots set how much help.</li>
     </ol>
-    <p>Your work saves in this browser. <strong>Save progress</strong> gives you a link to carry it to another device, and <strong>Share my engine</strong> makes a page to show it off. All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
+    <p>All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
   </details>
   <div class="banner" data-progress-banner hidden></div>
   <div class="tabbar">
@@ -345,7 +339,7 @@ ${read("tools/guide-runtime.js")}
     const passed = results.filter(r => r.status === "pass").length;
     section.querySelector("[data-score]").textContent = passed + " / " + results.length;
     renderCheckpoint(id, results);
-    list.innerHTML = results.map(r => '<li class="' + r.status + '"><span class="mark">' + mark[r.status] + "</span><span>" + escH(r.name) + (r.message ? '<span class="msg">' + escH(r.message) + "</span>" : "") + "</span></li>").join("");
+    list.innerHTML = MS.quietTodos(results).map(r => '<li class="' + r.status + '"><span class="mark">' + mark[r.status] + "</span><span>" + escH(r.name) + (r.message ? '<span class="msg">' + escH(r.message) + "</span>" : "") + "</span></li>").join("");
     for (const v of MS.visuals.filter(v => v.layer === id)) {
       const fig = document.createElement("figure"), cap = document.createElement("figcaption");
       try {
@@ -356,6 +350,7 @@ ${read("tools/guide-runtime.js")}
       } catch (e) { cap.innerHTML = "<strong>" + escH(v.name) + "</strong><br>" + (e.todo ? "Waiting on: " : "Error: ") + escH(e.message); }
       fig.appendChild(cap); vis.appendChild(fig);
     }
+    if (passed === results.length) list.before(vis); else vis.before(list);   // the pictures are the reward
   }
 
   document.querySelectorAll(".chapter").forEach(section => {
@@ -391,16 +386,8 @@ ${read("tools/guide-runtime.js")}
     catch (e) { out.hidden = false; out.innerHTML = '<p class="cp-hint">Your answers did not load: ' + escH(e.message) + "</p>"; return; }
     const cp = MS.runCheckpoint(id, results);
     (state[id] = state[id] || {}).cp = cp; afterRun(id);
-    const mark = { right: "✓", wrong: "✗ not yet", blank: "✏️ blank" };
     out.hidden = false;
-    if (cp.locked) { out.innerHTML = '<p class="cp-head">🔒 Locked: ' + cp.testsLeft + " test(s) still to pass. Use the workbench, then run this again.</p>"; }
-    else {
-      out.innerHTML = '<p class="cp-head">' + (cp.complete ? "★ Checkpoint passed: layer complete!" : "◇ Unlocked") + "</p>" +
-        '<div class="cp-body"><figure class="cp-pic"></figure><div><p>Mystery picture, drawn by your code: <strong>' + (cp.mystery.ok ? "✓ correct" : "✗ not quite") + "</strong></p>" +
-        cp.mystery.hints.map(x => '<p class="cp-hint">→ ' + escH(x) + "</p>").join("") +
-        "<p>Questions: " + cp.questions.map(q => '<span class="cp-q ' + q.status + '">' + q.n + " " + mark[q.status] + "</span>").join(" ") + "</p></div></div>";
-      if (cp.mystery.frame) out.querySelector(".cp-pic").appendChild(MS.present(cp.mystery.frame, document.createElement("canvas"), 3));
-    }
+    MS.showCheckpoint(out, cp);
     cell.classList.toggle("complete", !!cp.complete);
     const tab = document.querySelector('.tab[data-layer="' + id + '"]');
     if (tab) tab.classList.toggle("complete", !!cp.complete);

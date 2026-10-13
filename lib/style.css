@@ -74,10 +74,12 @@ pre code { background: transparent; color: inherit; padding: 0; font-size: inher
 .visuals canvas { image-rendering: pixelated; border: 1px solid var(--line); background: repeating-conic-gradient(var(--line) 0 25%, transparent 0 50%) 0 0 / 12px 12px; max-width: 100%; height: auto; }
 .visuals figcaption { font-size: 0.8rem; color: var(--muted); max-width: 32ch; }
 .pill { font-family: var(--mono); font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
-.pill.pass { color: var(--pass); } .pill.fail { color: var(--fail); } .pill.todo { color: var(--todo); } .pill.soon { color: var(--muted); }
+.pill.pass { color: var(--pass); } .pill.fail { color: var(--fail); } .pill.todo { color: var(--todo); }
 .btn { font: inherit; font-weight: 700; font-size: 0.9rem; background: var(--ink); color: var(--paper); border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; }
 .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
-.banner { border-left: 0; border: 1px dashed var(--key); color: var(--ink); padding: 12px 14px; border-radius: 6px; font-size: 0.95rem; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-row .btn { text-decoration: none; }
+.banner { border: 1px dashed var(--key); color: var(--ink); padding: 12px 14px; border-radius: 6px; font-size: 0.95rem; }
 .checkpoint { border-top: 1px dashed var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .checkpoint:empty { display: none; }
 .cp-head { font-weight: 700; }

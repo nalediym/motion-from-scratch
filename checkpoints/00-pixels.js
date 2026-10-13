@@ -1,5 +1,5 @@
-// Checkpoint 00 · Pixels. Replace each null with your answer, then run:
-//   node tests/run.js 00
+// Checkpoint 00 · Pixels. Replace each null with your answer.
+// Check with: node tests/run.js 00
 MS.answers("00", {
   // 1. In a frame 12 pixels wide, at which index of data does pixel (7, 3) start?
   q1: null,

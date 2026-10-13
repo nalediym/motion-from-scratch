@@ -1,9 +1,9 @@
 // Layer 02 · Glyphs — text from a hand-made bitmap font.
-// Read docs/02-glyphs.md first. Run `node tests/run.js 02` to check your work.
+// Read the chapter first (docs/02-glyphs.md). Each comment below is a spec; the tests check it.
 //
 // The font lives in lib/font5x7.js as MS.FONT_5x7: an object mapping a
 // character to 7 strings of 5 characters, "#" for ink and "." for empty.
-// Use fillRect from layer 01 to draw each "#" as a scale × scale block.
+// Draw with fillRect from layer 01.
 (function (MS) {
   const GLYPH_W = 5;
   const GLYPH_H = 7;

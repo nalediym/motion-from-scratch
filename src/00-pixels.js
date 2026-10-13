@@ -1,5 +1,5 @@
 // Layer 00 · Pixels — a framebuffer: memory you can see.
-// Read docs/00-pixels.md first. Run `node tests/run.js 00` to check your work.
+// Read the chapter first (docs/00-pixels.md). Each comment below is a spec; the tests check it.
 //
 // A frame is a plain object:
 //   { width, height, data }
