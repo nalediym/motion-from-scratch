@@ -42,12 +42,11 @@ Pick one way to work. Every option has the same chapters, starter code and tests
 
 You don't need Node to take the course; the browser runs everything. Node lets you (and an AI study buddy) run the same tests from a terminal. Run `node tools/pictures.js 01` to save a layer's pictures as PNG files, or `node tools/serve.js` to open the pages at `http://localhost:8000`.
 
-**Predict, then run and Break it, in a terminal:** `node tools/try.js 00` lists a layer's blocks, and `node tools/try.js 00 p1` or `node tools/try.js 00 b2` runs one against your code. To fill in a guess, copy the block into `scratch.js`, replace `null`, and run `node tools/try.js --file scratch.js`. In the guide and the notebooks every block is already an editable cell with a Run button.
-
-
 ## How each layer works
 
 Each chapter explains what's happening underneath, with diagrams. Along the way, **Predict, then run** blocks ask you to type a guess and tell you if you were right, and **Break it** experiments have you change your code on purpose and explain what happens. Tests print expected vs actual values, and pictures appear as your code works. There are no solutions in this repo. The tests are the judge, like Nand2Tetris.
+
+In a terminal, `node tools/try.js 00` lists a layer's Predict and Break it blocks and `node tools/try.js 00 p1` runs one; to type a guess, paste the block into `scratch.js` and run `node tools/try.js --file scratch.js`.
 
 **Every layer ends with a checkpoint.** When all of a layer's tests pass, its checkpoint unlocks: your own code draws a *mystery picture* through deliberate traps (get every rule right and a hidden word appears; get one wrong and it tells you which rule to look at), and you answer three questions in `checkpoints/NN-*.js`. The answers are stored only as fingerprints, so the repo can't spoil them. A layer is **★ complete** when the picture and all three answers are right.
 

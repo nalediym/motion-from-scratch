@@ -3,6 +3,7 @@
   // codeFor, escH) and is placed before the chapters start running.
 
   run($("lib-course")); run($("lib-share"));
+  if (!/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) document.querySelectorAll("[data-kbd]").forEach(k => { k.textContent = "Ctrl↵"; });
   const C = MS.COURSE, share = MS.share;
   const state = {};                                   // per layer: { results, cp, error }
   const layerOf = id => C.layers.find(l => l.id === id);
@@ -50,7 +51,7 @@
   }
 
   // ---------- Ask links that bring the learner's code along ----------
-  const askText = (id, maxCode) => "Help me with my code for this layer. Here's what my tutor panel shows:\n" + tutorText(id, maxCode);
+  const askText = (id, maxCode) => "my code for this layer. My tutor panel shows:\n" + tutorText(id, maxCode);
   // Chat apps reject very long links, so trim the code until the link fits.
   const fit = make => { for (let max = 2400; ; max -= 400) { const href = make(max); if (href.length <= 7000 || max <= 0) return href; } };
   const linkFor = (who, id, text) => (who === "claude" ? C.claudeLink : C.chatgptLink)(layerOf(id), text);

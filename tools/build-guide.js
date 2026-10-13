@@ -152,10 +152,11 @@ const sections = chapters.map(({ l, lede, html }) => `
       <span class="eyebrow">Layer ${l.id}</span>
       <h2>${l.title}</h2>
       <p class="lede">${inline(lede)}</p>
+      <a class="to-bench" href="#bench-${l.id}">Open the workbench ↓</a>
     </header>
     ${html}
   </div>
-  <aside class="bench" aria-label="Layer ${l.id} workbench">
+  <aside class="bench" id="bench-${l.id}" aria-label="Layer ${l.id} workbench">
     <div class="bench-head">
       <span class="num">${l.id}</span><strong>Workbench</strong>
       <span class="score" data-score></span>
@@ -163,11 +164,11 @@ const sections = chapters.map(({ l, lede, html }) => `
     <p class="bench-note">Your <code>src/${l.id}-${l.slug}.js</code>. Edits save in this browser.${l.id !== "00" ? " Runs on top of your earlier layers." : ""}</p>
     <textarea class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" id="editor-${l.id}" aria-label="Code for layer ${l.id}"></textarea>
     <div class="bench-actions">
-      <button class="btn" type="button" data-run>Run tests <kbd>⌘↵</kbd></button>
+      <button class="btn" type="button" data-run>Run tests <kbd data-kbd>⌘↵</kbd></button>
       <button class="btn ghost" type="button" data-copy>Copy</button>
-      <button class="btn ghost" type="button" data-reset>Reset to stub</button>
+      <button class="btn ghost" type="button" data-reset>Reset to starter code</button>
     </div>
-    <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <p class="bench-confirm" data-confirm hidden>Replace your code with the starter code? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
     <p class="help">Stuck? <a class="tip" data-tip="${askTip}" data-ask="claude" href="${C.claudeLink(l)}" target="_blank" rel="noopener">Ask Claude</a> · <a class="tip" data-tip="${askTip}" data-ask="chatgpt" href="${C.chatgptLink(l)}" target="_blank" rel="noopener">Ask ChatGPT</a>
       <span class="level"><span class="tip" tabindex="0" data-tip="How much help a tutor may give you. 1 is questions only; 5 points at the line to look at. The Ask links and Claude in Chrome both follow it.">Hint level</span><span class="dots" role="radiogroup" aria-label="Hint level">${C.hintLevels.map((h, i) => `<button type="button" role="radio" aria-checked="false" data-level="${i + 1}" title="${i + 1}: ${h}" aria-label="Level ${i + 1}: ${h}"></button>`).join("")}</span><span class="level-now" data-hint-level></span></span></p>
     <div class="bench-error" data-error hidden></div>
@@ -209,6 +210,8 @@ body { padding-block: 24px 80px; }
 .read details p, .read details ol { margin-bottom: 8px; }
 .ch-head { display: flex; flex-direction: column; gap: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
 .ch-head h2 { font-size: clamp(2rem, 5vw, 2.8rem); }
+.to-bench { display: none; font-size: 0.9rem; }
+.bench { scroll-margin-top: 12px; }
 .read blockquote.ask { margin: 0; font-size: 0.92rem; border: 1px dashed var(--pencil); border-radius: 6px; padding: 10px 12px; color: var(--ink); }
 .read p.meta { font-size: 0.9rem; color: var(--muted); border-left: 3px solid var(--pencil); padding-left: 12px; }
 .bench { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -241,7 +244,7 @@ body { padding-block: 24px 80px; }
 .tools .btn { text-decoration: none; padding-block: 6px; font-size: 0.85rem; }
 .tip { position: relative; }
 .tip::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: max-content; max-width: 260px; white-space: normal; text-align: left; font: 400 0.8rem/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--bg); background: var(--ink); padding: 8px 10px; border-radius: 6px; opacity: 0; pointer-events: none; transform: translateY(-3px); transition: opacity .12s, transform .12s; }
-.tools .tip::after { left: auto; right: 0; }
+.tools .tip::after, .help [data-ask="chatgpt"]::after { left: auto; right: 0; }
 .tip:hover::after, .tip:focus-visible::after { opacity: 1; transform: none; transition-delay: .25s; }
 @media (hover: none) { .tip::after, .bench-actions kbd { display: none; } }
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 40; width: min(440px, calc(100vw - 32px)); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 0.9rem; }
@@ -260,6 +263,7 @@ body { padding-block: 24px 80px; }
 @media (max-width: 960px) {
   .chapter { grid-template-columns: minmax(0, 1fr); }
   .bench { position: static; max-height: none; }
+  .to-bench { display: inline; }
 }
 </style>
 </head>
@@ -268,7 +272,7 @@ body { padding-block: 24px 80px; }
   <div class="pegbar" aria-hidden="true"><i></i><i></i><i></i></div>
   <span class="eyebrow">The interactive guide</span>
   <h1>${COURSE.title}</h1>
-  <p class="lede">${COURSE.subtitle}. Read a layer, then write its code in the workbench beside it. Tests and pictures run in your browser.</p>
+  <p class="lede">${COURSE.subtitle}. Read a layer, then write its code in the workbench. Tests and pictures run in your browser.</p>
   <details class="howto">
     <summary>How to use this guide</summary>
     <ol>
@@ -277,7 +281,7 @@ body { padding-block: 24px 80px; }
       <li><strong>Run tests</strong> (or press ⌘/Ctrl + Enter). Failing tests show the value they expected and what they got; pictures appear as your code works.</li>
       <li><strong>Break it</strong> with the chapter's experiments.</li>
       <li><strong>Pass the checkpoint</strong> at the end of the chapter. When its tab shows ★, move to the next layer.</li>
-      <li><strong>Stuck?</strong> The Ask Claude and Ask ChatGPT links open a chat with tutor rules filled in: hints and questions, never answers. The <em>Hint level</em> dots set how much help.</li>
+      <li><strong>Stuck?</strong> Use the Ask links; the <em>Hint level</em> dots set how much help.</li>
     </ol>
     <p>All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
   </details>

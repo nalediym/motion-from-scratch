@@ -89,7 +89,7 @@
 
   <section style="display:flex;flex-direction:column;gap:14px">
     <h2>The layers</h2>
-    <p>Each layer builds only on the ones below it. In each one you read, predict, write, test, break it, then pass the checkpoint. You're done when layer 10 exports your own KineticIntro as an MP4. Layers 03–10 are coming.</p>
+    <p>Each layer builds only on the ones below it. In each one you read, predict, write, test, break it, then pass the checkpoint. Layers 03–10 are coming.</p>
     <ul class="map" id="map"></ul>
   </section>
 
@@ -122,7 +122,7 @@
       const f = MS.COURSE.files(l), sc = scores[l.id];
       let pill = "";
       if (l.ready && sc) pill = sc.cp && sc.cp.complete ? `<span class="pill pass">★ complete</span>`
-        : sc.p === sc.n ? `<span class="pill fail">checkpoint open</span>`
+        : sc.p === sc.n ? `<span class="pill todo">checkpoint unlocked</span>`
         : sc.p ? `<span class="pill fail">${sc.p}/${sc.n} tests</span>` : `<span class="pill todo">not started</span>`;
       const title = l.ready ? `<a class="t" href="guide.html#layer-${l.id}">${l.title}</a>` : `<span class="t">${l.title}</span>`;
       const links = l.ready ? `<a href="tests.html#layer-${l.id}">tests</a>` : "";

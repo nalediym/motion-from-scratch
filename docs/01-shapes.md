@@ -238,11 +238,8 @@ MS.answers("01", {
 - Browsers usually keep pixels premultiplied internally. That's why a canvas pixel with very low alpha can come back from [`getImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/getImageData) with slightly different colors than you put in: precision was lost in the multiply and divide.
 - Motion Studio's `KineticIntro.tsx` paints its background with the CSS gradient above, then adds a second radial glow and a dark vignette on top. Those are three layers blended "over" each other, which you can now do by hand.
 
-## Read the originals
-
-- [Alvy Ray Smith, "Alpha and the History of Digital Compositing" (1995)](http://alvyray.com/Memos/CG/Microsoft/7_alpha.pdf): how the alpha channel was invented, by one of its inventors.
-
 ## Going further (optional)
 
+- **Read the original.** [Alvy Ray Smith, "Alpha and the History of Digital Compositing" (1995)](http://alvyray.com/Memos/CG/Microsoft/7_alpha.pdf): how the alpha channel was invented, by one of its inventors.
 - **Antialiased circles.** Instead of in-or-out, use coverage `clamp(r − distance + 0.5, 0, 1)` and multiply it into the color's alpha before blending. Compare the edges at scale in the test pictures.
 - **Premultiplied mode.** Write `blendPremultiplied` where colors are stored already multiplied by alpha. Show that the formula no longer needs a division, and find which test values it can't reproduce exactly after 8-bit rounding.
