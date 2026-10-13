@@ -35,8 +35,12 @@ jobs:
             exit 1
           fi
 
+      # Installed locally (not via npx): the build resolves its theme fonts
+      # from ./node_modules, which a temporary npx install doesn't provide.
       - name: Build the Observable notebook (Notebook Kit CLI)
-        run: npx --yes -p @observablehq/notebook-kit@2.7.0 notebooks build --root notebooks -- notebooks/observable.html
+        run: |
+          npm install --no-save --no-package-lock @observablehq/notebook-kit@2.7.0
+          ./node_modules/.bin/notebooks build --root notebooks -- notebooks/observable.html
 
       - name: Assemble the site
         run: |
