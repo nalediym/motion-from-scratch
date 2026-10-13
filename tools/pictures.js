@@ -31,7 +31,7 @@ for (const f of fs.readdirSync(outDir)) if (f.startsWith(layer.id + "-")) fs.unl
 MS.visuals.filter(v => v.layer === layer.id).forEach((v, i) => {
   const file = `out/${layer.id}-${i + 1}.png`;
   try {
-    const frame = v.kind === "animation" ? MS.filmstrip(v.fn()) : v.fn();
+    const frame = MS.moves(v) ? MS.filmstrip(v.fn()) : v.fn();
     const k = Math.max(1, Math.min(6, Math.floor(240 / frame.width)));
     fs.writeFileSync(path.join(root, file), MS.encodePNG(MS.zoomFrame(frame, k)));
     console.log(`${file}  ${v.name}`);

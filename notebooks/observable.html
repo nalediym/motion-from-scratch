@@ -31,14 +31,14 @@
           { id: "07", slug: "transforms", title: "Transforms & blur", builds: "matrices, resampling and blur", ready: true },
           { id: "08", slug: "scenes", title: "Scenes", builds: "real fonts, sequences, a camera, masks, seeded randomness", ready: true },
           { id: "09", slug: "kinetic-intro", title: "KineticIntro", builds: "the recreation", ready: true },
-          { id: "10", slug: "export", title: "Export", builds: "frames to MP4, then map it to Remotion", ready: false },
+          { id: "10", slug: "export", title: "Export", builds: "frames to MP4, then map it to Remotion", ready: true },
         ],
       };
       // Provided libraries every surface loads after this file, in this order.
       // Each ready layer's lib/mysteries file comes next, then the learner's code.
-      MS.COURSE.libs = ["lib/font5x7.js", "lib/check.js", "lib/experiment.js", "lib/checkpoint.js", "lib/checkpoint-data.js"];
+      MS.COURSE.libs = ["lib/font5x7.js", "lib/check.js", "lib/experiment.js", "lib/checkpoint.js", "lib/checkpoint-data.js", "lib/mp4.js"];
       // Browser pages also load these.
-      MS.COURSE.browserLibs = ["lib/present.js"];
+      MS.COURSE.browserLibs = ["lib/present.js", "lib/webcodecs.js"];
 
       MS.COURSE.repo = "https://github.com/nalediym/motion-from-scratch";
       MS.COURSE.site = "https://nalediym.github.io/motion-from-scratch/";
@@ -188,6 +188,11 @@
       // An animation is a picture that moves (from layer 03 on). fn returns a
       // composition; pages play it, and notebooks and terminals show a filmstrip.
       MS.animation = function (layer, name, fn) { MS.visuals.push({ layer, name, fn, kind: "animation" }); };
+      // An export is an animation that pages can also save as an MP4 (layer 10): a
+      // button encodes it with the browser's WebCodecs and wraps it with your mp4().
+      // Everywhere else it shows like any other animation.
+      MS.exporter = function (layer, name, fn) { MS.visuals.push({ layer, name, fn, kind: "export" }); };
+      MS.moves = pic => pic.kind === "animation" || pic.kind === "export";
 
       // A strip of `count` frames, evenly spaced from first to last, side by side.
       // Uses your renderFrame (layer 03); copies bytes directly so it can't go wrong itself.
@@ -457,6 +462,14 @@
     // The answers themselves are not in this repo.
     (function (MS) {
       MS.CHECKPOINT_DATA = {
+        "10": {
+          "mystery": "378d552f",
+          "questions": {
+            "q1": "88e7968d",
+            "q2": "af8183c7",
+            "q3": "3142a05a"
+          }
+        },
         "00": {
           "mystery": "077e149d",
           "questions": {
@@ -555,6 +568,97 @@
           }
         }
       };
+    })(globalThis.MS = globalThis.MS || {});
+
+    // lib/mp4.js — the parts of an MP4 file that are the same in every video. PROVIDED.
+    //
+    // Layer 10 has you write an MP4 file byte by byte. Most of its boxes are
+    // boilerplate: dates set to 0, a "1.0" playback rate, an identity matrix.
+    // MS.MP4 builds those for you, out of YOUR box(), fullBox(), u16() and u32(),
+    // so read them: every field is named. The boxes that say where each frame's
+    // bytes are and when it plays (stts, stsz, stco, stss) are yours to write.
+    //
+    // MS.parseMP4(bytes) reads a file back into a tree of boxes, for the tests,
+    // the pictures and your own curiosity. It doesn't use your code.
+    // The format is ISO/IEC 14496-12, the "ISO base media file format".
+    (function (MS) {
+      const ascii = s => Array.from(s, c => c.charCodeAt(0));
+      const zeros = n => new Array(n).fill(0);
+      // A transformation matrix in 16.16 and 2.30 fixed point: the identity.
+      const IDENTITY = () => [0x00010000, 0, 0, 0, 0x00010000, 0, 0, 0, 0x40000000].map(v => MS.u32(v));
+
+      MS.MP4 = {
+        ascii,
+        // ftyp: which specs this file follows. "isom" is the base format; "avc1" says it holds H.264.
+        ftyp: () => MS.box("ftyp", ascii("isom"), MS.u32(512), ascii("isom"), ascii("iso2"), ascii("avc1"), ascii("mp41")),
+
+        // mvhd: the movie header. duration is in the movie's timescale (units per second).
+        mvhd: ({ timescale, duration }) => MS.fullBox("mvhd", 0, 0,
+          MS.u32(0), MS.u32(0),                  // creation and modification time
+          MS.u32(timescale), MS.u32(duration),
+          MS.u32(0x00010000), MS.u16(0x0100),    // playback rate 1.0 (16.16), volume 1.0 (8.8)
+          zeros(10), ...IDENTITY(), zeros(24),   // reserved, matrix, pre_defined
+          MS.u32(2)),                            // the next track would be track 2
+
+        // tkhd: the track header. flags 3 = enabled, in the movie. Width and height are 16.16 fixed point.
+        tkhd: ({ duration, width, height }) => MS.fullBox("tkhd", 0, 3,
+          MS.u32(0), MS.u32(0), MS.u32(1), MS.u32(0),   // creation, modification, track_ID 1, reserved
+          MS.u32(duration), zeros(8),
+          MS.u16(0), MS.u16(0), MS.u16(0), MS.u16(0),   // layer, alternate group, volume (0: it's video), reserved
+          ...IDENTITY(), MS.u32(width * 65536), MS.u32(height * 65536)),
+
+        // mdhd: the media header. Its timescale is the one stts counts in.
+        mdhd: ({ timescale, duration }) => MS.fullBox("mdhd", 0, 0,
+          MS.u32(0), MS.u32(0), MS.u32(timescale), MS.u32(duration),
+          MS.u16(0x55c4), MS.u16(0)),            // language "und" (undetermined), packed into 15 bits
+
+        // hdlr: what kind of track this is: "vide", video.
+        hdlr: () => MS.fullBox("hdlr", 0, 0, MS.u32(0), ascii("vide"), zeros(12), ascii("VideoHandler"), [0]),
+
+        // vmhd: the video media header. flags 1 is required; the rest is unused.
+        vmhd: () => MS.fullBox("vmhd", 0, 1, MS.u16(0), MS.u16(0), MS.u16(0), MS.u16(0)),
+
+        // dinf: where the samples are. One "url " entry with flags 1 means "in this file".
+        dinf: () => MS.box("dinf", MS.fullBox("dref", 0, 0, MS.u32(1), MS.fullBox("url ", 0, 1))),
+
+        // stsd: how to decode the samples. One avc1 (H.264) entry, holding the encoder's
+        // decoder configuration (its avcC record: profile, level, SPS and PPS).
+        stsd: ({ width, height, description }) => MS.fullBox("stsd", 0, 0, MS.u32(1),
+          MS.box("avc1",
+            zeros(6), MS.u16(1),                 // reserved, data_reference_index 1
+            zeros(16), MS.u16(width), MS.u16(height),
+            MS.u32(0x00480000), MS.u32(0x00480000), // 72 dpi, 16.16
+            MS.u32(0), MS.u16(1),                // reserved, frame_count 1
+            zeros(32),                           // compressor name (empty)
+            MS.u16(0x0018), MS.u16(0xffff),      // depth 24, pre_defined −1
+            MS.box("avcC", description))),
+
+        // stsc: which samples are in which chunk. Here every chunk holds exactly one sample.
+        stsc: () => MS.fullBox("stsc", 0, 0, MS.u32(1), MS.u32(1), MS.u32(1), MS.u32(1)),
+      };
+
+      // Boxes that only hold other boxes.
+      const CONTAINERS = new Set(["moov", "trak", "mdia", "minf", "stbl", "dinf", "edts", "udta"]);
+      // Read an MP4 into [{ type, start, size, body, children }]. body is the box's bytes after its 8-byte header.
+      MS.parseMP4 = function (bytes, start = 0, end = bytes.length) {
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), boxes = [];
+        let at = start;
+        while (at + 8 <= end) {
+          const size = view.getUint32(at), type = String.fromCharCode(...bytes.subarray(at + 4, at + 8));
+          if (size < 8 || at + size > end) throw new Error(`parseMP4: the box at byte ${at} ("${type}") says it's ${size} bytes long, but only ${end - at} are left`);
+          const box = { type, start: at, size, body: bytes.subarray(at + 8, at + size) };
+          if (CONTAINERS.has(type)) box.children = MS.parseMP4(bytes, at + 8, at + size);
+          boxes.push(box);
+          at += size;
+        }
+        if (at !== end) throw new Error(`parseMP4: ${end - at} stray byte(s) at byte ${at}`);
+        return boxes;
+      };
+      // Find a box by its path: MS.findBox(tree, "moov/trak/mdia/minf/stbl/stsz").
+      MS.findBox = (tree, path) => path.split("/").reduce((list, type) => {
+        const found = list && (Array.isArray(list) ? list : list.children || []).find(b => b.type === type);
+        return found || null;
+      }, tree);
     })(globalThis.MS = globalThis.MS || {});
 
     // lib/png.js — turn a frame into PNG file bytes, from scratch. PROVIDED.
@@ -676,7 +780,7 @@
         const passed = results.filter(r => r.status === "pass").length;
         const pictures = MS.visuals.filter(v => v.layer === layerId).map(v => {
           try {
-            const frame = v.kind === "animation" ? MS.filmstrip(v.fn()) : v.fn();
+            const frame = MS.moves(v) ? MS.filmstrip(v.fn()) : v.fn();
             const k = Math.max(1, Math.min(6, Math.floor(240 / frame.width)));
             return { name: v.name, png: MS.toBase64(MS.encodePNG(MS.zoomFrame(frame, k))) };
           } catch (e) { return { name: v.name, png: null, error: (e.todo ? "Waiting on: " : "Error: ") + e.message }; }
@@ -1574,6 +1678,139 @@
         check({ frame, wrong, failed }, data) {
           const hints = failed.map(msg => `Part of the picture couldn't be drawn (${msg}).`);
           const names = ["K", "first I", "N", "E", "T", "second I", "C"];
+          wrong.forEach((n, j) => { if (n) hints.push(`Some dots of the ${names[j]} flew off: ${RULES[j].rule}.`); });
+          const ok = MS.hashFrame(frame) === data.mystery;
+          return { wrong: ok ? 0 : 1, hints };
+        },
+      });
+    })(globalThis.MS = globalThis.MS || {});
+
+    // lib/mysteries/10-export.js — layer 10's checkpoint picture. PROVIDED.
+    // A word made of dots. Every dot asks one small question about the bytes of
+    // an MP4 (byte order, box sizes, run-length durations, the sample tables, how
+    // the file nests, where each frame's bytes are and when it plays). A dot that
+    // gets a wrong answer flies off its letter. Every rule right spells a word.
+    // The video files here are made of pretend frames: the container doesn't care
+    // what's inside them.
+    // draw() runs the learner's functions; check() says which rule went wrong,
+    // never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+    (function (MS) {
+      const { shuffle } = MS.mysteryKit;
+      const WORD = "EXPORT", C = 3, M = 6;
+      const is = (v, list) => (isBytes(v) || Array.isArray(v)) && v.length === list.length && list.every((b, i) => v[i] === b);
+      const ascii = s => Array.from(s, c => c.charCodeAt(0));
+      const isBytes = v => Object.prototype.toString.call(v) === "[object Uint8Array]";
+      const u32at = (b, i) => ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0;
+      const u32s = (b, from, count) => Array.from({ length: count }, (_, k) => u32at(b, from + 4 * k));
+      const fake = (sizes, keys, durations) => sizes.map((s, i) => ({
+        data: Uint8Array.from({ length: s }, (_, j) => (i * 53 + j * 11 + 5) & 255), key: keys[i], timestamp: 0, duration: durations[i],
+      }));
+      const AVCC = Uint8Array.from([1, 77, 64, 31, 255, 225, 0, 3, 103, 77, 64, 1, 0, 2, 104, 238]);
+      const FILE_A = () => fake([30, 7, 7, 9, 40, 8], [true, false, false, false, true, false], [41708, 41708, 41708, 41667, 41667, 41667]);
+      const make = chunks => MS.mp4(chunks, { width: 320, height: 240, description: AVCC });
+      const stbl = file => MS.findBox(MS.parseMP4(file), "moov/trak/mdia/minf/stbl");
+
+      const RULES = [
+        { // E: byte order
+          rule: "u16 and u32 write a number's bytes biggest first, 2 or 4 of them, as a Uint8Array",
+          probes: [
+            () => is(MS.u16(0xabcd), [0xab, 0xcd]), () => is(MS.u16(256), [1, 0]), () => is(MS.u32(0xdeadbeef), [222, 173, 190, 239]),
+            () => is(MS.u32(2 ** 31), [128, 0, 0, 0]), () => is(MS.u32(65536), [0, 1, 0, 0]), () => is(MS.u32(0), [0, 0, 0, 0]),
+            () => isBytes(MS.u16(1)) && isBytes(MS.u32(1)),
+          ],
+        },
+        { // X: boxes
+          rule: "a box is its whole size (header included) as a u32, its 4-letter type, then its parts in order; a full box puts a version byte and 3 bytes of flags first",
+          probes: [
+            () => is(MS.box("moof"), [0, 0, 0, 8, ...ascii("moof")]),
+            () => is(MS.box("wxyz", [255], MS.u32(7), []), [0, 0, 0, 13, ...ascii("wxyz"), 255, 0, 0, 0, 7]),
+            () => is(MS.box("big ", new Uint8Array(300)).slice(0, 8), [0, 0, 1, 52, ...ascii("big ")]),
+            () => is(MS.box("a   ", MS.box("b   ", MS.box("c   "))), [0, 0, 0, 24, ...ascii("a   "), 0, 0, 0, 16, ...ascii("b   "), 0, 0, 0, 8, ...ascii("c   ")]),
+            () => is(MS.fullBox("meta", 0, 0), [0, 0, 0, 12, ...ascii("meta"), 0, 0, 0, 0]),
+            () => is(MS.fullBox("vers", 2, 0xabcdef, [1]), [0, 0, 0, 13, ...ascii("vers"), 2, 0xab, 0xcd, 0xef, 1]),
+          ],
+        },
+        { // P: durations
+          rule: "stts writes one (count, duration) entry for each run of samples in a row that last the same time",
+          probes: [
+            () => is(MS.stts([1001]), [0, 0, 0, 24, ...ascii("stts"), 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3, 233]),
+            () => { const b = MS.stts([5, 6, 5, 6]); return u32at(b, 12) === 4 && is(u32s(b, 16, 8), [1, 5, 1, 6, 1, 5, 1, 6]); },
+            () => { const b = MS.stts([7, 7, 9, 9, 9]); return b.length === 32 && is(u32s(b, 12, 5), [2, 2, 7, 3, 9]); },
+            () => is(MS.stts([]), [0, 0, 0, 16, ...ascii("stts"), 0, 0, 0, 0, 0, 0, 0, 0]),
+            () => { const b = MS.stts(new Array(500).fill(3003)); return b.length === 24 && is(u32s(b, 12, 3), [1, 500, 3003]); },
+          ],
+        },
+        { // O: the sample tables
+          rule: "stsz lists a 0 and the count before the sizes, stco the count before the offsets, and stss the key samples' numbers counting from 1",
+          probes: [
+            () => is(MS.stsz([70000, 1]), [0, 0, 0, 28, ...ascii("stsz"), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 17, 112, 0, 0, 0, 1]),
+            () => is(MS.stsz([]), [0, 0, 0, 20, ...ascii("stsz"), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            () => is(MS.stco([4294967295]), [0, 0, 0, 20, ...ascii("stco"), 0, 0, 0, 0, 0, 0, 0, 1, 255, 255, 255, 255]),
+            () => is(MS.stco([]), [0, 0, 0, 16, ...ascii("stco"), 0, 0, 0, 0, 0, 0, 0, 0]),
+            () => is(u32s(MS.stss([false, true, false, false, true]), 12, 3), [2, 2, 5]),
+            () => is(u32s(MS.stss([true]), 12, 2), [1, 1]),
+            () => MS.stss([false, false, false]).length === 16,
+          ],
+        },
+        { // R: the file's shape
+          rule: "the file is an ftyp, an mdat holding every chunk's bytes in order, and a moov whose trak, mdia, minf and stbl hold their boxes in the order in mp4's spec",
+          probes: [
+            () => MS.parseMP4(make(FILE_A())).map(b => b.type).join(" ") === "ftyp mdat moov",
+            () => { const c = FILE_A(); return is(MS.findBox(MS.parseMP4(make(c)), "mdat").body, c.flatMap(x => Array.from(x.data))); },
+            () => stbl(make(FILE_A())).children.map(b => b.type).join(" ") === "stsd stts stsc stsz stco stss",
+            () => MS.findBox(MS.parseMP4(make(FILE_A())), "moov/trak/mdia/minf").children.map(b => b.type).join(" ") === "vmhd dinf stbl",
+            () => MS.findBox(MS.parseMP4(make(FILE_A())), "moov/trak/mdia").children.map(b => b.type).join(" ") === "mdhd hdlr minf",
+            () => { const f = make(fake([12], [true], [40000])), t = MS.parseMP4(f); return t.reduce((s, b) => s + b.size, 0) === f.length && MS.findBox(t, "mdat").size === 20; },
+            () => { const s = MS.findBox(stbl(make(FILE_A())), "stsd").body; return is(s.slice(s.length - AVCC.length), Array.from(AVCC)); },
+          ],
+        },
+        { // T: where and when
+          rule: "each stco offset is where that chunk's bytes start in the whole file, sizes match, durations become 90000ths of a second (rounded), mdhd adds them up, and mvhd and tkhd give the total in milliseconds",
+          probes: [
+            () => { const c = FILE_A(), f = make(c), off = u32s(MS.findBox(stbl(f), "stco").body, 8, 6); return c.every((x, i) => is(f.slice(off[i], off[i] + x.data.length), Array.from(x.data))); },
+            () => is(u32s(MS.findBox(stbl(make(FILE_A())), "stsz").body, 12, 6), [30, 7, 7, 9, 40, 8]),
+            () => is(u32s(MS.findBox(stbl(make(FILE_A())), "stts").body, 4, 5), [2, 3, 3754, 3, 3750]),
+            () => is(u32s(MS.findBox(MS.parseMP4(make(FILE_A())), "moov/trak/mdia/mdhd").body, 12, 2), [90000, 22512]),
+            () => is(u32s(MS.findBox(MS.parseMP4(make(FILE_A())), "moov/mvhd").body, 12, 2), [1000, 250]),
+            () => u32at(MS.findBox(MS.parseMP4(make(FILE_A())), "moov/trak/tkhd").body, 20) === 250,
+            () => is(u32s(MS.findBox(stbl(make(FILE_A())), "stss").body, 4, 3), [2, 1, 5]),
+          ],
+        },
+      ];
+
+      const OFFSETS = [];
+      for (let dy = -10; dy <= 10; dy++) for (let dx = -10; dx <= 10; dx++) if (Math.abs(dx) + Math.abs(dy) >= 7) OFFSETS.push([dx, dy]);
+      shuffle(OFFSETS, 10);
+      const STOPS = [[255, 92, 138], [91, 140, 255], [234, 240, 250]];
+
+      MS.mystery("10", {
+        draw() {
+          const W = M * 2 + (WORD.length * 6 - 1) * C, H = M * 2 + 7 * C;
+          const frame = MS.createFrame(W, H);
+          MS.clearFrame(frame, [11, 13, 18]);
+          const wrong = WORD.split("").map(() => 0), failed = [];
+          let dot = 0;
+          [...WORD].forEach((ch, j) => {
+            const color = MS.interpolateColors(j, [0, 2.5, 5], STOPS), rules = RULES[j];
+            // Dot k asks probes k, k + dots, k + 2 × dots...; with fewer probes than dots, they repeat.
+            const n = rules.probes.length, dots = MS.FONT_5x7[ch].join("").split("").filter(cell => cell === "#").length;
+            let k = 0;
+            MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
+              if (cell !== "#") return;
+              const gx = M + (j * 6 + c) * C, gy = M + r * C, o = OFFSETS[dot++ % OFFSETS.length];
+              const mine = n >= dots ? rules.probes.filter((p, i) => i % dots === k) : [rules.probes[k % n]];
+              let right = false;
+              try { right = mine.every(p => p() === true); } catch (e) { failed.push(`the ${ch}: ${e.message}`); }
+              if (!right) wrong[j]++;
+              k++;
+              MS.fillRect(frame, right ? gx : gx + o[0], right ? gy : gy + o[1], C, C, color);
+            }));
+          });
+          return { frame, wrong, failed: [...new Set(failed)] };
+        },
+        check({ frame, wrong, failed }, data) {
+          const hints = failed.map(msg => `Part of the picture couldn't be drawn (${msg}).`);
+          const names = ["E", "X", "P", "O", "R", "T"];
           wrong.forEach((n, j) => { if (n) hints.push(`Some dots of the ${names[j]} flew off: ${RULES[j].rule}.`); });
           const ok = MS.hashFrame(frame) === data.mystery;
           return { wrong: ok ? 0 : 1, hints };
@@ -6977,6 +7214,563 @@
     - **Read the original.** The [Compositing and Blending spec](https://www.w3.org/TR/compositing-1/#blending) lists all the separable blend modes with their formulas. Add `screen`, `multiply` and `soft-light` to your `blendOverlay` as options and try each on the sweep.
     - Cache the text sprites: they only depend on the word, not on n. How much faster is a frame?
     - Render KineticIntro at full size, 1080 × 1920, and time one frame. Which piece takes longest?
+
+  </script>
+  <script type="text/markdown">
+    ## Layer 10 · Export
+
+    _A video file is a list of boxes, and you know how to write every byte._
+
+    **You'll write:** `u16`, `u32`, `box`, `fullBox`, `stts`, `stsz`, `stco`, `stss`, `mp4` in `src/10-export.js`
+    **Builds on:** layers 00–09
+
+    Your KineticIntro plays in a browser tab. To post it, send it or drop it into an editor, it has to become a file: an MP4. Two very different jobs hide in that word. **Encoding** squeezes each frame from megabytes down to kilobytes; that's a field of its own, and the browser's [WebCodecs](https://www.w3.org/TR/webcodecs/) API does it for you, often on the computer's video hardware. **Packaging** puts the squeezed frames in a file that every player understands, with an index saying where each frame is and when it plays. That part is a few hundred bytes of careful bookkeeping, and you'll write all of it. Then you'll press a button and watch your own file play.
+
+    ### Under the hood
+
+    #### Codec and container
+
+    An MP4 is a **container**: a box of boxes that holds the frames, plus a table of contents. The frames inside are compressed by a **codec**, here H.264, the most widely played video format there is. The two are separate: the same H.264 frames could go in a different container, and an MP4 can hold other codecs.
+
+    ```text
+      your frames ──► encoder (H.264, by WebCodecs) ──► chunks ──► container (MP4, by you) ──► file
+      RGBA pixels      compresses each frame              one per     where and when each
+      (~330 KB each                                       frame,      chunk is, so a player
+       at 216 × 384)                                      a few KB    can find and time it
+    ```
+
+    #### Boxes all the way down
+
+    The format comes from Apple's QuickTime and is standardized as the [ISO base media file format](https://www.iso.org/standard/83102.html) (ISO/IEC 14496-12). It's built from one idea: a **box** (QuickTime calls it an atom) is 4 bytes of size, 4 letters of type, and then its contents, which can be more boxes.
+
+    ```text
+      ┌──────────────┬────────────────┬──────────────────────────────┐
+      │ size (u32)   │ type (4 ASCII) │ contents: data, or more boxes│
+      │ 00 00 00 18  │ s  t  t  s     │ ...                          │
+      └──────────────┴────────────────┴──────────────────────────────┘
+         the size counts the whole box, these 8 header bytes included
+    ```
+
+    A program that doesn't know a box type can still skip it: read the size, jump ahead. It's one reason the format has lasted since QuickTime's first release in 1991. Many boxes are **full boxes**, whose contents start with a version byte and 3 bytes of flags, so the format can change without breaking old readers.
+
+    Every number is **big-endian**: the most significant byte comes first, the way you write digits. 300 as a u32 is `00 00 01 2C`. Your computer's processor is almost certainly little-endian and would store it backwards, which is why `u32` builds the bytes by hand with shifts and masks instead of copying memory. Network protocols use big-endian too; it's often called "network byte order".
+
+    ```text
+      ftyp                      which specs the file follows
+      mdat                      the media data: every chunk's bytes, back to back
+      moov                      the movie: the table of contents
+      └ trak                    one track (we have one: video)
+        └ mdia
+          └ minf
+            └ stbl              the sample table: where and when every frame is
+              ├ stsd            how to decode them: "avc1", with the encoder's setup (avcC)
+              ├ stts            how long each one lasts
+              ├ stsc            which chunk each sample is in
+              ├ stsz            how many bytes each one is
+              ├ stco            where each chunk starts in the file
+              └ stss            which ones are key frames
+    ```
+
+    `lib/mp4.js` builds the boilerplate boxes (headers full of zeros and fixed numbers) using your `box`, `fullBox`, `u16` and `u32`. Read it: every field is named. The sample table is yours.
+
+    > **Study buddy:** "Ask me questions until I can explain what a box's size counts, why the numbers are big-endian, and how a program can skip a box it doesn't understand. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2010%20%28Export%29%3A%20frames%20to%20MP4%2C%20then%20map%20it%20to%20Remotion.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20box%27s%20size%20counts%2C%20why%20the%20numbers%20are%20big-endian%2C%20and%20how%20a%20program%20can%20skip%20a%20box%20it%20doesn%27t%20understand.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2010%20%28Export%29%3A%20frames%20to%20MP4%2C%20then%20map%20it%20to%20Remotion.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20box%27s%20size%20counts%2C%20why%20the%20numbers%20are%20big-endian%2C%20and%20how%20a%20program%20can%20skip%20a%20box%20it%20doesn%27t%20understand.%20No%20code.)
+
+    #### Where: sizes and offsets
+
+    To show frame 90, a player needs its bytes. `stsz` gives every frame's size and `stco` gives where each **chunk** starts in the file (a chunk is a run of samples stored together; here every frame is its own chunk, which keeps `stsc` a one-liner). The offsets count from the very first byte of the file, so they have to skip the `ftyp`, then the `mdat`'s own 8-byte header, then every chunk before it.
+
+    ```text
+      byte 0                 ftyp.length   + 8
+      ┌──────────┬───────────┬─────────────┬────────┬────────┬─ ─ ─┬──────────┐
+      │ ftyp     │ mdat hdr  │ chunk 1     │ chunk 2│ chunk 3│     │ moov     │
+      └──────────┴───────────┴─────────────┴────────┴────────┴─ ─ ─┴──────────┘
+                             ▲ offset 1    ▲ offset 2 = offset 1 + size 1
+    ```
+
+    #### When: timescales and runs
+
+    MP4 counts time in whole ticks of a **timescale**: ticks per second. This file's media uses 90000, a habit from MPEG broadcasting, because it divides evenly by 24, 25, 30, 50 and 60, so common frame rates get whole-number frame durations. At 30 fps, every frame lasts 3000 ticks. `stts` stores durations as runs, "180 samples of 3000", so a constant frame rate costs 8 bytes no matter how long the video is. That's [run-length encoding](https://en.wikipedia.org/wiki/Run-length_encoding), the same trick as "A × 3" instead of "AAA".
+
+    The movie header (`mvhd`) and track header (`tkhd`) keep their own, coarser clock in milliseconds, for showing the length to people.
+
+    #### Which: key frames
+
+    H.264 saves most of its space by storing most frames as differences from earlier ones. A **key frame** stands alone; the frames after it are built from it. A player can only start decoding at a key frame, so jumping to 0:04 means finding the key frame at or before it. `stss` lists them, by sample number, counting from 1. The provided encoder makes one every two seconds: fewer key frames make a smaller file, and more make seeking quicker.
+
+    #### The order of the boxes
+
+    Your file puts `mdat` before `moov`. That's the easy order: when you write the offsets you already know exactly where everything is. It's also how a camera records: it can't write the table of contents until it stops filming. Its one downside is that a player streaming the file over a network has to fetch the end before it can start. Moving `moov` to the front ("fast start") fixes that, but then the offsets have to skip the `moov` too.
+
+    ### Your turn
+
+    Work through `src/10-export.js` top to bottom. Each function's comment is its spec. Some questions to guide you, in order:
+
+    1. **u16 and u32.** How do you get the top byte of a 32-bit number? Which operator moves bits right without bringing the sign along?
+    2. **box.** What's the size of a box with no contents? How do you know the total size before you copy the parts in?
+    3. **fullBox.** Can you build it out of `box`?
+    4. **stts.** Walking through the durations, when do you start a new run?
+    5. **stsz, stco, stss.** In what order do the count and the list go? What number does the first sample have?
+    6. **mp4.** Which boxes can you build before you know the offsets? Where does the first chunk start? Which numbers are in 90000ths of a second and which in milliseconds?
+
+    Run the tests after each function. A failing test tells you exactly what it expected. `MS.parseMP4(file)` (provided) reads your file back as a tree of boxes, and `MS.findBox(tree, "moov/trak/mdia/minf/stbl")` finds one: use them to look at what you made.
+
+    Once it works, the test pictures show every byte of a small MP4 as a pixel, colored by its box, and your KineticIntro with an **Export MP4** button. In a browser, press it: the frames are rendered by your code, encoded by the browser, packaged by your `mp4()`, and played back on the page. That's your video file.
+
+    > **Study buddy:** "Hand me the first 64 bytes of an MP4 as hex and let me find the box boundaries, sizes and types myself. Check my reading, but don't read it for me. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2010%20%28Export%29%3A%20frames%20to%20MP4%2C%20then%20map%20it%20to%20Remotion.%20Here%27s%20what%20I%20want%20help%20with%3A%20Hand%20me%20the%20first%2064%20bytes%20of%20an%20MP4%20as%20hex%20and%20let%20me%20find%20the%20box%20boundaries%2C%20sizes%20and%20types%20myself.%20Check%20my%20reading%2C%20but%20don%27t%20read%20it%20for%20me.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2010%20%28Export%29%3A%20frames%20to%20MP4%2C%20then%20map%20it%20to%20Remotion.%20Here%27s%20what%20I%20want%20help%20with%3A%20Hand%20me%20the%20first%2064%20bytes%20of%20an%20MP4%20as%20hex%20and%20let%20me%20find%20the%20box%20boundaries%2C%20sizes%20and%20types%20myself.%20Check%20my%20reading%2C%20but%20don%27t%20read%20it%20for%20me.%20No%20code.)
+
+
+  </script>
+  <script type="text/markdown">
+    ### ✏️ Your code for layer 10
+
+    This cell is your `src/10-export.js`. When editing locally, change it and everything below re-runs by itself.
+
+    **Stuck?** Ask a study buddy that gives hints, not answers: [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2010%20%28Export%29%3A%20frames%20to%20MP4%2C%20then%20map%20it%20to%20Remotion.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2010%20%28Export%29%3A%20frames%20to%20MP4%2C%20then%20map%20it%20to%20Remotion.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next.)
+  </script>
+  <script type="module" pinned>
+    layer09; // run after the layer before
+    // Layer 10 · Export — frames to MP4, then map it to Remotion.
+    // Read the chapter first (docs/10-export.md). Each comment below is a spec; the tests check it.
+    (function (MS) {
+      // An MP4 file is a list of boxes, and a box can hold other boxes. All numbers
+      // are big-endian: the most significant byte comes first.
+      // lib/mp4.js (provided) builds the boilerplate boxes with your functions;
+      // read it to see each field.
+
+      /** n (a whole number from 0 to 65535) as 2 bytes, biggest first, in a Uint8Array. */
+      function u16(n) {
+        throw MS.todo("u16");
+      }
+
+      /** n (a whole number from 0 to 2³² − 1) as 4 bytes, biggest first, in a Uint8Array. */
+      function u32(n) {
+        throw MS.todo("u32");
+      }
+
+      /**
+       * A box, as a Uint8Array: its size in bytes as a u32 (the whole box,
+       * these 4 bytes included), its type as 4 ASCII characters, then each part
+       * in order. Parts are Uint8Arrays or plain arrays of byte values.
+       *   box("abcd", [1, 2]) → [0, 0, 0, 10, 97, 98, 99, 100, 1, 2]
+       */
+      function box(type, ...parts) {
+        throw MS.todo("box");
+      }
+
+      /**
+       * A "full box": a box whose contents start with a version byte and 3 bytes
+       * of flags (biggest first), then the parts.
+       */
+      function fullBox(type, version, flags, ...parts) {
+        throw MS.todo("fullBox");
+      }
+
+      /**
+       * The time-to-sample box: how long each sample (frame) lasts, in the
+       * track's timescale. A full box "stts", version 0, flags 0, holding the
+       * number of entries, then for each run of samples in a row with the same
+       * duration: how many (u32) and the duration (u32).
+       *   stts([3000, 3000, 1500]) holds 2 entries: (2, 3000) and (1, 1500)
+       */
+      function stts(durations) {
+        throw MS.todo("stts");
+      }
+
+      /**
+       * The sample size box: a full box "stsz", version 0, flags 0, holding a
+       * u32 0 (meaning "the sizes differ, here's a list"), the number of samples,
+       * then each sample's size in bytes, all u32.
+       */
+      function stsz(sizes) {
+        throw MS.todo("stsz");
+      }
+
+      /**
+       * The chunk offset box: a full box "stco", version 0, flags 0, holding the
+       * number of chunks, then where each chunk's first byte is in the file
+       * (counting from the file's first byte as 0), all u32.
+       */
+      function stco(offsets) {
+        throw MS.todo("stco");
+      }
+
+      /**
+       * The sync sample box: which samples are key frames, where a player can
+       * start decoding. `keys` has one true or false per sample. A full box
+       * "stss", version 0, flags 0, holding how many keys there are, then each
+       * key sample's number, counting the first sample as 1, all u32.
+       */
+      function stss(keys) {
+        throw MS.todo("stss");
+      }
+
+      /**
+       * A whole MP4 file, as a Uint8Array, for chunks from the encoder:
+       * [{ data (Uint8Array), key (boolean), timestamp, duration }], with
+       * timestamp and duration in microseconds, one chunk per frame, in order.
+       * opts: { width, height, description } (description: the encoder's avcC bytes).
+       * The file is three boxes in a row:
+       *   ftyp   MS.MP4.ftyp()
+       *   mdat   every chunk's data, back to back, in order
+       *   moov   mvhd, then trak:
+       *            tkhd, then mdia:
+       *              mdhd, hdlr, then minf:
+       *                vmhd, dinf, then stbl: stsd, stts, stsc, stsz, stco, stss
+       * Every MS.MP4 builder is in lib/mp4.js; the rest are your functions.
+       * Time: the media (mdhd, stts) counts in 90000ths of a second; a chunk's
+       * duration there is Math.round(duration × 90000 ÷ 1000000), and mdhd's
+       * duration is their total. The movie (mvhd) counts in milliseconds
+       * (timescale 1000): its duration, and tkhd's, is Math.round(total × 1000 ÷ 90000).
+       * Each chunk is its own chunk in stco: its offset is where its data starts
+       * inside the file.
+       */
+      function mp4(chunks, opts) {
+        throw MS.todo("mp4");
+      }
+
+      Object.assign(MS, { u16, u32, box, fullBox, stts, stsz, stco, stss, mp4 });
+    })(globalThis.MS = globalThis.MS || {});
+
+    const layer10 = true;
+  </script>
+  <script type="module">
+    layer10;
+    const report10 = (() => {
+      const MS = globalThis.MS;
+      MS.tests = MS.tests.filter(t => t.layer !== "10");
+      MS.visuals = MS.visuals.filter(v => v.layer !== "10");
+    // tests/10-export.test.js — PROVIDED. Read a failing test to see what's expected.
+    (function (MS) {
+      const L = "10";
+      const bytes = v => Array.from(v || []);
+      const isBytes = v => Object.prototype.toString.call(v) === "[object Uint8Array]";
+      const ascii = s => Array.from(s, c => c.charCodeAt(0));
+      const u32at = (b, i) => ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0;
+      const u32s = (b, from, count) => Array.from({ length: count }, (_, k) => u32at(b, from + 4 * k));
+      // Pretend encoder output: n chunks of made-up bytes (the file doesn't care what's inside them).
+      const fake = (n, { size = i => 10 + ((i * 7) % 13), keyEvery = 4, duration = 33333 } = {}) => Array.from({ length: n }, (_, i) => ({
+        data: Uint8Array.from({ length: size(i) }, (_, j) => (i * 31 + j * 7 + 1) & 255), key: i % keyEvery === 0, timestamp: i * duration, duration,
+      }));
+      const AVCC = Uint8Array.from([1, 66, 224, 40, 255, 225, 0, 4, 103, 66, 224, 40, 1, 0, 2, 104, 206]);
+      const parse = file => { try { return MS.parseMP4(file); } catch (e) { throw new Error("the file doesn't read back as boxes: " + e.message); } };
+
+      MS.test(L, "u16 writes a number as 2 bytes, biggest first", t => {
+        t.deep(bytes(MS.u16(0x1234)), [0x12, 0x34], "0x1234");
+        t.deep(bytes(MS.u16(65535)), [255, 255], "65535");
+        t.deep(bytes(MS.u16(5)), [0, 5], "5");
+      });
+
+      MS.test(L, "u32 writes a number as 4 bytes, biggest first", t => {
+        t.deep(bytes(MS.u32(0x12345678)), [0x12, 0x34, 0x56, 0x78], "0x12345678");
+        t.deep(bytes(MS.u32(300)), [0, 0, 1, 44], "300");
+        t.deep(bytes(MS.u32(4294967295)), [255, 255, 255, 255], "2³² − 1, the biggest");
+        t.ok(isBytes(MS.u32(1)), "it should return a Uint8Array");
+      });
+
+      MS.test(L, "box: 4 bytes of size (including itself), 4 of type, then the contents", t => {
+        t.deep(bytes(MS.box("free")), [0, 0, 0, 8, ...ascii("free")], "an empty box");
+        t.deep(bytes(MS.box("abcd", [1, 2], MS.u16(3))), [0, 0, 0, 12, ...ascii("abcd"), 1, 2, 0, 3], "contents from a plain array and a Uint8Array, in order");
+        t.ok(isBytes(MS.box("free")), "it should return a Uint8Array");
+      });
+
+      MS.test(L, "box: boxes go inside boxes", t => {
+        const inner = MS.box("in  ", [9]);
+        t.deep(bytes(MS.box("out ", inner, inner)), [0, 0, 0, 26, ...ascii("out "), 0, 0, 0, 9, ...ascii("in  "), 9, 0, 0, 0, 9, ...ascii("in  "), 9], "two boxes in a box");
+      });
+
+      MS.test(L, "fullBox: a box whose contents start with a version byte and 3 bytes of flags", t => {
+        t.deep(bytes(MS.fullBox("tkhd", 0, 3)), [0, 0, 0, 12, ...ascii("tkhd"), 0, 0, 0, 3], "version 0, flags 3");
+        t.deep(bytes(MS.fullBox("abcd", 1, 0x010203, [7])), [0, 0, 0, 13, ...ascii("abcd"), 1, 1, 2, 3, 7], "version 1, flags 0x010203, then the rest");
+      });
+
+      MS.test(L, "stts: how long each sample lasts, with runs of equal durations written once", t => {
+        t.deep(bytes(MS.stts([3000, 3000, 3000])), [0, 0, 0, 24, ...ascii("stts"), 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 11, 184], "three samples of 3000: one entry");
+        const b = MS.stts([3000, 3000, 1500, 3000, 3000]);
+        t.eq(u32at(b, 12), 3, "entry count for 3000, 3000, 1500, 3000, 3000");
+        t.deep(u32s(b, 16, 6), [2, 3000, 1, 1500, 2, 3000], "the entries (count, duration)");
+        t.deep(bytes(MS.stts([])), [0, 0, 0, 16, ...ascii("stts"), 0, 0, 0, 0, 0, 0, 0, 0], "no samples");
+      });
+
+      MS.test(L, "stsz: 0 (sizes differ), the sample count, then every sample's size", t => {
+        const b = MS.stsz([1200, 85, 90]);
+        t.eq(b.length, 32, "size");
+        t.deep(bytes(b.slice(4, 8)), ascii("stsz"), "type");
+        t.deep(u32s(b, 8, 6), [0, 0, 3, 1200, 85, 90], "version and flags, 0, count, sizes");
+      });
+
+      MS.test(L, "stco: the count, then where each chunk starts in the file", t => {
+        const b = MS.stco([48, 1248, 1333]);
+        t.deep(bytes(b.slice(0, 8)), [0, 0, 0, 28, ...ascii("stco")], "size and type");
+        t.deep(u32s(b, 8, 5), [0, 3, 48, 1248, 1333], "version and flags, count, offsets");
+      });
+
+      MS.test(L, "stss: the numbers of the key samples, counting from 1", t => {
+        const b = MS.stss([true, false, false, true, false, true]);
+        t.deep(bytes(b.slice(4, 8)), ascii("stss"), "type");
+        t.deep(u32s(b, 12, 4), [3, 1, 4, 6], "count, then samples 1, 4 and 6");
+        t.eq(MS.stss([false, false]).length, 16, "no key samples: an empty list");
+      });
+
+      const file = (n = 10, opts) => MS.mp4(fake(n, opts), { width: 216, height: 384, description: AVCC });
+
+      MS.test(L, "mp4: an ftyp, then the mdat, then the moov, and nothing else", t => {
+        const f = file();
+        t.ok(isBytes(f), "it should return a Uint8Array");
+        t.deep(parse(f).map(b => b.type), ["ftyp", "mdat", "moov"], "the top-level boxes");
+        t.deep(bytes(MS.findBox(parse(f), "ftyp").body), bytes(MS.MP4.ftyp().slice(8)), "the ftyp is MS.MP4.ftyp()");
+      });
+
+      MS.test(L, "mp4: the mdat holds every chunk's bytes, back to back, in order", t => {
+        const chunks = fake(6), f = MS.mp4(chunks, { width: 216, height: 384, description: AVCC });
+        const all = chunks.flatMap(c => bytes(c.data));
+        t.deep(bytes(MS.findBox(parse(f), "mdat").body), all, "the mdat's contents");
+      });
+
+      MS.test(L, "mp4: the track's boxes nest in the right order", t => {
+        const tree = parse(file());
+        t.deep(MS.findBox(tree, "moov").children.map(b => b.type), ["mvhd", "trak"], "moov");
+        t.deep(MS.findBox(tree, "moov/trak").children.map(b => b.type), ["tkhd", "mdia"], "trak");
+        t.deep(MS.findBox(tree, "moov/trak/mdia").children.map(b => b.type), ["mdhd", "hdlr", "minf"], "mdia");
+        t.deep(MS.findBox(tree, "moov/trak/mdia/minf").children.map(b => b.type), ["vmhd", "dinf", "stbl"], "minf");
+        t.deep(MS.findBox(tree, "moov/trak/mdia/minf/stbl").children.map(b => b.type), ["stsd", "stts", "stsc", "stsz", "stco", "stss"], "stbl");
+      });
+
+      MS.test(L, "mp4: stco points at each chunk's first byte in the file, and stsz gives its size", t => {
+        const chunks = fake(7, { size: i => 20 + i * 3 }), f = MS.mp4(chunks, { width: 216, height: 384, description: AVCC });
+        const stbl = MS.findBox(parse(f), "moov/trak/mdia/minf/stbl");
+        const offsets = u32s(MS.findBox(stbl, "stco").body, 8, 7), sizes = u32s(MS.findBox(stbl, "stsz").body, 12, 7);
+        t.deep(sizes, chunks.map(c => c.data.length), "sizes");
+        chunks.forEach((c, i) => t.deep(bytes(f.slice(offsets[i], offsets[i] + sizes[i])), bytes(c.data), `the bytes at chunk ${i + 1}'s offset`));
+      });
+
+      MS.test(L, "mp4: time is counted in 90000ths of a second, from each chunk's duration", t => {
+        const tree = parse(file(30, { duration: 33333 }));
+        const mdhd = MS.findBox(tree, "moov/trak/mdia/mdhd").body, mvhd = MS.findBox(tree, "moov/mvhd").body;
+        t.deep(u32s(mdhd, 12, 2), [90000, 90000], "mdhd: timescale 90000, duration 30 × 3000 (one second)");
+        t.deep(u32s(mvhd, 12, 2), [1000, 1000], "mvhd: timescale 1000, duration in milliseconds");
+        t.deep(u32s(MS.findBox(tree, "moov/trak/mdia/minf/stbl/stts").body, 4, 3), [1, 30, 3000], "stts: one run of 30 samples of 3000");
+        t.eq(u32at(MS.findBox(tree, "moov/trak/tkhd").body, 20), 1000, "tkhd's duration, in the movie's timescale");
+      });
+
+      MS.test(L, "mp4: key frames in stss, and the encoder's description in the sample description", t => {
+        const tree = parse(file(10, { keyEvery: 4 })), stbl = MS.findBox(tree, "moov/trak/mdia/minf/stbl");
+        t.deep(u32s(MS.findBox(stbl, "stss").body, 4, 4), [3, 1, 5, 9], "key samples 1, 5 and 9");
+        const stsd = MS.findBox(stbl, "stsd").body, tail = bytes(stsd.slice(stsd.length - AVCC.length - 8));
+        t.deep(tail, [0, 0, 0, 8 + AVCC.length, ...ascii("avcC"), ...bytes(AVCC)], "the avcC box at the end of stsd");
+      });
+
+      // ---- pictures ----
+      const KINDS = [["ftyp", [255, 92, 138]], ["mdat", [91, 140, 255]], ["moov", [120, 130, 150]], ["stbl", [234, 240, 250]], ["stsd", [250, 200, 80]]];
+      MS.visual(L, "Every byte of a small MP4 as one pixel: ftyp (pink), mdat (blue), moov (grey), the sample tables (white) and the decoder setup (yellow); white dots mark where key frames start", () => {
+        const chunks = fake(48, { size: i => (i % 12 === 0 ? 140 : 18 + Math.floor(MS.random("size" + i) * 30)), keyEvery: 12 });
+        const f = MS.mp4(chunks, { width: 216, height: 384, description: AVCC }), tree = MS.parseMP4(f);
+        const W = 96, H = Math.ceil(f.length / W), pic = MS.createFrame(W + 4, H + 4);
+        MS.clearFrame(pic, [11, 13, 18]);
+        const paint = (box, color) => { for (let i = box.start; i < box.start + box.size; i++) MS.setPixel(pic, 2 + (i % W), 2 + Math.floor(i / W), color); };
+        const color = t => KINDS.find(k => k[0] === t)[1];
+        for (const t of ["ftyp", "mdat", "moov"]) paint(MS.findBox(tree, t), color(t));
+        paint(MS.findBox(tree, "moov/trak/mdia/minf/stbl"), color("stbl"));
+        paint(MS.findBox(tree, "moov/trak/mdia/minf/stbl/stsd"), color("stsd"));
+        chunks.forEach((c, i) => { if (c.key) { let at = MS.findBox(tree, "mdat").start + 8 + chunks.slice(0, i).reduce((s, x) => s + x.data.length, 0); MS.setPixel(pic, 2 + (at % W), 2 + Math.floor(at / W), [255, 255, 255]); } });
+        return pic;
+      });
+
+      MS.exporter(L, "KineticIntro, ready to export: press Export MP4 (in a browser)", () => MS.kineticIntro(216));
+    })(globalThis.MS = globalThis.MS || {});
+
+      return MS.runLayerReport("10");
+    })();
+    const el10 = document.createElement("div");
+    el10.innerHTML = report10.html;
+    display(el10);
+  </script>
+  <script type="text/markdown">
+    ### Predict, then run
+
+    Guess first, then run.
+
+
+  </script>
+  <script type="module">
+    layer10; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 1: what are the 4 bytes of u32(1000)?
+        const myGuess = null; // TODO: your guess, as [a, b, c, d]
+        MS.reveal("u32(1000)", myGuess, Array.from(MS.u32(1000)));
+      });
+      display(out);
+    }
+  </script>
+  <script type="module">
+    layer10; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 2: 180 frames that all last 3000 ticks. How many bytes is the whole stts box?
+        const myGuess = null; // TODO: your guess
+        MS.reveal("stts bytes", myGuess, MS.stts(new Array(180).fill(3000)).length);
+      });
+      display(out);
+    }
+  </script>
+  <script type="module">
+    layer10; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 3: three chunks of 1000, 200 and 200 bytes. Where in the file does the second one start?
+        const myGuess = null; // TODO: your guess, a byte number
+        const chunks = [1000, 200, 200].map((n, i) => ({ data: new Uint8Array(n), key: i === 0, timestamp: i * 33333, duration: 33333 }));
+        const file = MS.mp4(chunks, { width: 16, height: 16, description: new Uint8Array([1, 66, 0, 30]) });
+        const stco = MS.findBox(MS.parseMP4(file), "moov/trak/mdia/minf/stbl/stco");
+        MS.reveal("the second chunk's offset", myGuess, new DataView(stco.body.buffer, stco.body.byteOffset).getUint32(12));
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    <details><summary>Answers</summary>
+
+    1. [0, 0, 3, 232]. 1000 is 3 × 256 + 232. The two top bytes are 0, and they still have to be there: a u32 is always 4 bytes.
+    2. 24. 8 for the box header, 4 for version and flags, 4 for the entry count, and one entry of 8 bytes: (180, 3000). An hour of 30 fps video would make it exactly the same size.
+    3. 1040. The ftyp is 32 bytes (8 of header, then "isom", a version and four 4-letter brands), the mdat's header is 8 more, and the first chunk is 1000.
+
+    </details>
+
+    ### Break it
+
+    Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.
+
+    #### 1. Little-endian
+
+
+  </script>
+  <script type="module">
+    layer10; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 1: what happens if the bytes are backwards?
+        // TODO(break-it), in src/10-export.js → u32:
+        //   write the smallest byte first.
+        const chunks = [400, 120].map((n, i) => ({ data: new Uint8Array(n), key: i === 0, timestamp: 0, duration: 33333 }));
+        const file = MS.mp4(chunks, { width: 16, height: 16, description: new Uint8Array([1, 66, 0, 30]) });
+        console.log("first 8 bytes: " + Array.from(file.slice(0, 8)).join(" "));
+        try { console.log("boxes: " + MS.parseMP4(file).map(b => b.type).join(", ")); }
+        catch (e) { console.log("can't read it: " + e.message); }
+        // TODO: what size does the first box claim to be after the change? What would a video player do with that?
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    #### 2. Forget the mdat's header
+
+
+  </script>
+  <script type="module">
+    layer10; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 2: what is an offset measured from?
+        // TODO(break-it), in src/10-export.js → mp4:
+        //   start the first chunk's offset at the end of the ftyp, without the mdat's 8 header bytes.
+        const chunks = [[9, 9, 9, 9], [7, 7, 7]].map((b, i) => ({ data: new Uint8Array(b), key: i === 0, timestamp: 0, duration: 33333 }));
+        const file = MS.mp4(chunks, { width: 16, height: 16, description: new Uint8Array([1, 66, 0, 30]) });
+        const stco = MS.findBox(MS.parseMP4(file), "moov/trak/mdia/minf/stbl/stco");
+        const first = new DataView(stco.body.buffer, stco.body.byteOffset).getUint32(8);
+        console.log("chunk 1 is at byte " + first + "; the 4 bytes there are " + Array.from(file.slice(first, first + 4)).join(" "));
+        // TODO: before the change they're 9 9 9 9. After it, what is the player reading instead of the frame?
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    #### 3. Count key frames from 0
+
+
+  </script>
+  <script type="module">
+    layer10; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 3: does it matter where counting starts?
+        // TODO(break-it), in src/10-export.js → stss:
+        //   number the samples from 0 instead of 1.
+        const b = MS.stss([true, false, false, true]);
+        const v = new DataView(b.buffer, b.byteOffset);
+        console.log("stss lists: " + [1, 2].map(i => v.getUint32(12 + 4 * i)).join(", "));
+        // TODO: which frames does a player now think are key frames? What happens when someone seeks to 0:02 and it starts decoding at a frame that isn't one?
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    ### Checkpoint
+
+    When all 15 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, and every dot asks one small question about the bytes of an MP4: a dot that gets a wrong answer flies off its letter. Its traps: numbers whose bytes are all different, numbers past 2¹⁶ and up to 2³² − 1, boxes inside boxes inside boxes, a part that's empty, durations that alternate or run out at the end, empty tables, a single chunk, frames at 24 fps whose durations round, and key frames that aren't the first. The three questions are below.
+
+
+  </script>
+  <script type="module" pinned>
+    layer10; // after your code
+    // Checkpoint 10 · Export. Replace each null with your answer.
+    MS.answers("10", {
+      // 1. How many bytes long is the mvhd box that MS.MP4.mvhd() makes?
+      q1: null,
+      // 2. NTSC video runs at 29.97 fps: each frame lasts 1001 ÷ 30000 of a second.
+      //    How many ticks is that at timescale 90000?
+      q2: null,
+      // 3. KineticIntro has 180 frames, with a key frame every 60 frames starting at the
+      //    first. Which numbers does stss list? Answer as an array.
+      q3: null,
+    });
+    const answers10 = true;
+  </script>
+  <script type="module">
+    answers10; report10; // after your answers and this layer's tests
+    {
+      const cp = MS.runCheckpoint("10", MS.runTests("10"));
+      const el = document.createElement("div");
+      el.innerHTML = MS.checkpointHTML(cp);
+      display(el);
+    }
+  </script>
+  <script type="text/markdown">
+
+    ### In the real world
+
+    You've built, from single pixels up, every piece of a motion-graphics engine. Here's where each one lives in Remotion:
+
+    | You wrote | Layer | In Remotion |
+    |---|---|---|
+    | `createComposition`, `renderFrame` | 03 | [`<Composition>`](https://www.remotion.dev/docs/composition), and each frame a headless Chrome renders |
+    | `frameAt`, `MS.play` | 03 | [`<Player>`](https://www.remotion.dev/docs/player), [`useCurrentFrame()`](https://www.remotion.dev/docs/use-current-frame) |
+    | `interpolate`, `interpolateColors` | 04 | [`interpolate()`](https://www.remotion.dev/docs/interpolate), [`interpolateColors()`](https://www.remotion.dev/docs/interpolate-colors) |
+    | `cubicBezier` | 05 | [`Easing.bezier()`](https://www.remotion.dev/docs/easing) |
+    | `spring` | 06 | [`spring()`](https://www.remotion.dev/docs/spring) |
+    | matrices, `drawTransformed`, `blur` | 07 | CSS `transform` and `filter: blur()`, drawn by Chrome |
+    | `sequence`, `series`, `random`, `textSprite` | 08 | [`<Sequence>`](https://www.remotion.dev/docs/sequence), [`<Series>`](https://www.remotion.dev/docs/series), [`random()`](https://www.remotion.dev/docs/random), web fonts |
+    | `kineticIntro` | 09 | the KineticIntro component itself |
+    | `mp4` | 10 | [`renderMedia()`](https://www.remotion.dev/docs/renderer/render-media), which hands the frames to FFmpeg to encode and package |
+
+    - FFmpeg's `-movflags +faststart` moves the `moov` box to the front after writing, the "fast start" from the chapter.
+    - Files over 4 GB need offsets bigger than a u32 can hold: the `co64` box is `stco` with u64 offsets.
+    - Streaming video (YouTube, Netflix) uses **fragmented MP4**: many small `moof` + `mdat` pairs, each with its own little sample table, so a player can start before the file ends.
+
+    ### Going further (optional)
+
+    - **Read the original.** ISO/IEC 14496-12 is long, but its box definitions are short and regular. Find `stts` and `stss` in it and compare them with your code. Apple's [QuickTime File Format](https://developer.apple.com/documentation/quicktime-file-format) documentation describes the same boxes as "atoms", with diagrams.
+    - Make a fast-start file: build the `moov` first with placeholder offsets, measure it, then fix the offsets. Check it still plays.
+    - Open your exported file in a hex editor (or `xxd` in a terminal) and find the `moov`, the `stss` and your first key frame by hand.
 
   </script>
 </notebook>

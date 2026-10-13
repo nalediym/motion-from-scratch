@@ -78,7 +78,7 @@ function renderer(P) {
     };
     for (const v of MS.visuals.filter(v => v.layer === id)) {
       try {
-        if (v.kind !== "animation") { add(v.fn(), v.name); continue; }
+        if (!MS.moves(v)) { add(v.fn(), v.name); continue; }
         const comp = v.fn(), fig = add(MS.renderFrame(comp, 0), v.name);   // moving pictures play, using the learner's own player code
         MS.play(comp, fig.querySelector("canvas"), Math.max(1, Math.min(5, Math.floor(260 / comp.width))));
       } catch (e) { /* not working yet: skip */ }
