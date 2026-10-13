@@ -34,22 +34,19 @@ function inline(s) {
   return s;
 }
 function tryCell(l, kind, n, codeText) {
-  const title = ((codeText.split("\n").find(x => x.startsWith("// ")) || "").replace(/^\/\/\s*/, ""));
   const label = kind === "predict" ? `Predict ${n}` : `Break it ${n}`;
-  const ask = C.blockAsk(kind, title);
   const rows = Math.min(18, codeText.split("\n").length + 1);
   return `<div class="tryit" data-kind="${kind}" data-layer="${l.id}" data-key="${l.id}-${kind[0]}${n}">
 <textarea class="tryit-code" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="${label} code">${esc(codeText)}</textarea>
-<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button><span class="tryit-ask">Stuck? <a href="${C.claudeLink(l, ask)}" target="_blank" rel="noopener">Ask Claude</a> · <a href="${C.chatgptLink(l, ask)}" target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
 <pre class="tryit-out" hidden></pre>
 </div>`;
 }
 function checkpointCell(l, codeText) {
-  const ask = C.checkpointAsk;
   const rows = Math.min(20, codeText.split("\n").length + 1);
   return `<div class="cpcell" data-layer="${l.id}">
 <textarea class="tryit-code" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint ${l.id} answers">${esc(codeText)}</textarea>
-<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button><span class="tryit-ask">Stuck? <a data-ask-cp="claude" href="${C.claudeLink(l, ask)}" target="_blank" rel="noopener">Ask Claude</a> · <a data-ask-cp="chatgpt" href="${C.chatgptLink(l, ask)}" target="_blank" rel="noopener">Ask ChatGPT</a></span></div>
+<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button></div>
 <div class="cp-result" data-cp-out hidden></div>
 </div>`;
 }
@@ -227,7 +224,6 @@ body { padding-block: 24px 80px; }
 .tryit[data-kind="break"] { border-left-color: var(--key); }
 .tryit-code { width: 100%; resize: vertical; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; tab-size: 2; color: var(--code-ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; white-space: pre; overflow: auto; }
 .tryit-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.tryit-ask { font-size: 0.82rem; color: var(--muted); margin-left: auto; }
 .tryit-out { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .cpcell { border: 2px solid var(--ink); background: var(--paper); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; max-width: 100%; min-width: 0; }
 .cpcell.complete { border-color: var(--pass); }

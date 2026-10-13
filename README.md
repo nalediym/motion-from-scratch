@@ -57,7 +57,7 @@ In a terminal, `node tools/try.js 00` lists a layer's Predict and Break it block
 Stuck? Ask an AI, and it won't do the work for you.
 
 - **Claude Code or Codex:** open this folder in the agent. `CLAUDE.md` and `AGENTS.md` tell it to ask questions first, climb a hint ladder one step at a time, and never write your solution. It can run the tests to see exactly where you are.
-- **Claude.ai or ChatGPT in one click:** each chapter has *Study buddy* callouts placed where they help, and every code cell and checkpoint has its own **Ask Claude · Ask ChatGPT** links. They open a new chat with the tutor rules and that exact question filled in. You need to be signed in. (The links use an unofficial URL format, so they could change.)
+- **Claude.ai or ChatGPT in one click:** each chapter has *Study buddy* callouts placed where they help, and the guide's workbench has **Ask Claude · Ask ChatGPT** links that also send your code and test results. They open a new chat with the tutor rules filled in. You need to be signed in. (The links use an unofficial URL format, so they could change.)
 - **Claude in Chrome:** save the course's tutor text as a `/tutor` shortcut ([setup on the course home](https://nalediym.github.io/motion-from-scratch/#chrome)). On the guide it reads the layer's *What your tutor sees* panel, so there's nothing to paste, and the *Hint level* dots set how far it may go.
 - **Any other chat:** paste the contents of `AGENTS.md` as your first message, then your question and your code.
 

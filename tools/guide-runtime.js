@@ -63,11 +63,6 @@
     sec.querySelectorAll("[data-level]").forEach(b => b.addEventListener("click", () => { store.set("mfs-hint-" + id, b.dataset.level); afterRun(id); }));
     sec.querySelector(".editor").addEventListener("input", () => afterRun(id));
   });
-  document.querySelectorAll(".cpcell").forEach(cell => {
-    const id = cell.dataset.layer;
-    cell.querySelectorAll("[data-ask-cp]").forEach(a => wireAsk(a, () =>
-      linkFor(a.dataset.askCp, id, C.checkpointAsk + (state[id] && state[id].cp ? " Where I am: " + cpLine(state[id].cp) + "." : ""))));
-  });
 
   // ---------- Save progress / Share my engine ----------
   const here = () => location.href.split("#")[0];

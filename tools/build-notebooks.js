@@ -61,21 +61,9 @@ function withCodeCells(l, pushMd, pushBlock, pushCode) {
   }
   if (!inserted) pushCode();
 }
-// One line above each runnable block: study-buddy links for it. The chapter
-// and the block's own comments already say what to do.
-const blockLinks = (l, s) => {
-  const ask = s.kind === "checkpoint" ? C.checkpointAsk : C.blockAsk(s.kind, s.title);
-  return `Stuck? [Ask Claude](${C.claudeLink(l, ask)}) · [Ask ChatGPT](${C.chatgptLink(l, ask)})`;
-};
 const lines = s => s.split("\n").map((x, i, a) => (i < a.length - 1 ? x + "\n" : x)).filter((x, i, a) => !(i === a.length - 1 && x === ""));
 const md = text => ({ cell_type: "markdown", metadata: {}, source: lines(text) });
 const code = (text, extra = {}) => ({ cell_type: "code", metadata: extra, execution_count: null, outputs: [], source: lines(text) });
-// Add a line to the Markdown cell just above, or start a new one.
-const note = (cells, text) => {
-  const last = cells[cells.length - 1];
-  if (last && last.cell_type === "markdown") last.source = lines(last.source.join("").replace(/\s+$/, "") + "\n\n" + text);
-  else cells.push(md(text));
-};
 const writeNb = (file, cells, metadata) => {
   cells = cells.map((c, i) => ({ id: `mfs-${String(i).padStart(3, "0")}`, ...c }));
   fs.writeFileSync(path.join(root, file), JSON.stringify({ cells, metadata, nbformat: 4, nbformat_minor: 5 }, null, 1) + "\n");
@@ -99,7 +87,6 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
     withCodeCells(l,
       text => cells.push(md(text)),
       s => {
-        note(cells, blockLinks(l, s));
         if (s.kind === "checkpoint") {
           cells.push(code(`%%writefile ${f.checkpoint}\n${s.code}\n`));
           cells.push(code(`# Tests + checkpoint for layer ${l.id}\n!node tests/run.js ${l.id}`));
@@ -129,7 +116,6 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
     withCodeCells(l,
       text => cells.push(md(text)),
       s => {
-        note(cells, blockLinks(l, s));
         if (s.kind === "checkpoint") { cells.push(code(s.code)); cells.push(code(`await checkpoint("${l.id}")`)); }
         else cells.push(code(`{ // the braces let you re-run this cell\n${s.code}\n}`));
       },
@@ -162,9 +148,6 @@ def pictures(layer):\n    """Render a layer's test pictures with your code and s
     withCodeCells(l,
       text => parts.push(cell("text/markdown", text)),
       s => {
-        const last = parts[parts.length - 1];
-        if (last.type === "text/markdown") last.body = last.body.replace(/\s+$/, "") + "\n\n" + blockLinks(l, s);
-        else parts.push(cell("text/markdown", blockLinks(l, s)));
         if (s.kind === "checkpoint") {
           parts.push(cell("module", `${name}; // after your code\n${s.code}\nconst answers${l.id} = true;`, " pinned"));
           parts.push(cell("module", `answers${l.id}; report${l.id}; // after your answers and this layer's tests\n{\n  const cp = MS.runCheckpoint("${l.id}", MS.runTests("${l.id}"));\n  const el = document.createElement("div");\n  el.innerHTML = MS.checkpointHTML(cp);\n  display(el);\n}`));
