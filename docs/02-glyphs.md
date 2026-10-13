@@ -6,7 +6,7 @@ _A font is a lookup table from characters to tiny pictures._
 **Check it:** `node tests/run.js 02`, or open `tests.html`
 **Builds on:** layers 00–01 (especially `fillRect`)
 
-KineticIntro is mostly words: **DESIGN.**, **ANIMATE.**, **RENDER.**, then **MOTION·STUDIO**. In this layer you'll draw text using nothing but the rectangles you already have and a font made of `#` and `.` characters. In layer 07 you'll switch to the browser's real fonts, and this layer is how you'll understand what the browser is doing for you.
+KineticIntro is mostly words: **DESIGN.**, **ANIMATE.**, **RENDER.**, then **MOTION·STUDIO**. In this layer you'll draw text using nothing but the rectangles you already have and a font made of `#` and `.` characters. In layer 08 you'll switch to the browser's real fonts, and this layer is how you'll understand what the browser is doing for you.
 
 ## Under the hood
 

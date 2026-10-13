@@ -200,7 +200,7 @@ body { padding-block: 24px 80px; }
   </details>
   <div class="banner" data-progress-banner hidden></div>
   <div class="tabbar">
-    <nav class="tabs" aria-label="Layers"><a class="tab" href="#layer-00" data-layer="00"><span class="num">00</span>Pixels</a><a class="tab" href="#layer-01" data-layer="01"><span class="num">01</span>Shapes & blending</a><a class="tab" href="#layer-02" data-layer="02"><span class="num">02</span>Glyphs</a><a class="tab" href="#layer-03" data-layer="03"><span class="num">03</span>Time</a><a class="tab" href="#layer-04" data-layer="04"><span class="num">04</span>Interpolate</a><a class="tab" href="#layer-05" data-layer="05"><span class="num">05</span>Easing</a><a class="tab" href="#layer-06" data-layer="06"><span class="num">06</span>Springs</a><span class="tab soon">07–10 coming soon</span></nav>
+    <nav class="tabs" aria-label="Layers"><a class="tab" href="#layer-00" data-layer="00"><span class="num">00</span>Pixels</a><a class="tab" href="#layer-01" data-layer="01"><span class="num">01</span>Shapes & blending</a><a class="tab" href="#layer-02" data-layer="02"><span class="num">02</span>Glyphs</a><a class="tab" href="#layer-03" data-layer="03"><span class="num">03</span>Time</a><a class="tab" href="#layer-04" data-layer="04"><span class="num">04</span>Interpolate</a><a class="tab" href="#layer-05" data-layer="05"><span class="num">05</span>Easing</a><a class="tab" href="#layer-06" data-layer="06"><span class="num">06</span>Springs</a><a class="tab" href="#layer-07" data-layer="07"><span class="num">07</span>Transforms & blur</a><span class="tab soon">08–10 coming soon</span></nav>
     <div class="tools">
       <button class="btn ghost tip" type="button" data-save data-tip="Copies a private link with your code and answers. Open it on another device to pick up where you left off. Nothing is uploaded.">Save progress</button>
       <a class="btn ghost tip" data-showcase href="showcase.html" target="_blank" rel="noopener" data-tip="Opens a page that runs your engine and shows what it draws, ready to share. Your checkpoint answers stay private.">Share my engine ↗</a>
@@ -600,7 +600,7 @@ MS.answers("01", {
       <a class="to-bench" href="#bench-02">Open the workbench ↓</a>
     </header>
     <p class="meta"><strong>You'll write:</strong> <code>drawGlyph</code>, <code>measureText</code>, <code>drawText</code> in <code>src/02-glyphs.js</code><br><strong>Builds on:</strong> layers 00–01 (especially <code>fillRect</code>)</p>
-<p>KineticIntro is mostly words: <strong>DESIGN.</strong>, <strong>ANIMATE.</strong>, <strong>RENDER.</strong>, then <strong>MOTION·STUDIO</strong>. In this layer you'll draw text using nothing but the rectangles you already have and a font made of <code>#</code> and <code>.</code> characters. In layer 07 you'll switch to the browser's real fonts, and this layer is how you'll understand what the browser is doing for you.</p>
+<p>KineticIntro is mostly words: <strong>DESIGN.</strong>, <strong>ANIMATE.</strong>, <strong>RENDER.</strong>, then <strong>MOTION·STUDIO</strong>. In this layer you'll draw text using nothing but the rectangles you already have and a font made of <code>#</code> and <code>.</code> characters. In layer 08 you'll switch to the browser's real fonts, and this layer is how you'll understand what the browser is doing for you.</p>
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="two-kinds-of-fonts">Two kinds of fonts</h4>
 <p class="meta"><strong><a href="https://en.wikipedia.org/wiki/Computer_font#Bitmap_fonts" target="_blank" rel="noopener">Bitmap fonts</a></strong> store each character as a grid of on/off pixels. Arcade machines, early terminals and the first Macintosh used them; <a href="https://en.wikipedia.org/wiki/Susan_Kare" target="_blank" rel="noopener">Susan Kare</a> drew the original Mac fonts on graph paper in 1983–84. They're simple and fast, but they only look right at one size.</p>
@@ -1431,6 +1431,217 @@ MS.answers("06", {
     <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send it too.</p><pre data-tutor-text></pre></details>
   </aside>
 </section>
+
+<section class="chapter" id="layer-07" data-layer="07">
+  <div class="read">
+    <header class="ch-head">
+      <span class="eyebrow">Layer 07</span>
+      <h2>Transforms & blur</h2>
+      <p class="lede">A matrix is six numbers that say where everything goes.</p>
+      <a class="to-bench" href="#bench-07">Open the workbench ↓</a>
+    </header>
+    <p class="meta"><strong>You'll write:</strong> <code>translate</code>, <code>scale</code>, <code>rotate</code>, <code>multiply</code>, <code>transformPoint</code>, <code>invert</code>, <code>drawTransformed</code>, <code>boxBlur</code>, <code>blur</code> in <code>src/07-transforms.js</code><br><strong>Builds on:</strong> layers 00–06</p>
+<p>Each word in KineticIntro arrives the same way: it grows from 80% to full size while it sharpens out of a 14-pixel blur, then keeps pushing slowly toward the camera before it blurs away again. In CSS that's two lines, <code>transform: scale(…)</code> and <code>filter: blur(…)</code>, and the browser does the work. In this layer you do the work: matrices that move, scale and turn anything, a way to draw a picture through a matrix without holes or dark edges, and a blur whose cost doesn't depend on how wide it is.</p>
+<h3 data-anchor="under-the-hood">Under the hood</h3>
+<h4 data-anchor="six-numbers-move-everything">Six numbers move everything</h4>
+<p>Moving, scaling, rotating and slanting are all the same kind of operation, an <strong>affine transform</strong>, and six numbers describe any of them. The <a href="https://html.spec.whatwg.org/multipage/canvas.html#transformations" target="_blank" rel="noopener">HTML canvas standard</a> and CSS's <a href="https://www.w3.org/TR/css-transforms-1/#funcdef-transform-matrix" target="_blank" rel="noopener"><code>matrix()</code></a> both write them as <code>a, b, c, d, e, f</code>:</p>
+<pre class="diagram"><code>  ┌ a  c  e ┐   ┌ x ┐        x' = a·x + c·y + e
+  │ b  d  f │ × │ y │        y' = b·x + d·y + f
+  └ 0  0  1 ┘   └ 1 ┘</code></pre>
+<p>The six numbers are easier to read as three arrows. <code>(e, f)</code> is where the origin <code>(0, 0)</code> lands. <code>(a, b)</code> is where one step along x, the point <code>(1, 0)</code>, lands, measured from there; <code>(c, d)</code> is the same for one step along y. Draw those three things and you've drawn the whole transform: every other point follows from them.</p>
+<pre class="diagram"><code>  scale(2, 0.5)                       a slant: c = 0.5, the rest as in scale(1)
+  (1, 0) → (2, 0)                     (1, 0) → (1, 0)
+  (0, 1) → (0, 0.5)                   (0, 1) → (0.5, 1)
+
+  ┌────┐                              ┌────┐          ┌────┐
+  │    │    →    ┌────────┐           │    │    →      ╲    ╲
+  │    │         └────────┘           │    │            ╲    ╲
+  └────┘                              └────┘             └────┘
+                                      (y points down, so the bottom moves right)</code></pre>
+<p>On a screen, y points <strong>down</strong>. A rotation that turns +x toward +y therefore looks clockwise, the opposite of the math textbook picture. Canvas and CSS both work this way.</p>
+<h4 data-anchor="order-matters">Order matters</h4>
+<p>A transform made of steps is one matrix: <strong>multiplying</strong> two matrices gives a single matrix that does both. But which one happens first changes the result. Take the point <code>x = 3</code>:</p>
+<pre class="diagram"><code>  scale by 2, then move right 4:    3 → 6 → 10
+  move right 4, then scale by 2:    3 → 7 → 14</code></pre>
+<p>In <code>multiply(m, n)</code>, <code>n</code> happens first. That reads backwards at first, but it's the same order as function calls: in <code>m(n(p))</code>, n runs first.</p>
+<p>Order is also how you scale around a point other than the origin. <code>scale(1.04)</code> on its own grows everything away from <code>(0, 0)</code>, the top-left corner, so a word in the middle of the screen would drift down and to the right. To grow around the middle, three steps: move the middle to the origin, scale, move it back.</p>
+<h4 data-anchor="drawing-backwards">Drawing backwards</h4>
+<p>To draw a picture through a matrix, the obvious plan is to take every source pixel, move it, and paint it where it lands. Try that with a 3× zoom: neighboring source pixels land 3 pixels apart, and the pixels in between are never painted.</p>
+<pre class="diagram"><code>  forward: each source pixel goes somewhere     backward: each destination pixel asks
+                                                "where did I come from?"
+  █ █ █      →     █ · · █ · · █                █ █ █      ←     █ █ █ █ █ █ █ █ █
+                   · · · · · · ·                                  (every pixel is filled)
+                   holes</code></pre>
+<p>So renderers work <strong>backwards</strong>: for each pixel of the destination, find the point in the source that lands on it, and take the color from there. That needs the matrix that undoes <code>m</code>, its <strong>inverse</strong>. Not every matrix has one. The number <code>a·d − b·c</code> (the <strong>determinant</strong>) says how much the matrix scales areas. When it's 0, the matrix squashes everything onto a line or a point, and there's no way back: many source points land on the same spot.</p>
+<h4 data-anchor="between-the-pixels">Between the pixels</h4>
+<p>The point you find in the source is almost never exactly on a pixel. Pixel <code>(x, y)</code> is a little square from <code>(x, y)</code> to <code>(x + 1, y + 1)</code>, so its center is <code>(x + 0.5, y + 0.5)</code>. A point between centers takes a little of each of the four nearest pixels, more from the nearer ones. That's <strong>bilinear sampling</strong>: blend along x, then along y.</p>
+<pre class="diagram"><code>     center (3.5, 0.5)       center (4.5, 0.5)
+            ●─────────●──────────────────●
+                      ↑ the sample, 30% of the way from left to right
+                         gets 70% of the left pixel and 30% of the right</code></pre>
+<p>Nearest-neighbor sampling (just take the closest pixel) is faster, but edges turn into stairs as a picture rotates, and a slow move jumps a whole pixel at a time. Bilinear sampling lets a picture move by a fraction of a pixel, which matters for slow motion like KineticIntro's 4% push.</p>
+<blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain why drawing through a matrix works backwards, from destination pixels to source points, and what the determinant has to do with it. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2007%20%28Transforms%20%26%20blur%29%3A%20matrices%2C%20resampling%20and%20blur.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20drawing%20through%20a%20matrix%20works%20backwards%2C%20from%20destination%20pixels%20to%20source%20points%2C%20and%20what%20the%20determinant%20has%20to%20do%20with%20it.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2007%20%28Transforms%20%26%20blur%29%3A%20matrices%2C%20resampling%20and%20blur.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20drawing%20through%20a%20matrix%20works%20backwards%2C%20from%20destination%20pixels%20to%20source%20points%2C%20and%20what%20the%20determinant%20has%20to%20do%20with%20it.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
+<h4 data-anchor="edges-without-dark-fringes">Edges without dark fringes</h4>
+<p>Bilinear sampling at the edge of a picture mixes a pixel of the picture with a transparent pixel outside it. Here's the trap from layer 01. A transparent pixel is stored as <code>[0, 0, 0, 0]</code>: "black, invisible". Average a white pixel with it channel by channel, and you get <code>[128, 128, 128, 128]</code>, a half-transparent <strong>grey</strong>. The black that was never visible has leaked in, and every edge gets a dark fringe.</p>
+<pre class="diagram"><code>  straight average                 premultiplied average
+  [255,255,255,255]                color × alpha:  255·255 and 0·0
+  [  0,  0,  0,  0]                alpha:          255 and 0
+  ────────────────── ÷ 2           ─────────────────────────────
+  [128,128,128,128]  grey          alpha 128, color (255·255) ÷ 255 = 255: still white</code></pre>
+<p>The fix is to average <strong>premultiplied</strong> colors: weight each pixel's color by its alpha, so a transparent pixel adds nothing to the color, only to the alpha. Divide by the total alpha at the end to get a plain color back. Browsers keep pixels premultiplied for exactly this reason.</p>
+<h4 data-anchor="a-blur-that-doesn-t-care-how-big-it-is">A blur that doesn't care how big it is</h4>
+<p>The simplest blur is a <strong>box blur</strong>: each pixel becomes the average of the pixels in a box around it. A box of radius <code>r</code> is <code>2r + 1</code> pixels wide. Two tricks make it fast:</p>
+<pre class="diagram"><code>  1. rows, then columns:  blurring every row, then every column, gives the same
+                          result as averaging the whole square, but each pixel
+                          adds up 2·(2r + 1) values instead of (2r + 1)².
+
+  2. a running sum:       moving the box one pixel right changes only its two ends.
+                          ┌───────────┐
+                          │ a b c d e │ f        sum(b…f) = sum(a…e) − a + f
+                          └───────────┘
+                          Two operations per pixel, whether r is 1 or 100.</code></pre>
+<p>Pixels outside the frame count as transparent, so a blur fades a picture out at its edges instead of smearing the edge pixels outward. Average premultiplied, for the same reason as above.</p>
+<h4 data-anchor="three-boxes-make-a-bell">Three boxes make a bell</h4>
+<p>A box blur looks boxy: a single bright dot becomes a flat square. Box-blur that square again and the profile becomes a triangle; a third time and it's a smooth bell, very close to a <strong>Gaussian</strong>. That's the <a href="https://en.wikipedia.org/wiki/Central_limit_theorem" target="_blank" rel="noopener">central limit theorem</a> at work: adding up a few random amounts quickly gives a bell curve.</p>
+<pre class="diagram"><code>  one box        two boxes        three boxes
+  ▁▁████▁▁       ▁▂▄██▄▂▁        ▁▂▅██▅▂▁</code></pre>
+<p>A Gaussian blur's size is its <strong>standard deviation</strong>, σ (sigma), in pixels, and that's what CSS's <a href="https://www.w3.org/TR/filter-effects-1/#funcdef-filter-blur" target="_blank" rel="noopener"><code>blur()</code></a> takes: <code>blur(14px)</code> means σ = 14. To pick <code>r</code> for three boxes, match the spread. A box of radius <code>r</code> has a variance (σ²) of <code>r(r + 1) ÷ 3</code>, and variances add up when blurs are stacked, so three boxes give <code>r(r + 1)</code>. Setting that equal to σ² and solving gives the radius in <code>blur</code>'s spec. For σ = 5 it's <code>round((√101 − 1) ÷ 2)</code> = round(4.52) = 5.</p>
+<h3 data-anchor="your-turn">Your turn</h3>
+<p>Work through <code>src/07-transforms.js</code> top to bottom. Each function's comment is its spec. Some questions to guide you, in order:</p>
+<ol><li><strong>translate and scale.</strong> Using the three arrows, where do <code>(0, 0)</code>, <code>(1, 0)</code> and <code>(0, 1)</code> land for each? What should <code>scale(3)</code> do when there's no second number?</li><li><strong>rotate.</strong> After a quarter turn, where should <code>(1, 0)</code> land? And <code>(0, 1)</code>? What about a turn by any angle: what are the coordinates of a point one step from the origin at that angle?</li><li><strong>transformPoint.</strong> Which of the six numbers multiply x, which multiply y, and which are just added?</li><li><strong>multiply.</strong> If <code>n</code> sends the origin to some point, where does <code>multiply(m, n)</code> send it? Answer the same question for <code>(1, 0)</code> and <code>(0, 1)</code>, and you have all six numbers.</li><li><strong>invert.</strong> What undoes <code>scale(4)</code>? What undoes <code>translate(3, −1)</code>? For any matrix, you have two equations, <code>x' = …</code> and <code>y' = …</code>: can you solve them for x and y? Where does <code>a·d − b·c</code> turn up?</li><li><strong>drawTransformed.</strong> Which point of <code>src</code> lands on the center of dest pixel <code>(2, 5)</code>? Which four src pixels surround that point, and how far is it from each of their centers? Do you need to visit every pixel of dest, or only the ones <code>src</code> can reach?</li><li><strong>boxBlur.</strong> What do you keep in your running sums so a transparent pixel doesn't pull the color toward black? When the box slides by one pixel, which pixel leaves and which arrives?</li><li><strong>blur.</strong> Once <code>boxBlur</code> works, this one is short. Check your radius for σ = 5 against the chapter.</li></ol>
+<p>Run the tests after each function. A failing test tells you exactly what it expected.</p>
+<p>Once it works, the test pictures show one sprite drawn through five different matrices, the same word at four blur sizes, and a word that pushes in out of a blur, then spins away.</p>
+<blockquote class="ask"><strong>Study buddy:</strong> "Give me two transforms, like 'rotate a quarter turn' and 'move right 5', and ask me where a point ends up in each order before I run anything. Keep going until I get the order of multiply right every time. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2007%20%28Transforms%20%26%20blur%29%3A%20matrices%2C%20resampling%20and%20blur.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20two%20transforms%2C%20like%20%27rotate%20a%20quarter%20turn%27%20and%20%27move%20right%205%27%2C%20and%20ask%20me%20where%20a%20point%20ends%20up%20in%20each%20order%20before%20I%20run%20anything.%20Keep%20going%20until%20I%20get%20the%20order%20of%20multiply%20right%20every%20time.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2007%20%28Transforms%20%26%20blur%29%3A%20matrices%2C%20resampling%20and%20blur.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20two%20transforms%2C%20like%20%27rotate%20a%20quarter%20turn%27%20and%20%27move%20right%205%27%2C%20and%20ask%20me%20where%20a%20point%20ends%20up%20in%20each%20order%20before%20I%20run%20anything.%20Keep%20going%20until%20I%20get%20the%20order%20of%20multiply%20right%20every%20time.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
+<h3 data-anchor="predict-then-run">Predict, then run</h3>
+<p>Guess first, then run.</p>
+<div class="tryit" data-kind="predict" data-layer="07" data-key="07-p1">
+<textarea class="tryit-code" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 1 code">// Predict 1: move right 10, then turn a quarter turn (clockwise on screen).
+// Where does the origin (0, 0) end up?
+const myGuess = null; // TODO: your guess, as [x, y]
+const m = MS.multiply(MS.rotate(Math.PI / 2), MS.translate(10, 0));
+MS.reveal("the origin ends up at", myGuess, MS.transformPoint(m, 0, 0).map(v =&gt; Math.round(v * 1e6) / 1e6));</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<div class="tryit" data-kind="predict" data-layer="07" data-key="07-p2">
+<textarea class="tryit-code" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 2 code">// Predict 2: a white line 1 pixel wide and fully opaque (alpha 255), blurred with σ = 2.
+// What's the highest alpha left anywhere in the blurred line?
+const myGuess = null; // TODO: your guess, 0 to 255
+const line = MS.createFrame(21, 21);
+MS.fillRect(line, 10, 0, 1, 21, [255, 255, 255]);
+const blurred = MS.blur(line, 2);
+let highest = 0;
+for (let i = 3; i &lt; blurred.data.length; i += 4) highest = Math.max(highest, blurred.data[i]);
+MS.reveal("the highest alpha", myGuess, highest);</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<div class="tryit" data-kind="predict" data-layer="07" data-key="07-p3">
+<textarea class="tryit-code" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 3 code">// Predict 3: a white square is drawn half a pixel to the right of the pixel grid, onto
+// a transparent frame. Its left edge only half covers a column of pixels. What's the
+// RED value of a pixel in that half-covered column?
+const myGuess = null; // TODO: your guess, 0 to 255
+const square = MS.createFrame(4, 4);
+MS.clearFrame(square, [255, 255, 255]);
+const out = MS.createFrame(8, 6);
+MS.drawTransformed(out, square, MS.translate(2.5, 1));
+MS.reveal("the red value at the edge", myGuess, MS.getPixel(out, 2, 2)[0]);</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<details><summary>Answers</summary>
+<ol><li>[0, 10]. The move happens first, so the origin goes to (10, 0); then the quarter turn swings it from "right" to "down". In the other order the origin would turn first (staying put, because it's the center of the turn) and then move to (10, 0).</li><li>39, about 15% of what it was. A blur doesn't remove any ink, it spreads it: the same total alpha now covers a band about 13 pixels wide, so each pixel gets much less. That's why KineticIntro's blurred words look faint as well as soft.</li><li>255. The pixel is half transparent (alpha 128), but still pure white. Averaged straight, the transparent pixel outside the square would have pulled it to 128, a grey fringe.</li></ol>
+</details>
+<h3 data-anchor="break-it">Break it</h3>
+<p>Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.</p>
+<h4 data-anchor="1-multiply-the-other-way-round">1. Multiply the other way round</h4>
+<div class="tryit" data-kind="break" data-layer="07" data-key="07-b1">
+<textarea class="tryit-code" rows="7" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 1 code">// Break it 1: what does the order inside multiply decide?
+// TODO(break-it), in src/07-transforms.js → multiply:
+//   swap m and n, so it does m first, then n.
+const grow = (cx, cy, s) =&gt; MS.multiply(MS.translate(cx, cy), MS.multiply(MS.scale(s), MS.translate(-cx, -cy)));
+for (const s of [1, 1.5, 2]) console.log("scale " + s + " around (50, 20): the middle goes to " + MS.transformPoint(grow(50, 20, s), 50, 20).join(", "));
+// TODO: before the change, the middle stays put. After it, where does it go, and why does it move more as s grows?</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<h4 data-anchor="2-paint-forwards">2. Paint forwards</h4>
+<div class="tryit" data-kind="break" data-layer="07" data-key="07-b2">
+<textarea class="tryit-code" rows="14" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 2 code">// Break it 2: why draw backwards?
+// TODO(break-it), in src/07-transforms.js → drawTransformed:
+//   instead, loop over src's pixels, move each pixel's center with m, and set the
+//   dest pixel it lands on to that src pixel's color.
+const dot = MS.createFrame(4, 4);
+MS.clearFrame(dot, [255, 255, 255]);
+const out = MS.createFrame(20, 20);
+MS.drawTransformed(out, dot, MS.scale(4));
+let painted = 0;
+for (let y = 0; y &lt; 20; y++) for (let x = 0; x &lt; 20; x++) if (MS.getPixel(out, x, y)[3] &gt; 0) painted++;
+console.log("pixels painted: " + painted);
+console.log(MS.asciiFrame(out));
+// TODO: a 4 × 4 square scaled by 4 should cover 16 × 16 pixels. How many get painted after the change?</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<h4 data-anchor="3-forget-the-alpha">3. Forget the alpha</h4>
+<div class="tryit" data-kind="break" data-layer="07" data-key="07-b3">
+<textarea class="tryit-code" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 3 code">// Break it 3: what is premultiplying for?
+// TODO(break-it), in src/07-transforms.js → boxBlur:
+//   average each channel on its own, ignoring alpha (red is the average of the reds).
+const sign = MS.createFrame(30, 15);
+MS.fillRect(sign, 8, 4, 14, 7, [255, 220, 0]);
+const soft = MS.blur(sign, 2);
+console.log("a pixel just outside the yellow box: " + MS.getPixel(soft, 6, 7).join(", "));
+// TODO: before the change it's yellow and faint. After it, what color is it? Picture it over a white page.</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<h3 data-anchor="checkpoint">Checkpoint</h3>
+<p>When all 18 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, leaning in italics through your own <code>transformPoint</code>. Every dot asks one small question about a rule, and a dot that gets a wrong answer flies off its letter. Its traps: matrices that use all six numbers, rotations past a quarter turn, <code>multiply</code> in both orders, matrices that can't be undone, pictures turned upside down and scaled up, sprites that only half cover a pixel, opacity over a background, blur radii that only just round up or down, and the edges of the frame. The three questions are below.</p>
+<div class="cpcell" data-layer="07">
+<textarea class="tryit-code" rows="15" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint 07 answers">// Checkpoint 07 · Transforms &amp; blur. Replace each null with your answer.
+MS.answers("07", {
+  // 1. KineticIntro's frame is 1080 × 1920. Its words push in to scale 1.04 around the
+  //    middle of the frame, (540, 960). Where does the frame's left edge (x = 0) end up?
+  //    One decimal.
+  q1: null,
+  // 2. KineticIntro blurs its words in from blur(14px). Built from three box blurs, how
+  //    many pixels wide is the area one pixel spreads over? Count every pixel that gets
+  //    any of it, before anything is rounded to whole bytes.
+  q2: null,
+  // 3. m = multiply(translate(100, 50), multiply(rotate(Math.PI / 2), scale(2))).
+  //    Which point does m move to (60, 70)? Answer as [x, y].
+  q3: null,
+});</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button></div>
+<div class="cp-result" data-cp-out hidden></div>
+</div>
+<h3 data-anchor="in-the-real-world">In the real world</h3>
+<ul><li>Canvas keeps one of these matrices as its "current transform": <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/translate" target="_blank" rel="noopener"><code>translate()</code></a>, <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/rotate" target="_blank" rel="noopener"><code>rotate()</code></a> and <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/scale" target="_blank" rel="noopener"><code>scale()</code></a> each multiply it by a new matrix on the right, which is why the last one you call happens to your shapes first. <a href="https://developer.mozilla.org/en-US/docs/Web/API/DOMMatrix" target="_blank" rel="noopener"><code>DOMMatrix</code></a> has the same six numbers as its <code>a</code> to <code>f</code>.</li><li>CSS's <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/transform-origin" target="_blank" rel="noopener"><code>transform-origin</code></a> is the "move to the origin, scale, move back" trick, done for you. Its default is the element's center, which is why KineticIntro's <code>scale()</code> grows words from their middle.</li><li><a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled" target="_blank" rel="noopener"><code>imageSmoothingEnabled</code></a> switches canvas between smooth sampling and nearest-neighbor, and CSS's <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/image-rendering" target="_blank" rel="noopener"><code>image-rendering: pixelated</code></a> does the same for images, which is how this course's pages show your frames with crisp pixels.</li><li>Browsers hand <code>filter: blur()</code> to their graphics library (Chrome's is <a href="https://skia.org/" target="_blank" rel="noopener">Skia</a>), which picks its own fast way to approximate a Gaussian, often on the GPU.</li></ul>
+<h3 data-anchor="going-further-optional">Going further (optional)</h3>
+<ul><li><strong>Read the original.</strong> The Filter Effects spec's <a href="https://www.w3.org/TR/filter-effects-1/#feGaussianBlurElement" target="_blank" rel="noopener"><code>feGaussianBlur</code></a> section gives its own recipe for three box blurs, with a box size chosen a different way, and a special case for even sizes. Work out its box size for σ = 14 and compare the spread with yours.</li><li>Add <code>skew(ax, ay)</code> (CSS has <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/transform-function/skew" target="_blank" rel="noopener"><code>skew()</code></a>) and draw a word leaning by 15°.</li><li>Make <code>drawTransformed</code> faster: when m is only a translation by whole pixels, no sampling is needed at all. How much faster is the third test picture?</li></ul>
+  </div>
+  <aside class="bench" id="bench-07" aria-label="Layer 07 workbench">
+    <div class="bench-head">
+      <span class="num">07</span><strong>Workbench</strong>
+      <span class="score" data-score></span>
+    </div>
+    <p class="bench-note">Your <code>src/07-transforms.js</code>. Edits save in this browser. Runs on top of your earlier layers.</p>
+    <textarea class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" id="editor-07" aria-label="Code for layer 07"></textarea>
+    <div class="bench-actions">
+      <button class="btn" type="button" data-run>Run tests <kbd data-kbd>⌘↵</kbd></button>
+      <button class="btn ghost" type="button" data-copy>Copy</button>
+      <button class="btn ghost" type="button" data-reset>Reset to starter code</button>
+    </div>
+    <p class="bench-confirm" data-confirm hidden>Replace your code with the starter code? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <p class="help">Stuck? <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2007%20%28Transforms%20%26%20blur%29%3A%20matrices%2C%20resampling%20and%20blur.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Ask Claude</a> · <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2007%20%28Transforms%20%26%20blur%29%3A%20matrices%2C%20resampling%20and%20blur.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Ask ChatGPT</a>
+      <span class="level"><span class="tip" tabindex="0" data-tip="How much help a tutor may give you. 1 is questions only; 5 points at the line to look at. The Ask links and Claude in Chrome both follow it.">Hint level</span><span class="dots" role="radiogroup" aria-label="Hint level"><button type="button" role="radio" aria-checked="false" data-level="1" title="1: ask what I expected, what happened and what I've tried" aria-label="Level 1: ask what I expected, what happened and what I've tried"></button><button type="button" role="radio" aria-checked="false" data-level="2" title="2: point at a failing test's expected vs actual values" aria-label="Level 2: point at a failing test's expected vs actual values"></button><button type="button" role="radio" aria-checked="false" data-level="3" title="3: ask a concept question and point to the chapter section" aria-label="Level 3: ask a concept question and point to the chapter section"></button><button type="button" role="radio" aria-checked="false" data-level="4" title="4: explain with an analogy or ASCII diagram, using different numbers" aria-label="Level 4: explain with an analogy or ASCII diagram, using different numbers"></button><button type="button" role="radio" aria-checked="false" data-level="5" title="5: point at the line to look at and ask about it" aria-label="Level 5: point at the line to look at and ask about it"></button></span><span class="level-now" data-hint-level></span></span></p>
+    <div class="bench-error" data-error hidden></div>
+    <ul class="results" data-results></ul>
+    <div class="visuals" data-visuals></div>
+    <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send it too.</p><pre data-tutor-text></pre></details>
+  </aside>
+</section>
 <script type="text/plain" id="lib-course">// lib/course.js — the course map. PROVIDED.
 // Every page and the test runner read this list, so a layer only has to be
 // added here once.
@@ -1446,8 +1657,8 @@ MS.answers("06", {
       { id: "04", slug: "interpolate", title: "Interpolate", builds: "lerp, clamp, ranges, extrapolation", ready: true },
       { id: "05", slug: "easing", title: "Easing", builds: "a cubic-Bézier solver", ready: true },
       { id: "06", slug: "springs", title: "Springs", builds: "physics stepping and stability", ready: true },
-      { id: "07", slug: "canvas", title: "Hand-off to canvas", builds: "transforms, blur, then real fonts on canvas", ready: false },
-      { id: "08", slug: "scenes", title: "Scenes", builds: "sequences, a camera, masks, seeded randomness", ready: false },
+      { id: "07", slug: "transforms", title: "Transforms & blur", builds: "matrices, resampling and blur", ready: true },
+      { id: "08", slug: "scenes", title: "Scenes", builds: "real fonts, sequences, a camera, masks, seeded randomness", ready: false },
       { id: "09", slug: "kinetic-intro", title: "KineticIntro", builds: "the recreation", ready: false },
       { id: "10", slug: "export", title: "Export", builds: "frames to MP4, then map it to Remotion", ready: false },
     ],
@@ -1659,7 +1870,7 @@ MS.answers("06", {
     return strip;
   };
 
-  // A canvas for the browser's 2D drawing API (layer 07 uses it for real
+  // A canvas for the browser's 2D drawing API (layer 08 uses it for real
   // fonts), or null where there isn't one, like Node.
   MS.createCanvas = (w, h) => typeof OffscreenCanvas === "function" ? new OffscreenCanvas(w, h)
     : typeof document !== "undefined" ? Object.assign(document.createElement("canvas"), { width: w, height: h }) : null;
@@ -1986,6 +2197,14 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
         "q1": "fcf0b317",
         "q2": "1615219e",
         "q3": "bdae1b04"
+      }
+    },
+    "07": {
+      "mystery": "2c7e22c3",
+      "questions": {
+        "q1": "03e4b788",
+        "q2": "f4924f9e",
+        "q3": "cb09aa19"
       }
     }
   };
@@ -2476,6 +2695,154 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   });
 })(globalThis.MS = globalThis.MS || {});
 </script>
+<script type="text/plain" id="mystery-07">// lib/mysteries/07-transforms.js — layer 07's checkpoint picture. PROVIDED.
+// A word made of dots, set in italics by your own matrix. Every dot asks one
+// small question about a rule (where a matrix moves a point, the order of
+// multiply, undoing a matrix, which source pixel lands where, soft edges,
+// blur radius...). A dot that gets a wrong answer flies off its letter.
+// Every rule right spells a word.
+// draw() runs the learner's functions; check() says which rule went wrong,
+// never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+(function (MS) {
+  const { shuffle } = MS.mysteryKit;
+  const WORD = "MATRIX", C = 3, M = 6;
+  const close = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
+  const samePt = (p, q) => Array.isArray(p) && close(p[0], q[0]) && close(p[1], q[1]);
+  const samePixel = (p, q, eps = 1) => Array.isArray(p) && q.every((v, i) => close(p[i], v, eps));
+  const frameOf = (w, h, pixels) => { const f = MS.createFrame(w, h); pixels.forEach(([x, y, c]) => MS.setPixel(f, x, y, c)); return f; };
+  const filled = (w, h, color) => { const f = MS.createFrame(w, h); MS.clearFrame(f, color); return f; };
+  const MATS = [[1.5, 0, 0, 0.5, -3, 2], [0, 2, -1, 0, 4, 4], [1, 0.5, -0.25, 1, 0, -6], [-2, 1, 3, 1.5, 7, -1], [0.8, -0.6, 0.6, 0.8, 10, 20]];
+  const POINTS = [[0, 0], [3, -2], [-1.5, 4], [10, 7]];
+
+  // Each probe is [rule, () => true when the learner's functions get it right].
+  const RULES = [
+    { // M: where a matrix moves a point
+      rule: "a matrix [a, b, c, d, e, f] moves (x, y) to (a·x + c·y + e, b·x + d·y + f); scale with one number scales both directions; a positive rotation turns +x toward +y",
+      probes: [
+        () => samePt(MS.transformPoint([1, 2, 3, 4, 5, 6], 1, 1), [9, 12]),
+        () => samePt(MS.transformPoint(MS.translate(-4, 2.5), 1, 1), [-3, 3.5]),
+        () => samePt(MS.transformPoint(MS.scale(1.5), -2, 4), [-3, 6]),
+        () => samePt(MS.transformPoint(MS.scale(2, -1), 3, 3), [6, -3]),
+        () => samePt(MS.transformPoint(MS.rotate(Math.PI), 2, 1), [-2, -1]),
+        () => samePt(MS.transformPoint(MS.rotate(-Math.PI / 2), 0, 3), [3, 0]),
+        () => samePt(MS.transformPoint(MS.rotate(Math.PI / 2), 4, 0), [0, 4]),
+      ],
+    },
+    { // A: multiply's order
+      rule: "multiply(m, n) should move a point exactly as moving it with n, then with m, does",
+      probes: MATS.flatMap((m, i) => POINTS.map(([x, y], j) => () => {
+        const n = MATS[(i + j + 1) % MATS.length], [nx, ny] = MS.transformPoint(n, x, y);
+        return samePt(MS.transformPoint(MS.multiply(m, n), x, y), MS.transformPoint(m, nx, ny));
+      })),
+    },
+    { // T: undoing a matrix
+      rule: "invert(m) should move every point that m moved back to where it started, and give null for a matrix with a·d − b·c = 0",
+      probes: [
+        ...MATS.flatMap(m => POINTS.slice(1).map(([x, y]) => () => { const [u, v] = MS.transformPoint(m, x, y); return samePt(MS.transformPoint(MS.invert(m), u, v), [x, y]); })),
+        () => MS.invert([2, 1, 4, 2, 5, 5]) === null,
+        () => MS.invert(MS.scale(1, 0)) === null,
+      ],
+    },
+    { // R: which source pixel lands where
+      rule: "drawTransformed should color each destination pixel from the source point that m moves onto that pixel's center (x + 0.5, y + 0.5)",
+      probes: (() => {
+        const RED = [220, 30, 30, 255], GRN = [30, 200, 60, 255], BLU = [40, 60, 230, 255], YEL = [240, 220, 20, 255], CYN = [20, 200, 210, 255], MAG = [210, 40, 200, 255];
+        const src = () => frameOf(3, 2, [[0, 0, RED], [1, 0, GRN], [2, 0, BLU], [0, 1, YEL], [1, 1, CYN], [2, 1, MAG]]);
+        const cases = [
+          // a quarter turn: src's 3 × 2 becomes 2 × 3
+          { m: () => MS.multiply(MS.translate(2, 0), MS.rotate(Math.PI / 2)), w: 2, h: 3, want: [[1, 0, RED], [1, 1, GRN], [1, 2, BLU], [0, 0, YEL], [0, 1, CYN], [0, 2, MAG]] },
+          // upside down
+          { m: () => MS.multiply(MS.translate(3, 2), MS.rotate(Math.PI)), w: 3, h: 2, want: [[2, 1, RED], [1, 1, GRN], [0, 1, BLU], [2, 0, YEL], [1, 0, CYN], [0, 0, MAG]] },
+          // twice as big: no dest center lands on a src center, so every pixel is a bilinear mix (the last two are partly off its edge)
+          { m: () => MS.multiply(MS.translate(1, 1), MS.scale(2)), w: 8, h: 6, want: [[2, 2, [176, 108, 45, 255]], [3, 2, [77, 169, 80, 255]], [5, 2, [69, 91, 191, 255]], [2, 3, [182, 179, 60, 255]], [4, 4, [68, 160, 208, 191]], [6, 4, [210, 40, 200, 143]]] },
+        ];
+        return cases.flatMap(c => c.want.map(([x, y, color]) => () => {
+          const dest = MS.createFrame(c.w, c.h);
+          MS.drawTransformed(dest, src(), c.m());
+          return samePixel(MS.getPixel(dest, x, y), color);
+        }));
+      })(),
+    },
+    { // I: soft edges and opacity
+      rule: "where a sprite only partly covers a pixel it should fade without darkening, and opacity scales the sprite's alpha before it's blended",
+      probes: [
+        () => { const d = MS.createFrame(6, 3); MS.drawTransformed(d, filled(3, 1, [255, 255, 255]), MS.translate(1.5, 1)); return samePixel(MS.getPixel(d, 1, 1), [255, 255, 255, 128]); },
+        () => { const d = MS.createFrame(6, 3); MS.drawTransformed(d, filled(3, 1, [255, 255, 255]), MS.translate(1.5, 1)); return samePixel(MS.getPixel(d, 4, 1), [255, 255, 255, 128]); },
+        () => { const d = MS.createFrame(3, 6); MS.drawTransformed(d, filled(1, 2, [255, 200, 0]), MS.translate(1, 2.25)); return samePixel(MS.getPixel(d, 1, 2), [255, 200, 0, 191]); },
+        () => {
+          const d = filled(3, 3, [20, 40, 120]), want = filled(3, 3, [20, 40, 120]);
+          MS.drawTransformed(d, filled(1, 1, [250, 250, 250]), MS.translate(1, 1), 0.4);
+          MS.blendPixel(want, 1, 1, [250, 250, 250, 102]);
+          return samePixel(MS.getPixel(d, 1, 1), MS.getPixel(want, 1, 1));
+        },
+        () => { const d = filled(3, 3, [20, 40, 120]); MS.drawTransformed(d, filled(1, 1, [250, 250, 250]), MS.translate(1, 1), 0.4); return samePixel(MS.getPixel(d, 0, 1), [20, 40, 120, 255], 0); },
+      ],
+    },
+    { // X: blur
+      rule: "blur(σ) is three box blurs of radius round((√(1 + 4σ²) − 1) ÷ 2); each box blur averages premultiplied colors, counts pixels outside the frame as transparent, and returns a new frame",
+      probes: (() => {
+        const art = () => { const f = MS.createFrame(11, 7); MS.fillRect(f, 3, 2, 3, 3, [255, 80, 0]); MS.setPixel(f, 8, 4, [80, 200, 255, 160]); return f; };
+        const three = (f, r) => MS.boxBlur(MS.boxBlur(MS.boxBlur(f, r), r), r);
+        const same = (a, b) => a.data.length === b.data.length && a.data.every((v, i) => v === b.data[i]);
+        return [
+          () => same(MS.blur(art(), 1.1), three(art(), 1)),
+          () => same(MS.blur(art(), 1.6), three(art(), 1)),
+          () => same(MS.blur(art(), 2.2), three(art(), 2)),
+          () => same(MS.blur(art(), 3.3), three(art(), 3)),
+          () => same(MS.blur(art(), 0.3), art()),
+          () => samePixel(MS.getPixel(MS.boxBlur(frameOf(5, 5, [[2, 2, [255, 0, 0]]]), 1), 1, 1).slice(0, 3), [255, 0, 0]),
+          () => samePixel(MS.getPixel(MS.boxBlur(filled(4, 4, [0, 255, 0]), 1), 0, 0), [0, 255, 0, 113]),
+          () => samePixel(MS.getPixel(MS.boxBlur(filled(4, 4, [0, 255, 0]), 1), 1, 0), [0, 255, 0, 170]),
+          () => { const f = art(), before = Array.from(f.data); MS.blur(f, 2); MS.boxBlur(f, 1); return f.data.every((v, i) => v === before[i]); },
+        ];
+      })(),
+    },
+  ];
+
+  const ITALIC = [1, 0, -0.25, 1, 6, 0];   // the word leans right: a shear, then a nudge
+  const OFFSETS = [];
+  for (let dy = -10; dy <= 10; dy++) for (let dx = -10; dx <= 10; dx++) if (Math.abs(dx) + Math.abs(dy) >= 7) OFFSETS.push([dx, dy]);
+  shuffle(OFFSETS, 7);
+  const px = v => Math.floor(v + 0.5 + 1e-7);
+  const STOPS = [[255, 92, 138], [91, 140, 255], [234, 240, 250]];
+
+  MS.mystery("07", {
+    draw() {
+      const W = M * 2 + (WORD.length * 6 - 1) * C + 6, H = M * 2 + 7 * C;
+      const frame = MS.createFrame(W, H);
+      MS.clearFrame(frame, [11, 13, 18]);
+      const wrong = WORD.split("").map(() => new Set()), failed = [];
+      let dot = 0;
+      [...WORD].forEach((ch, j) => {
+        const color = MS.interpolateColors(j, [0, 2.5, 5], STOPS), rules = RULES[j];
+        // Dot k asks probes k, k + dots, k + 2 × dots...; with fewer probes than dots, they repeat.
+        const n = rules.probes.length, dots = MS.FONT_5x7[ch].join("").split("").filter(cell => cell === "#").length;
+        let k = 0;
+        MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
+          if (cell !== "#") return;
+          const gx = M + (j * 6 + c) * C, gy = M + r * C, o = OFFSETS[dot++ % OFFSETS.length];
+          const mine = n >= dots ? rules.probes.filter((p, i) => i % dots === k) : [rules.probes[k % n]];
+          let right = false;
+          try { right = mine.every(p => p() === true); } catch (e) { failed.push(`the ${ch}: ${e.message}`); }
+          if (!right) wrong[j].add(rules.rule);
+          k++;
+          const P = right ? [gx, gy] : [gx + o[0], gy + o[1]];
+          let at = P;
+          try { const q = MS.transformPoint(ITALIC, P[0], P[1]); at = [px(q[0]), px(q[1])]; } catch (e) { failed.push(`leaning the word: ${e.message}`); }
+          MS.fillRect(frame, at[0], at[1], C, C, color);
+        }));
+      });
+      return { frame, wrong: wrong.map(s => s.size), failed: [...new Set(failed)] };
+    },
+    check({ frame, wrong, failed }, data) {
+      const hints = failed.map(msg => `Part of the picture couldn't be drawn (${msg}).`);
+      wrong.forEach((n, j) => { if (n) hints.push(`Some dots of the ${WORD[j]} flew off: ${RULES[j].rule}.`); });
+      const ok = MS.hashFrame(frame) === data.mystery;
+      return { wrong: ok ? 0 : 1, hints };
+    },
+  });
+})(globalThis.MS = globalThis.MS || {});
+</script>
 <script type="text/plain" id="stub-00">// Layer 00 · Pixels — a framebuffer: memory you can see.
 // Read the chapter first (docs/00-pixels.md). Each comment below is a spec; the tests check it.
 //
@@ -2898,6 +3265,106 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   }
 
   Object.assign(MS, { springForce, stepSpring, spring, dampingRatio, settleFrame });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="stub-07">// Layer 07 · Transforms & blur — matrices, resampling and blur.
+// Read the chapter first (docs/07-transforms.md). Each comment below is a spec; the tests check it.
+(function (MS) {
+  // A matrix is an array of six numbers [a, b, c, d, e, f], in the same order
+  // as canvas's setTransform(a, b, c, d, e, f). It moves the point (x, y) to
+  //   x' = a·x + c·y + e
+  //   y' = b·x + d·y + f
+
+  /** The matrix that moves every point by (tx, ty). */
+  function translate(tx, ty) {
+    throw MS.todo("translate");
+  }
+
+  /**
+   * The matrix that scales x by sx and y by sy, around the origin (0, 0).
+   * With one number, it scales both: scale(2) is scale(2, 2).
+   */
+  function scale(sx, sy) {
+    throw MS.todo("scale");
+  }
+
+  /**
+   * The matrix that rotates by `angle` radians around the origin. A positive
+   * angle turns +x toward +y: on a screen, where y points down, that's clockwise.
+   *   rotate(Math.PI / 2) moves (1, 0) to (0, 1).
+   */
+  function rotate(angle) {
+    throw MS.todo("rotate");
+  }
+
+  /**
+   * One matrix that does n first, then m: transforming a point with
+   * multiply(m, n) gives the same point as transforming it with n, then with m.
+   * Return a new array.
+   */
+  function multiply(m, n) {
+    throw MS.todo("multiply");
+  }
+
+  /** Where matrix m moves the point (x, y), as [x', y']. */
+  function transformPoint(m, x, y) {
+    throw MS.todo("transformPoint");
+  }
+
+  /**
+   * The matrix that undoes m: transformPoint(invert(m), ...) moves every point
+   * m moved back where it came from. Some matrices squash every point onto a
+   * line or a single point, like scale(0, 1); they can't be undone, so return
+   * null for them (when a·d − b·c is 0).
+   */
+  function invert(m) {
+    throw MS.todo("invert");
+  }
+
+  /**
+   * Draw the frame `src` onto the frame `dest`, moved by the matrix m (which
+   * maps src's coordinates to dest's), blending over what's already there
+   * with your blendPixel.
+   * - Pixel (x, y) covers the square from (x, y) to (x + 1, y + 1), so its
+   *   center is (x + 0.5, y + 0.5). This is true in both frames.
+   * - Each dest pixel gets the color of src at the point that m moves onto
+   *   that pixel's center. Between pixel centers, blend the four nearest src
+   *   pixels, weighted by how close their centers are (bilinear sampling).
+   *   Pixels outside src count as fully transparent.
+   * - Blend premultiplied: weight each src pixel's color by its alpha as well,
+   *   so transparent pixels fade an edge without darkening it.
+   * - Multiply the sampled alpha by opacity (default 1).
+   * If m can't be inverted, draw nothing. Pixels of dest that src doesn't
+   * reach must not change.
+   */
+  function drawTransformed(dest, src, m, opacity = 1) {
+    throw MS.todo("drawTransformed");
+  }
+
+  /**
+   * Blur a frame with a box of 2r + 1 pixels: first every row, then every
+   * column. Each pixel becomes the average of the pixels in the box centered
+   * on it. Pixels outside the frame count as fully transparent. Average
+   * premultiplied, as in drawTransformed: alpha is the plain average, and the
+   * color is weighted by alpha. r is a whole number.
+   * Return a new frame, and leave `frame` unchanged. boxBlur(frame, 0)
+   * returns an unchanged copy.
+   */
+  function boxBlur(frame, r) {
+    throw MS.todo("boxBlur");
+  }
+
+  /**
+   * A Gaussian blur with standard deviation sigma (in pixels), the way CSS's
+   * filter: blur(sigma px) means it, made from three box blurs in a row,
+   * each of radius r = Math.round((√(1 + 4σ²) − 1) ÷ 2).
+   * Return a new frame, and leave `frame` unchanged.
+   */
+  function blur(frame, sigma) {
+    throw MS.todo("blur");
+  }
+
+  Object.assign(MS, { translate, scale, rotate, multiply, transformPoint, invert, drawTransformed, boxBlur, blur });
 })(globalThis.MS = globalThis.MS || {});
 </script>
 <script type="text/plain" id="test-00">// tests/00-pixels.test.js — PROVIDED. Read a failing test to see what's expected.
@@ -3744,6 +4211,211 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
       });
     },
   }));
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="test-07">// tests/07-transforms.test.js — PROVIDED. Read a failing test to see what's expected.
+(function (MS) {
+  const L = "07";
+  const pt = (m, x, y) => MS.transformPoint(m, x, y);
+  const closePt = (t, got, want, msg) => {
+    t.ok(Array.isArray(got) && got.length === 2, `${msg}: expected [x, y], got ${got}`);
+    t.close(got[0], want[0], 1e-9, msg + " (x)");
+    t.close(got[1], want[1], 1e-9, msg + " (y)");
+  };
+  const closeMatrix = (t, got, want, msg) => {
+    t.ok(Array.isArray(got) && got.length === 6, `${msg}: expected [a, b, c, d, e, f], got ${got}`);
+    want.forEach((w, i) => t.close(got[i], w, 1e-9, `${msg}, entry ${"abcdef"[i]}`));
+  };
+  const closePixel = (t, got, want, msg) => {
+    t.ok(got, `${msg}: no pixel`);
+    want.forEach((w, i) => t.close(got[i], w, 1, `${msg}, ${["red", "green", "blue", "alpha"][i]}`));
+  };
+  const filled = (w, h, color) => { const f = MS.createFrame(w, h); MS.clearFrame(f, color); return f; };
+
+  MS.test(L, "translate moves every point by the same amount", t => {
+    closePt(t, pt(MS.translate(5, -2), 0, 0), [5, -2], "the origin");
+    closePt(t, pt(MS.translate(5, -2), 10, 10), [15, 8], "(10, 10)");
+  });
+
+  MS.test(L, "scale: one number scales both directions, two scale x and y apart", t => {
+    closePt(t, pt(MS.scale(3), 2, -1), [6, -3], "scale(3)");
+    closePt(t, pt(MS.scale(2, 0.5), 4, 4), [8, 2], "scale(2, 0.5)");
+    closePt(t, pt(MS.scale(-1, 1), 7, 3), [-7, 3], "a mirror");
+  });
+
+  MS.test(L, "rotate turns +x toward +y (clockwise on a screen, where y points down)", t => {
+    closePt(t, pt(MS.rotate(Math.PI / 2), 1, 0), [0, 1], "90°: right becomes down");
+    closePt(t, pt(MS.rotate(Math.PI / 2), 0, 1), [-1, 0], "90°: down becomes left");
+    closePt(t, pt(MS.rotate(Math.PI / 6), 10, 0), [10 * Math.cos(Math.PI / 6), 5], "30°");
+  });
+
+  MS.test(L, "transformPoint uses all six numbers in canvas's order", t => {
+    closePt(t, pt([2, 1, -1, 3, 5, 7], 2, 3), [6, 18], "[a, b, c, d, e, f] = [2, 1, -1, 3, 5, 7] at (2, 3)");
+    closePt(t, pt([1, 0, 0, 1, 0, 0], 4, 9), [4, 9], "the identity matrix changes nothing");
+  });
+
+  MS.test(L, "multiply(m, n) does n first, then m", t => {
+    closePt(t, pt(MS.multiply(MS.translate(10, 0), MS.scale(3)), 1, 1), [13, 3], "scale by 3, then move right 10");
+    closePt(t, pt(MS.multiply(MS.scale(3), MS.translate(10, 0)), 1, 1), [33, 3], "move right 10, then scale by 3");
+  });
+
+  MS.test(L, "multiply works for any two matrices", t => {
+    const m = [2, 1, -1, 3, 5, 7], n = [0.5, -2, 4, 1, -3, 6];
+    const [x, y] = pt(n, 1.5, -2);
+    closePt(t, pt(MS.multiply(m, n), 1.5, -2), pt(m, x, y), "one matrix that does n, then m");
+    closeMatrix(t, MS.multiply(m, n), [3, -5.5, 7, 7, -7, 22], "the product");
+  });
+
+  MS.test(L, "invert undoes a matrix", t => {
+    closeMatrix(t, MS.invert(MS.translate(3, 4)), [1, 0, 0, 1, -3, -4], "translate(3, 4)");
+    closeMatrix(t, MS.invert(MS.scale(2, 4)), [0.5, 0, 0, 0.25, 0, 0], "scale(2, 4)");
+    const m = [2, 1, -1, 3, 5, 7], [x, y] = pt(m, -4, 9);
+    closePt(t, pt(MS.invert(m), x, y), [-4, 9], "there and back again");
+  });
+
+  MS.test(L, "invert returns null for a matrix that squashes everything flat", t => {
+    t.eq(MS.invert(MS.scale(0, 1)), null, "scale(0, 1)");
+    t.eq(MS.invert([1, 2, 2, 4, 9, 9]), null, "a matrix whose two columns point the same way");
+  });
+
+  MS.test(L, "drawTransformed: a whole-pixel move copies pixels exactly and leaves the rest alone", t => {
+    const src = MS.createFrame(2, 2);
+    MS.setPixel(src, 0, 0, [255, 0, 0]); MS.setPixel(src, 1, 0, [0, 255, 0]); MS.setPixel(src, 0, 1, [0, 0, 255]); MS.setPixel(src, 1, 1, [255, 255, 0, 128]);
+    const dest = filled(5, 4, [9, 9, 9]);
+    MS.drawTransformed(dest, src, MS.translate(2, 1));
+    t.deep(MS.getPixel(dest, 2, 1), [255, 0, 0, 255], "pixel (2, 1)");
+    t.deep(MS.getPixel(dest, 3, 1), [0, 255, 0, 255], "pixel (3, 1)");
+    t.deep(MS.getPixel(dest, 2, 2), [0, 0, 255, 255], "pixel (2, 2)");
+    t.deep(MS.getPixel(dest, 1, 1), [9, 9, 9, 255], "pixel (1, 1) is outside the copy");
+    t.deep(MS.getPixel(dest, 4, 3), [9, 9, 9, 255], "pixel (4, 3) is outside the copy");
+  });
+
+  MS.test(L, "drawTransformed: a mirror lands every pixel in its mirrored place", t => {
+    const src = MS.createFrame(4, 1);
+    [10, 20, 30, 40].forEach((v, x) => MS.setPixel(src, x, 0, [v, v, v]));
+    const dest = MS.createFrame(4, 1);
+    MS.drawTransformed(dest, src, MS.multiply(MS.translate(4, 0), MS.scale(-1, 1)));
+    t.deep([0, 1, 2, 3].map(x => MS.getPixel(dest, x, 0)[0]), [40, 30, 20, 10], "red channel, left to right");
+  });
+
+  MS.test(L, "drawTransformed: between source pixels it blends the four nearest (bilinear)", t => {
+    const src = MS.createFrame(2, 2);
+    for (const y of [0, 1]) { MS.setPixel(src, 0, y, [200, 0, 0]); MS.setPixel(src, 1, y, [0, 0, 200]); }
+    const dest = MS.createFrame(4, 4);
+    MS.drawTransformed(dest, src, MS.scale(2));
+    closePixel(t, MS.getPixel(dest, 1, 1), [150, 0, 50, 255], "pixel (1, 1): its center is a quarter of the way from red to blue");
+    closePixel(t, MS.getPixel(dest, 2, 1), [50, 0, 150, 255], "pixel (2, 1): three quarters of the way");
+    closePixel(t, MS.getPixel(dest, 0, 1), [200, 0, 0, 191], "pixel (0, 1): a quarter of its sample falls outside the source, which is transparent");
+  });
+
+  MS.test(L, "drawTransformed: transparent neighbors fade the edge without darkening it", t => {
+    const dest = MS.createFrame(5, 4);
+    MS.drawTransformed(dest, filled(2, 2, [255, 255, 255]), MS.translate(1.5, 1));
+    closePixel(t, MS.getPixel(dest, 1, 1), [255, 255, 255, 128], "the left edge, half covered: still white, half transparent");
+    closePixel(t, MS.getPixel(dest, 2, 1), [255, 255, 255, 255], "fully covered");
+    closePixel(t, MS.getPixel(dest, 3, 1), [255, 255, 255, 128], "the right edge");
+  });
+
+  MS.test(L, "drawTransformed: opacity scales the alpha, then it blends over what's there", t => {
+    const dest = filled(4, 4, [0, 0, 100]);
+    MS.drawTransformed(dest, filled(2, 2, [255, 255, 255]), MS.translate(1, 1), 0.25);
+    closePixel(t, MS.getPixel(dest, 1, 1), [64, 64, 139, 255], "a quarter of the way from the background to white");
+    t.deep(MS.getPixel(dest, 0, 0), [0, 0, 100, 255], "outside the copy");
+  });
+
+  MS.test(L, "drawTransformed: a matrix that can't be inverted draws nothing", t => {
+    const dest = filled(3, 3, [9, 9, 9]);
+    MS.drawTransformed(dest, filled(2, 2, [255, 255, 255]), MS.scale(0, 1));
+    t.deep(MS.getPixel(dest, 0, 0), [9, 9, 9, 255], "pixel (0, 0)");
+    t.deep(MS.getPixel(dest, 1, 1), [9, 9, 9, 255], "pixel (1, 1)");
+  });
+
+  MS.test(L, "boxBlur spreads one pixel evenly over a (2r + 1) × (2r + 1) square", t => {
+    const f = MS.createFrame(7, 7);
+    MS.setPixel(f, 3, 3, [255, 0, 0]);
+    const out = MS.boxBlur(f, 1);
+    closePixel(t, MS.getPixel(out, 3, 3), [255, 0, 0, 28], "the center: 1/9 of the alpha");
+    closePixel(t, MS.getPixel(out, 2, 4), [255, 0, 0, 28], "a corner of the square");
+    t.eq(MS.getPixel(out, 1, 3)[3], 0, "outside the square, alpha");
+  });
+
+  MS.test(L, "boxBlur: pixels outside the frame count as transparent", t => {
+    const out = MS.boxBlur(filled(5, 5, [255, 255, 255]), 1);
+    closePixel(t, MS.getPixel(out, 2, 2), [255, 255, 255, 255], "the middle");
+    closePixel(t, MS.getPixel(out, 2, 0), [255, 255, 255, 170], "an edge: 6 of its 9 neighbors are inside");
+    closePixel(t, MS.getPixel(out, 0, 0), [255, 255, 255, 113], "a corner: 4 of 9");
+  });
+
+  MS.test(L, "boxBlur returns a new frame, and r = 0 gives an unchanged copy", t => {
+    const f = MS.createFrame(3, 3);
+    MS.setPixel(f, 1, 1, [10, 20, 30]);
+    const out = MS.boxBlur(f, 1);
+    t.ok(out !== f && out.data !== f.data, "it should return a new frame");
+    t.deep(MS.getPixel(f, 1, 1), [10, 20, 30, 255], "the original is untouched");
+    const copy = MS.boxBlur(f, 0);
+    t.ok(copy !== f && copy.data !== f.data, "r = 0 should still return a new frame");
+    t.deep(copy.data, f.data, "r = 0 changes nothing");
+  });
+
+  MS.test(L, "blur(σ) is three box blurs of radius round((√(1 + 4σ²) − 1) ÷ 2)", t => {
+    const f = MS.createFrame(15, 9);
+    MS.fillRect(f, 5, 3, 4, 2, [255, 200, 0]);
+    MS.setPixel(f, 12, 6, [0, 120, 255, 200]);
+    const three = r => MS.boxBlur(MS.boxBlur(MS.boxBlur(f, r), r), r);
+    t.deep(MS.blur(f, 2.5).data, three(2).data, "σ = 2.5 → r = 2");
+    t.deep(MS.blur(f, 3).data, three(3).data, "σ = 3 → r = 3 (2.54 rounds up)");
+    t.deep(MS.blur(f, 1.2).data, three(1).data, "σ = 1.2 → r = 1 (0.8 rounds up)");
+    t.deep(MS.blur(f, 0.4).data, f.data, "σ = 0.4 → r = 0: nothing changes");
+  });
+
+  // ---- pictures ----
+  const BG = [11, 13, 18], INK = [234, 240, 250, 255], BLUE = [91, 140, 255, 255], DIM = [60, 70, 90];
+  const word = (text, color, size = 1) => {
+    const f = MS.createFrame(MS.measureText(text, size) + 2, 7 * size + 2);
+    MS.drawText(f, text, 1, 1, size, color);
+    return f;
+  };
+  const about = (cx, cy, m) => MS.multiply(MS.translate(cx, cy), MS.multiply(m, MS.translate(-cx, -cy)));
+
+  MS.visual(L, "One sprite through five matrices: moved, scaled 3×, rotated, sheared and mirrored", () => {
+    const s = word("MS", INK), f = MS.createFrame(200, 40);
+    MS.clearFrame(f, BG);
+    const at = (x, m) => MS.multiply(MS.translate(x, 20), MS.multiply(m, MS.translate(-s.width / 2, -s.height / 2)));
+    MS.drawTransformed(f, s, at(16, MS.scale(1)));
+    MS.drawTransformed(f, s, at(54, MS.scale(3)));
+    MS.drawTransformed(f, s, at(100, MS.multiply(MS.rotate(-Math.PI / 6), MS.scale(2.5))));
+    MS.drawTransformed(f, s, at(142, MS.multiply([1, 0, -0.6, 1, 0, 0], MS.scale(2.5))));
+    MS.drawTransformed(f, s, at(182, MS.scale(-2.5, 2.5)));
+    return f;
+  });
+
+  MS.visual(L, "The same word blurred with σ = 0, 1, 2 and 4", () => {
+    const s = word("BLUR", BLUE, 2), pad = 12, f = MS.createFrame(4 * (s.width + 2 * pad), s.height + 2 * pad);
+    MS.clearFrame(f, BG);
+    [0, 1, 2, 4].forEach((sigma, i) => {
+      const big = MS.createFrame(s.width + 2 * pad, s.height + 2 * pad);
+      MS.drawTransformed(big, s, MS.translate(pad, pad));
+      MS.drawTransformed(f, MS.blur(big, sigma), MS.translate(i * big.width, 0));
+    });
+    return f;
+  });
+
+  MS.animation(L, "A word pushing in out of a blur, then spinning away", () => {
+    const s = word("HELLO", INK), W = 120, H = 44, APPLE = MS.cubicBezier(0.16, 1, 0.3, 1);
+    return MS.createComposition({
+      width: W, height: H, fps: 30, durationInFrames: 60,
+      render(frame, n) {
+        MS.clearFrame(frame, BG);
+        const enter = APPLE(MS.clamp(n / 24, 0, 1)), exit = MS.clamp((n - 40) / 20, 0, 1);
+        const big = MS.createFrame(s.width + 16, s.height + 16);
+        MS.drawTransformed(big, s, MS.translate(8, 8));
+        const sprite = MS.blur(big, (1 - enter) * 3);
+        const m = MS.multiply(MS.rotate(exit * Math.PI), MS.scale(MS.lerp(1.6, 3, enter) * (1 - exit)));
+        MS.drawTransformed(frame, sprite, MS.multiply(about(W / 2, H / 2, m), MS.translate(W / 2 - sprite.width / 2, H / 2 - sprite.height / 2)), enter);
+        MS.fillRect(frame, 0, H - 2, W * n / 59, 1, DIM);
+      },
+    });
+  });
 })(globalThis.MS = globalThis.MS || {});
 </script>
 <script>
