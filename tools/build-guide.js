@@ -1,0 +1,281 @@
+#!/usr/bin/env node
+// tools/build-guide.js — builds guide.html from docs/, src/ stubs and tests/.
+// For course maintainers. Run from the repo root:  node tools/build-guide.js
+//
+// Keeps one source of truth: chapters live in docs/*.md, and the guide is
+// generated from them, so the repo and the interactive page never drift.
+const fs = require("fs");
+const path = require("path");
+const vm = require("vm");
+
+const root = path.join(__dirname, "..");
+const read = rel => fs.readFileSync(path.join(root, rel), "utf8");
+
+const ctx = vm.createContext({});
+vm.runInContext(read("lib/course.js"), ctx);
+const COURSE = ctx.MS.COURSE;
+const ready = COURSE.layers.filter(l => l.ready);
+
+// ---------- a small Markdown converter for the subset the chapters use ----------
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function inline(s) {
+  const codes = [];
+  s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(`<code>${esc(c)}</code>`); return `\u0000${codes.length - 1}\u0000`; });
+  s = esc(s);
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, t, u) => {
+    const ext = /^https?:/.test(u);
+    if (!ext && /\.md$/.test(u)) u = "#layer-" + u.slice(0, 2);         // chapter links jump within the guide
+    else if (!ext) u = "https://github.com/nalediym/motion-from-scratch/blob/main/docs/" + u;
+    return `<a href="${u}"${ext ? ' target="_blank" rel="noopener"' : ""}>${t}</a>`;
+  });
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[\s(])_([^_]+)_(?=[\s).,:;!?]|$)/g, "$1<em>$2</em>");
+  s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => codes[+i]);
+  return s;
+}
+function markdown(md) {
+  const lines = md.replace(/\r/g, "").split("\n");
+  const out = [];
+  let i = 0, para = [];
+  const flush = () => { if (para.length) { const meta = para.every(x => x.startsWith("**")); out.push(`<p${meta ? ' class="meta"' : ""}>${para.map(inline).join(meta ? "<br>" : " ")}</p>`); para = []; } };
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/^```/.test(line)) {
+      flush();
+      const lang = line.slice(3).trim();
+      const body = [];
+      i++;
+      while (i < lines.length && !/^```/.test(lines[i])) body.push(lines[i++]);
+      i++;
+      out.push(`<pre class="${lang === "text" ? "diagram" : ""}"><code>${esc(body.join("\n"))}</code></pre>`);
+      continue;
+    }
+    if (/^#{1,3} /.test(line)) {
+      flush();
+      const level = line.match(/^#+/)[0].length;
+      const text = line.replace(/^#+ /, "");
+      if (level === 1) { i++; continue; }                 // the layer title is rendered separately
+      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      out.push(`<h${level + 1} data-anchor="${id}">${inline(text)}</h${level + 1}>`);
+      i++; continue;
+    }
+    if (/^\s*(<details|<\/details>|<summary)/.test(line)) { flush(); out.push(line.replace(/<summary>([^<]*)<\/summary>/, (_, t) => `<summary>${inline(t)}</summary>`)); i++; continue; }
+    if (/^(\d+\.|-) /.test(line)) {
+      flush();
+      const ordered = /^\d+\./.test(line);
+      const items = [];
+      while (i < lines.length && /^(\d+\.|-) /.test(lines[i])) {
+        let item = lines[i].replace(/^(\d+\.|-) /, "");
+        i++;
+        while (i < lines.length && /^ {2,}\S/.test(lines[i])) item += " " + lines[i++].trim();
+        items.push(`<li>${inline(item)}</li>`);
+      }
+      out.push(ordered ? `<ol>${items.join("")}</ol>` : `<ul>${items.join("")}</ul>`);
+      continue;
+    }
+    if (line.trim() === "") { flush(); i++; continue; }
+    para.push(line.trim());
+    i++;
+  }
+  flush();
+  return out.join("\n");
+}
+
+// ---------- assemble ----------
+const chapters = ready.map(l => {
+  const f = COURSE.files(l);
+  const md = read(f.doc);
+  const lede = (md.match(/^_(.+)_\s*$/m) || [, ""])[1];
+  const body = md.replace(/^_(.+)_\s*$/m, "");             // lede rendered in the header
+  return { l, lede, html: markdown(body) };
+});
+
+const embed = (id, text) => `<script type="text/plain" id="${id}">${text.replace(/<\/script/gi, "<\\/script")}</script>`;
+const sources = [
+  embed("lib-course", read("lib/course.js")),
+  embed("lib-font", read("lib/font5x7.js")),
+  embed("lib-check", read("lib/check.js")),
+  embed("lib-present", read("lib/present.js")),
+  ...ready.map(l => embed(`stub-${l.id}`, read(COURSE.files(l).src))),
+  ...ready.map(l => embed(`test-${l.id}`, read(COURSE.files(l).test))),
+].join("\n");
+
+const style = read("lib/style.css");
+const tabs = COURSE.layers.map(l => l.ready
+  ? `<a class="tab" href="#layer-${l.id}" data-layer="${l.id}"><span class="num">${l.id}</span>${l.title}</a>`
+  : `<span class="tab soon" title="Coming soon"><span class="num">${l.id}</span>${l.title}</span>`).join("");
+
+const sections = chapters.map(({ l, lede, html }) => `
+<section class="chapter" id="layer-${l.id}" data-layer="${l.id}">
+  <div class="read">
+    <header class="ch-head">
+      <span class="eyebrow">Layer ${l.id}</span>
+      <h2>${l.title}</h2>
+      <p class="lede">${inline(lede)}</p>
+    </header>
+    ${html}
+  </div>
+  <aside class="bench" aria-label="Layer ${l.id} workbench">
+    <div class="bench-head">
+      <span class="num">${l.id}</span><strong>Workbench</strong>
+      <span class="score" data-score></span>
+    </div>
+    <p class="bench-note">Your <code>src/${l.id}-${l.slug}.js</code>. Edits save in this browser.${l.id !== "00" ? " Runs on top of your earlier layers." : ""}</p>
+    <textarea class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" id="editor-${l.id}" aria-label="Code for layer ${l.id}"></textarea>
+    <div class="bench-actions">
+      <button class="btn" type="button" data-run>Run tests <kbd>⌘↵</kbd></button>
+      <button class="btn ghost" type="button" data-copy>Copy</button>
+      <button class="btn ghost" type="button" data-reset>Reset to stub</button>
+    </div>
+    <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <div class="bench-error" data-error hidden></div>
+    <ul class="results" data-results></ul>
+    <div class="visuals" data-visuals></div>
+  </aside>
+</section>`).join("\n");
+
+const page = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion from Scratch · Guide</title>
+<meta name="description" content="${COURSE.subtitle}. An interactive guide: read each layer, write the code beside it, and run the tests in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,700;112,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=Silkscreen&display=swap">
+<style>
+${style}
+/* ---- guide layout: chapter on the left, workbench on the right ---- */
+body { padding-block: 24px 80px; }
+.top { max-width: 1240px; margin: 0 auto 28px; display: flex; flex-direction: column; gap: 14px; }
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; max-width: 100%; }
+.tab { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 0.85rem; text-decoration: none; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px 4px 4px; }
+.tab .num { font-size: 0.75rem; padding: 1px 6px; }
+.tab.soon { opacity: 0.45; }
+.tab[aria-current="true"] { border-color: var(--key); }
+.chapter { max-width: 1240px; margin: 0 auto 72px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 470px); gap: 36px; align-items: start; scroll-margin-top: 12px; }
+.read { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.read h3 { font-size: 1.4rem; margin-top: 18px; }
+.read h4 { font-family: var(--display); font-stretch: 112%; font-size: 1.05rem; margin: 6px 0 0; }
+.read ul, .read ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; max-width: 66ch; }
+.read pre.diagram { background: transparent; border: 1px dashed var(--line); color: var(--ink); }
+.read details { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; background: var(--paper); max-width: 66ch; }
+.read details > summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
+.read details[open] > summary { margin-bottom: 10px; }
+.read details p, .read details ol { margin-bottom: 8px; }
+.ch-head { display: flex; flex-direction: column; gap: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+.ch-head h2 { font-size: clamp(2rem, 5vw, 2.8rem); }
+.read p.meta { font-size: 0.9rem; color: var(--muted); border-left: 3px solid var(--pencil); padding-left: 12px; }
+.bench { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.bench-head { display: flex; align-items: center; gap: 10px; }
+.bench-note { font-size: 0.82rem; color: var(--muted); }
+.editor { width: 100%; min-height: 340px; resize: vertical; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; tab-size: 2; color: var(--code-ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; white-space: pre; overflow: auto; }
+.bench-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.bench-actions kbd { font-family: var(--mono); font-size: 0.7rem; opacity: 0.7; margin-left: 4px; }
+.bench-confirm { font-size: 0.85rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.bench-error { border: 1px dashed var(--fail); color: var(--fail); font-family: var(--mono); font-size: 0.8rem; padding: 8px 10px; border-radius: 6px; overflow-wrap: anywhere; }
+.bench .visuals canvas { max-width: 100%; }
+@media (max-width: 960px) {
+  .chapter { grid-template-columns: minmax(0, 1fr); }
+  .bench { position: static; max-height: none; }
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="pegbar" aria-hidden="true"><i></i><i></i><i></i></div>
+  <span class="eyebrow">The interactive guide</span>
+  <h1>${COURSE.title}</h1>
+  <p class="lede">${COURSE.subtitle}. Read a layer on the left and write its code on the right. Tests and pictures run in your browser. Prefer your own editor? Clone <a href="https://github.com/nalediym/motion-from-scratch">the repo</a>; it has the same chapters, stubs and tests.</p>
+  <nav class="tabs" aria-label="Layers">${tabs}</nav>
+</div>
+${sections}
+${sources}
+<script>
+(function () {
+  const $ = id => document.getElementById(id).textContent;
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+  const key = id => "mfs-src-" + id;
+  const codeFor = id => {
+    const ed = document.getElementById("editor-" + id);
+    return ed ? ed.value : (store.get(key(id)) ?? $("stub-" + id));
+  };
+  const run = src => new Function(src)();
+  const escH = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const mark = { pass: "✓", fail: "✗", todo: "·" };
+
+  function runLayer(section) {
+    const id = section.dataset.layer;
+    const errBox = section.querySelector("[data-error]");
+    const list = section.querySelector("[data-results]");
+    const vis = section.querySelector("[data-visuals]");
+    errBox.hidden = true; list.innerHTML = ""; vis.innerHTML = "";
+    globalThis.MS = {};
+    ["lib-course", "lib-font", "lib-check", "lib-present"].forEach(s => run($(s)));
+    const layers = MS.COURSE.layers.filter(l => l.ready && l.id <= id);
+    for (const l of layers) {
+      try { run(codeFor(l.id)); }
+      catch (e) {
+        errBox.hidden = false;
+        errBox.textContent = (l.id === id ? "Your code" : "Your layer " + l.id + " code") + " didn't load: " + e.name + ": " + e.message;
+        return;
+      }
+    }
+    run($("test-" + id));
+    const results = MS.runTests(id);
+    const passed = results.filter(r => r.status === "pass").length;
+    section.querySelector("[data-score]").textContent = passed + " / " + results.length;
+    list.innerHTML = results.map(r => '<li class="' + r.status + '"><span class="mark">' + mark[r.status] + "</span><span>" + escH(r.name) + (r.message ? '<span class="msg">' + escH(r.message) + "</span>" : "") + "</span></li>").join("");
+    for (const v of MS.visuals.filter(v => v.layer === id)) {
+      const fig = document.createElement("figure"), cap = document.createElement("figcaption");
+      try {
+        const frame = v.fn();
+        const zoom = Math.max(1, Math.min(5, Math.floor(200 / frame.width)));
+        fig.appendChild(MS.present(frame, document.createElement("canvas"), zoom));
+        cap.textContent = v.name;
+      } catch (e) { cap.innerHTML = "<strong>" + escH(v.name) + "</strong><br>" + (e.todo ? "Waiting on: " : "Error: ") + escH(e.message); }
+      fig.appendChild(cap); vis.appendChild(fig);
+    }
+  }
+
+  document.querySelectorAll(".chapter").forEach(section => {
+    const id = section.dataset.layer;
+    const ed = section.querySelector(".editor");
+    ed.value = store.get(key(id)) ?? $("stub-" + id);
+    ed.addEventListener("input", () => store.set(key(id), ed.value));
+    ed.addEventListener("keydown", e => {
+      if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); ed.setRangeText("  ", ed.selectionStart, ed.selectionEnd, "end"); store.set(key(id), ed.value); }
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); runLayer(section); }
+    });
+    section.querySelector("[data-run]").addEventListener("click", () => runLayer(section));
+    const confirm = section.querySelector("[data-confirm]");
+    section.querySelector("[data-reset]").addEventListener("click", () => { confirm.hidden = false; });
+    section.querySelector("[data-reset-no]").addEventListener("click", () => { confirm.hidden = true; });
+    section.querySelector("[data-reset-yes]").addEventListener("click", () => { ed.value = $("stub-" + id); store.set(key(id), ed.value); confirm.hidden = true; runLayer(section); });
+    section.querySelector("[data-copy]").addEventListener("click", e => {
+      const b = e.currentTarget;
+      const done = ok => { b.textContent = ok ? "Copied" : "Select and copy"; setTimeout(() => (b.textContent = "Copy"), 1500); };
+      try { navigator.clipboard.writeText(ed.value).then(() => done(true), () => { ed.select(); done(false); }); }
+      catch (err) { ed.select(); done(false); }
+    });
+    runLayer(section);
+  });
+
+  // highlight the tab for the chapter in view
+  const tabs = [...document.querySelectorAll(".tab[data-layer]")];
+  const io = new IntersectionObserver(entries => {
+    for (const en of entries) if (en.isIntersecting)
+      tabs.forEach(t => t.setAttribute("aria-current", String(t.dataset.layer === en.target.dataset.layer)));
+  }, { rootMargin: "-40% 0px -55% 0px" });
+  document.querySelectorAll(".chapter").forEach(s => io.observe(s));
+})();
+</script>
+</body>
+</html>
+`;
+fs.writeFileSync(path.join(root, "guide.html"), page);
+console.log(`guide.html: ${ready.length} chapters, ${(page.length / 1024).toFixed(0)} KB`);

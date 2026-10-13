@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion from Scratch · Guide</title>
+<meta name="description" content="How to go from pixels to motion. An interactive guide: read each layer, write the code beside it, and run the tests in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,700;112,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=Silkscreen&display=swap">
+<style>
+/* lib/style.css — the course look: an animator's light table.
+   Backlit graph paper, non-photo-blue pencil, black ink, one magenta
+   registration color used sparingly. PROVIDED. */
+:root {
+  --bg: #e9f0f6; --paper: #f7fafc; --ink: #141b26; --muted: #556275;
+  --line: #c7d5e3; --grid: rgba(47, 127, 209, 0.10);
+  --pencil: #2f7fd1; --key: #d81b5a;
+  --pass: #1d8a5b; --fail: #c93636; --todo: #7d889b;
+  --code-bg: #e3ebf3; --code-ink: #1b2533;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --pixel: "Silkscreen", "IBM Plex Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c131e; --paper: #111a28; --ink: #e5ecf5; --muted: #93a2b8;
+    --line: #233349; --grid: rgba(108, 178, 255, 0.07);
+    --pencil: #6cb2ff; --key: #ff4f86;
+    --pass: #3ccf8e; --fail: #ff6b6b; --todo: #8d99ad;
+    --code-bg: #172234; --code-ink: #d6e0ec; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c131e; --paper: #111a28; --ink: #e5ecf5; --muted: #93a2b8;
+  --line: #233349; --grid: rgba(108, 178, 255, 0.07);
+  --pencil: #6cb2ff; --key: #ff4f86;
+  --pass: #3ccf8e; --fail: #ff6b6b; --todo: #8d99ad;
+  --code-bg: #172234; --code-ink: #d6e0ec; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background-color: var(--bg); color: var(--ink);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  font-family: var(--body); font-size: 17px; line-height: 1.6;
+  padding-inline: 18px; padding-block: 28px 72px;
+}
+.wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; }
+.wrap > * { min-width: 0; }
+h1, h2, h3 { font-family: var(--display); font-stretch: 112%; line-height: 1.05; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2.2rem, 7vw, 3.6rem); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.4rem, 4vw, 1.9rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; max-width: 66ch; }
+a { color: var(--pencil); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--code-bg); color: var(--code-ink); padding: 0.08em 0.35em; border-radius: 4px; }
+pre { margin: 0; font-family: var(--mono); font-size: 13px; line-height: 1.5; background: var(--code-bg); color: var(--code-ink); padding: 14px 16px; border-radius: 6px; overflow-x: auto; max-width: 100%; }
+pre code { background: transparent; color: inherit; padding: 0; font-size: inherit; border-radius: 0; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--key); outline-offset: 2px; }
+
+/* peg bar: the three registration slots on every animator's sheet */
+.pegbar { display: flex; gap: 14px; align-items: center; }
+.pegbar i { display: block; width: 34px; height: 10px; border-radius: 5px; background: var(--paper); border: 1.5px solid var(--line); }
+.pegbar i:nth-child(2) { width: 12px; border-radius: 50%; height: 12px; }
+.eyebrow { font-family: var(--pixel); font-size: 0.8rem; letter-spacing: 0.06em; color: var(--key); text-transform: uppercase; }
+.lede { font-size: 1.15rem; color: var(--muted); }
+
+.sheet { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.layer-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.num { font-family: var(--pixel); font-size: 1rem; color: var(--paper); background: var(--ink); padding: 2px 8px 1px; border-radius: 3px; }
+.score { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+.results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.95rem; }
+.results li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; }
+.results .mark { font-family: var(--mono); font-weight: 600; text-align: center; }
+.results .pass .mark { color: var(--pass); } .results .fail .mark { color: var(--fail); } .results .todo .mark { color: var(--todo); }
+.results .msg { display: block; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); overflow-wrap: anywhere; }
+.results .fail .msg { color: var(--fail); }
+.visuals { display: flex; flex-wrap: wrap; gap: 16px; }
+.visuals figure { margin: 0; display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
+.visuals canvas { image-rendering: pixelated; border: 1px solid var(--line); background: repeating-conic-gradient(var(--line) 0 25%, transparent 0 50%) 0 0 / 12px 12px; max-width: 100%; height: auto; }
+.visuals figcaption { font-size: 0.8rem; color: var(--muted); max-width: 32ch; }
+.pill { font-family: var(--mono); font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.pill.pass { color: var(--pass); } .pill.fail { color: var(--fail); } .pill.todo { color: var(--todo); } .pill.soon { color: var(--muted); }
+.btn { font: inherit; font-weight: 700; font-size: 0.9rem; background: var(--ink); color: var(--paper); border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.banner { border-left: 0; border: 1px dashed var(--key); color: var(--ink); padding: 12px 14px; border-radius: 6px; font-size: 0.95rem; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ---- guide layout: chapter on the left, workbench on the right ---- */
+body { padding-block: 24px 80px; }
+.top { max-width: 1240px; margin: 0 auto 28px; display: flex; flex-direction: column; gap: 14px; }
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; max-width: 100%; }
+.tab { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 0.85rem; text-decoration: none; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px 4px 4px; }
+.tab .num { font-size: 0.75rem; padding: 1px 6px; }
+.tab.soon { opacity: 0.45; }
+.tab[aria-current="true"] { border-color: var(--key); }
+.chapter { max-width: 1240px; margin: 0 auto 72px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 470px); gap: 36px; align-items: start; scroll-margin-top: 12px; }
+.read { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.read h3 { font-size: 1.4rem; margin-top: 18px; }
+.read h4 { font-family: var(--display); font-stretch: 112%; font-size: 1.05rem; margin: 6px 0 0; }
+.read ul, .read ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; max-width: 66ch; }
+.read pre.diagram { background: transparent; border: 1px dashed var(--line); color: var(--ink); }
+.read details { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; background: var(--paper); max-width: 66ch; }
+.read details > summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
+.read details[open] > summary { margin-bottom: 10px; }
+.read details p, .read details ol { margin-bottom: 8px; }
+.ch-head { display: flex; flex-direction: column; gap: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+.ch-head h2 { font-size: clamp(2rem, 5vw, 2.8rem); }
+.read p.meta { font-size: 0.9rem; color: var(--muted); border-left: 3px solid var(--pencil); padding-left: 12px; }
+.bench { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.bench-head { display: flex; align-items: center; gap: 10px; }
+.bench-note { font-size: 0.82rem; color: var(--muted); }
+.editor { width: 100%; min-height: 340px; resize: vertical; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; tab-size: 2; color: var(--code-ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; white-space: pre; overflow: auto; }
+.bench-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.bench-actions kbd { font-family: var(--mono); font-size: 0.7rem; opacity: 0.7; margin-left: 4px; }
+.bench-confirm { font-size: 0.85rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.bench-error { border: 1px dashed var(--fail); color: var(--fail); font-family: var(--mono); font-size: 0.8rem; padding: 8px 10px; border-radius: 6px; overflow-wrap: anywhere; }
+.bench .visuals canvas { max-width: 100%; }
+@media (max-width: 960px) {
+  .chapter { grid-template-columns: minmax(0, 1fr); }
+  .bench { position: static; max-height: none; }
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="pegbar" aria-hidden="true"><i></i><i></i><i></i></div>
+  <span class="eyebrow">The interactive guide</span>
+  <h1>Motion from Scratch</h1>
+  <p class="lede">How to go from pixels to motion. Read a layer on the left and write its code on the right. Tests and pictures run in your browser. Prefer your own editor? Clone <a href="https://github.com/nalediym/motion-from-scratch">the repo</a>; it has the same chapters, stubs and tests.</p>
+  <nav class="tabs" aria-label="Layers"><a class="tab" href="#layer-00" data-layer="00"><span class="num">00</span>Pixels</a><a class="tab" href="#layer-01" data-layer="01"><span class="num">01</span>Shapes & blending</a><a class="tab" href="#layer-02" data-layer="02"><span class="num">02</span>Glyphs</a><span class="tab soon" title="Coming soon"><span class="num">03</span>Time</span><span class="tab soon" title="Coming soon"><span class="num">04</span>Interpolate</span><span class="tab soon" title="Coming soon"><span class="num">05</span>Easing</span><span class="tab soon" title="Coming soon"><span class="num">06</span>Springs</span><span class="tab soon" title="Coming soon"><span class="num">07</span>Hand-off to canvas</span><span class="tab soon" title="Coming soon"><span class="num">08</span>Scenes</span><span class="tab soon" title="Coming soon"><span class="num">09</span>KineticIntro</span><span class="tab soon" title="Coming soon"><span class="num">10</span>Export</span></nav>
+</div>
+
+<section class="chapter" id="layer-00" data-layer="00">
+  <div class="read">
+    <header class="ch-head">
+      <span class="eyebrow">Layer 00</span>
+      <h2>Pixels</h2>
+      <p class="lede">A framebuffer is memory you can see.</p>
+    </header>
+    <p class="meta"><strong>You'll write:</strong> <code>createFrame</code>, <code>pixelIndex</code>, <code>setPixel</code>, <code>getPixel</code>, <code>clearFrame</code> in <code>src/00-pixels.js</code><br><strong>Check it:</strong> <code>node tests/run.js 00</code>, or open <code>tests.html</code><br><strong>Time:</strong> one or two sittings</p>
+<p>Every frame of the KineticIntro you'll build in layer 09 is 1080 × 1920 pixels. Before anything can move, you need somewhere to put those pixels and a way to change them one at a time. That place is called a <strong>framebuffer</strong>, and by the end of this layer you'll have written one.</p>
+<h3 data-anchor="under-the-hood">Under the hood</h3>
+<h4 data-anchor="a-pixel-is-three-or-four-numbers">A pixel is three or four numbers</h4>
+<p>Your screen is a grid of tiny lights. Each one mixes red, green and blue light, and how bright each color glows is a number from 0 (off) to 255 (full). Why 255? Each channel gets one <strong>byte</strong>: 8 bits, which can hold 2⁸ = 256 different values, 0 through 255.</p>
+<pre class="diagram"><code>  [255,   0,   0]  red          [  0,   0,   0]  black (all off)
+  [255, 255, 255]  white        [ 91, 140, 255]  Motion Studio's blue</code></pre>
+<p>A fourth number, <strong>alpha</strong>, says how opaque the pixel is: 255 is solid, 0 is invisible. Alpha doesn't matter yet, but layer 01 is all about it. So one pixel is 4 bytes: <strong>R, G, B, A</strong>.</p>
+<h4 data-anchor="memory-is-one-long-line">Memory is one long line</h4>
+<p>A picture is 2-D, but computer memory is a single long row of bytes. So you have to decide how to lay the grid out in a line. Nearly everything (browsers, image files, GPUs) uses the same answer: <strong>row by row, left to right</strong>, 4 bytes per pixel.</p>
+<p>Here's a frame 4 pixels wide and 3 tall, with each cell showing where that pixel starts in the line:</p>
+<pre class="diagram"><code>            x = 0   x = 1   x = 2   x = 3
+          ┌───────┬───────┬───────┬───────┐
+  y = 0   │   0   │   4   │   8   │  12   │
+          ├───────┼───────┼───────┼───────┤
+  y = 1   │  16   │  20   │  24   │  28   │
+          ├───────┼───────┼───────┼───────┤
+  y = 2   │  32   │  36   │  40   │  44   │
+          └───────┴───────┴───────┴───────┘
+
+  data: [ R G B A  R G B A  R G B A  R G B A | R G B A ... ]
+          └ (0,0) ┘└ (1,0) ┘└ (2,0) ┘└ (3,0) ┘ └ (0,1) ...
+          index 0   index 4   index 8   index 12  index 16</code></pre>
+<p>Look at the numbers for a while before writing <code>pixelIndex</code>. Going one step right adds the same amount each time. Going one step down adds a different, bigger amount. What is each amount, and why? If you can say that out loud, the formula writes itself.</p>
+<h4 data-anchor="why-a-uint8clampedarray">Why a Uint8ClampedArray</h4>
+<p>JavaScript has <strong>typed arrays</strong>: fixed-size blocks of raw numbers, much faster than normal arrays because every slot is the same type. <code>Uint8ClampedArray</code> means:</p>
+<ul><li><strong>Uint8</strong>: each slot is an unsigned 8-bit integer, 0–255. Exactly one channel.</li><li><strong>Clamped</strong>: if you store something out of range, it's pinned to the nearest edge instead of wrapping around. Store 300 and you get 255; store −5 and you get 0; store 127.6 and it rounds to 128.</li></ul>
+<p>The browser uses this exact type for the pixels of a canvas (<code>ImageData.data</code>), which is why you're using it. Compare it with its unclamped cousin <code>Uint8Array</code>, where 300 wraps around to 44 (300 − 256). For colors, wrapping is a disaster: a pixel that should be "a bit brighter than white" would turn nearly black.</p>
+<h4 data-anchor="the-edge-of-the-world">The edge of the world</h4>
+<p>What should happen if someone calls <code>setPixel(frame, 4, 0, ...)</code> on a frame that's 4 pixels wide? There is no column 4. But the index formula will still happily compute a number, and that number lands somewhere real:</p>
+<pre class="diagram"><code>  setPixel(frame, x = 4, y = 0)  on a 4-wide frame
+
+          x = 0   x = 1   x = 2   x = 3   (x = 4?)
+  y = 0   ░░░░░░  ░░░░░░  ░░░░░░  ░░░░░░  ← you meant here
+  y = 1   ██████  ░░░░░░  ░░░░░░  ░░░░░░
+          └─ but the formula points here: (0, 1)</code></pre>
+<p>This "wrap-around" bug is real and common: shapes that hang off the right edge reappear on the left, one row down. Your <code>setPixel</code> must check bounds itself instead of trusting the formula. Later layers will draw things that slide off-screen all the time, so this check is load-bearing.</p>
+<h4 data-anchor="getting-it-on-screen">Getting it on screen</h4>
+<p>Your frame is just numbers in memory. To see it, <code>lib/present.js</code> (provided) copies them into a <code>&lt;canvas&gt;</code>:</p>
+<pre class="diagram"><code>  your frame.data ──► new ImageData(data, w, h) ──► ctx.putImageData(...)
+        (CPU memory)        (browser wrapper)          │
+                                                       ▼
+                     display ◄── GPU ◄── compositor ◄── canvas
+               (refreshes ~60 times a second)</code></pre>
+<p>You don't need to write that part. The important idea is that the screen only ever shows what's in memory, and drawing just means changing numbers.</p>
+<h4 data-anchor="how-big-is-a-frame">How big is a frame?</h4>
+<p>Your final video is 1080 × 1920, 4 bytes per pixel. Work it out before you read on: how many bytes is one frame? How many is 6 seconds at 30 frames per second?</p>
+<details><summary>Answer</summary>
+<p>One frame is 1080 × 1920 × 4 = 8,294,400 bytes, about 8.3 MB. 180 frames is about 1.5 GB. Yet the MP4 you export in layer 10 will be a few megabytes. Hold on to that gap; it's what video compression is for.</p>
+</details>
+<h3 data-anchor="your-turn">Your turn</h3>
+<p>Work through <code>src/00-pixels.js</code> top to bottom. Each function's comment is its spec. Some questions to guide you, in order:</p>
+<ol><li><strong>createFrame.</strong> How many bytes does a <code>width × height</code> frame need? What does a brand-new typed array contain? What counts as a "positive whole number", and is <code>2.5</code> one?</li><li><strong>pixelIndex.</strong> Use the grid above. What do you multiply <code>y</code> by to skip whole rows? Why the final <code>× 4</code>?</li><li><strong>setPixel.</strong> What order do you do things in: round, check bounds, compute index, write? What happens if you compute the index before checking bounds? What should alpha be when the color only has three numbers?</li><li><strong>getPixel.</strong> Why return a *new* array instead of a piece of <code>frame.data</code>? (Hint: what happens if the caller changes it?)</li><li><strong>clearFrame.</strong> You could call <code>setPixel</code> for every pixel. That works. Is there a way that touches <code>frame.data</code> directly with a single loop? Which is faster, and why?</li></ol>
+<p>Run <code>node tests/run.js 00</code> after each function. A failing test tells you exactly which pixel was wrong.</p>
+<h3 data-anchor="predict-then-run">Predict, then run</h3>
+<p>Write your guess down before you check. The point is to notice where your mental model differs from the machine.</p>
+<ol><li><code>createFrame(1080, 1920).data.length</code> is what number?</li><li>You call <code>setPixel(f, 0, 0, [300, -5, 127.6])</code>. What does <code>getPixel(f, 0, 0)</code> return?</li><li>In the browser console, run <code>const a = new Uint8ClampedArray(4); a[1.5] = 200; a</code>. What's in <code>a</code>?</li></ol>
+<details><summary>Answers</summary>
+<ol><li>8,294,400 (1080 × 1920 × 4).</li><li><code>[255, 0, 128, 255]</code>. Clamped, rounded, and alpha filled in.</li><li><code>[0, 0, 0, 0]</code>. A typed array only has whole-number slots, and a write to a fractional index like <code>1.5</code> is silently thrown away: no error, no change. This is why <code>setPixel</code> must round coordinates. Forget it, and drawing at x = 2.5 quietly does nothing.</li></ol>
+<p>Bonus: try <code>a[0] = 127.5; a[1] = 128.5</code>. Both become 128. Clamped arrays round exact halves to the nearest even number ("banker's rounding"), so rounding errors don't all lean the same way.</p>
+</details>
+<h3 data-anchor="break-it">Break it</h3>
+<p>Once your tests pass, break things on purpose and explain what you see. Undo each change afterwards.</p>
+<ol><li><strong>Swap x and y</strong> in <code>pixelIndex</code>. Run the tests, then open <code>tests.html</code> and look at the XOR pattern. Which tests catch it, and what happened to the picture?</li><li><strong>Delete the bounds check</strong> in <code>setPixel</code>. Which test fails? Draw a pixel at <code>(width, 0)</code> and find where it actually landed.</li><li><strong>Replace <code>Uint8ClampedArray</code> with <code>Uint8Array</code></strong> in <code>createFrame</code>. Which test fails, and what number did 300 become?</li></ol>
+<h3 data-anchor="checkpoint">Checkpoint</h3>
+<ul><li><code>node tests/run.js 00</code> shows 11 of 11 passing.</li><li><code>tests.html</code> shows a checkerboard and a blue-and-orange XOR pattern under Layer 00.</li><li>You can explain, without looking, why pixel (3, 2) in a 10-wide frame starts at index 92.</li></ul>
+<h3 data-anchor="in-the-real-world">In the real world</h3>
+<ul><li>The browser's own version of your frame is <a href="https://developer.mozilla.org/en-US/docs/Web/API/ImageData" target="_blank" rel="noopener"><code>ImageData</code></a>. Same layout, same <code>Uint8ClampedArray</code>.</li><li>Video cards keep the image being shown in a region of memory literally called the framebuffer, scanned out to the display many times a second.</li><li>Remotion doesn't touch pixels directly. It draws with the browser, then takes a screenshot of each frame, which is a full framebuffer like yours. You'll see that in layer 10.</li></ul>
+<h3 data-anchor="study-buddy-prompts">Study buddy prompts</h3>
+<p>Paste one of these into Claude Code, Codex or ChatGPT. The repo's <code>CLAUDE.md</code> and <code>AGENTS.md</code> already tell coding agents not to hand you answers.</p>
+<ul><li>"I'm on layer 00 of Motion from Scratch. Don't give me code. Ask me questions until I can explain why the pixel index is (y × width + x) × 4."</li><li>"Here's my setPixel. Don't fix it. Tell me which test case would break it, and let me find the bug."</li><li>"Quiz me on Uint8ClampedArray versus Uint8Array with three predict-the-output questions."</li></ul>
+<h3 data-anchor="going-further-optional">Going further (optional)</h3>
+<ul><li>Write <code>fillFrameFast(frame, color)</code> using <code>Uint32Array</code> over the same buffer (<code>new Uint32Array(frame.data.buffer)</code>) to set a whole pixel in one write. Time it against <code>clearFrame</code> on a 1080 × 1920 frame. Then look up <strong>endianness</strong> to understand why the byte order inside that 32-bit number looks backwards.</li></ul>
+  </div>
+  <aside class="bench" aria-label="Layer 00 workbench">
+    <div class="bench-head">
+      <span class="num">00</span><strong>Workbench</strong>
+      <span class="score" data-score></span>
+    </div>
+    <p class="bench-note">Your <code>src/00-pixels.js</code>. Edits save in this browser.</p>
+    <textarea class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" id="editor-00" aria-label="Code for layer 00"></textarea>
+    <div class="bench-actions">
+      <button class="btn" type="button" data-run>Run tests <kbd>⌘↵</kbd></button>
+      <button class="btn ghost" type="button" data-copy>Copy</button>
+      <button class="btn ghost" type="button" data-reset>Reset to stub</button>
+    </div>
+    <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <div class="bench-error" data-error hidden></div>
+    <ul class="results" data-results></ul>
+    <div class="visuals" data-visuals></div>
+  </aside>
+</section>
+
+<section class="chapter" id="layer-01" data-layer="01">
+  <div class="read">
+    <header class="ch-head">
+      <span class="eyebrow">Layer 01</span>
+      <h2>Shapes & blending</h2>
+      <p class="lede">Deciding which pixels a shape covers, and what happens where shapes overlap.</p>
+    </header>
+    <p class="meta"><strong>You'll write:</strong> <code>hex</code>, <code>blendPixel</code>, <code>fillRect</code>, <code>fillCircle</code>, <code>mixColor</code>, <code>fillVerticalGradient</code>, <code>fillRadialGradient</code> in <code>src/01-shapes.js</code><br><strong>Check it:</strong> <code>node tests/run.js 01</code><br><strong>Builds on:</strong> layer 00</p>
+<p>KineticIntro has a glowing radial background, words that fade in and out, and a light sweep that brightens the logo as it passes. All three are this layer: filling shapes, mixing colors, and <strong>blending</strong> a see-through color over what's already there.</p>
+<h3 data-anchor="under-the-hood">Under the hood</h3>
+<h4 data-anchor="colors-as-text-hex">Colors as text: hex</h4>
+<p>Designers write colors like <code>#5B8CFF</code>. That's three bytes written in base 16 (hexadecimal), two digits each:</p>
+<pre class="diagram"><code>   #  5B   8C   FF
+      │    │    └─ blue  = 0xFF = 15×16 + 15 = 255
+      │    └────── green = 0x8C =  8×16 + 12 = 140
+      └─────────── red   = 0x5B =  5×16 + 11 =  91</code></pre>
+<p>JavaScript can read base-16 text for you (look up <code>parseInt</code>'s second argument). There are two common approaches: cut the string into three 2-character pieces, or read all six digits as one number and pull bytes out of it with bit shifts (<code>&gt;&gt;</code>) and masks (<code>&amp; 255</code>). Either is fine. The second shows you how colors are often packed in memory.</p>
+<h4 data-anchor="rasterizing-which-pixels-does-a-shape-cover">Rasterizing: which pixels does a shape cover?</h4>
+<p>A rectangle from x = 2 to x = 6 is an idea with perfect edges. The screen only has whole pixels. Turning shapes into pixels is called <strong>rasterization</strong>, and the rule almost every renderer uses is: <em>a pixel belongs to the shape if its <strong>center</strong> is inside.</em></p>
+<pre class="diagram"><code>        0     1     2     3     4     5     6     7
+     ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
+     │  ·  │  ·  │  ■  │  ■  │  ■  │  ■  │  ·  │  ·  │   rect x = 2 .. 6
+     └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+                 ↑ centers at 2.5, 3.5, 4.5, 5.5 are inside
+                                         ↑ 6.5 is not</code></pre>
+<p>For rectangles, testing centers is the same as rounding the edges, which is what the spec asks for.</p>
+<p>Notice that the right edge is <strong>exclusive</strong>: a rectangle from 2 to 6 covers 2, 3, 4, 5, and not 6. This "half-open" rule means two rectangles that share an edge (one from 2 to 6, the next from 6 to 9) meet perfectly, with no gap and no pixel painted twice. You'll see why that matters in <strong>Break it</strong>.</p>
+<h4 data-anchor="circles-distance-from-the-center">Circles: distance from the center</h4>
+<p>A pixel is inside a circle if its center is no farther than <code>r</code> from the circle's center. That's Pythagoras: <code>dx² + dy² ≤ r²</code>. (You can skip the square root by comparing squared distances. Why does that give the same answer?)</p>
+<pre class="diagram"><code>          · · · · · · · · ·
+          · · · ■ ■ ■ · · ·         every ■ passes  dx² + dy² ≤ r²
+          · · ■ ■ ■ ■ ■ · ·
+          · · ■ ■ ● ■ ■ · ·         ● = center
+          · · ■ ■ ■ ■ ■ · ·
+          · · · ■ ■ ■ · · ·         ┌─────────┐  only test pixels
+          · · · · · · · · ·         └─────────┘  inside this box</code></pre>
+<p>You *could* test every pixel in the frame. For a small circle on a 1080 × 1920 frame that's 2 million tests to draw maybe 300 pixels. Instead, only visit the circle's <strong>bounding box</strong>: from <code>cx − r</code> to <code>cx + r</code> in each direction.</p>
+<p>Jagged edges like these are called <strong>aliasing</strong>. Real renderers soften them with <strong>antialiasing</strong>: a pixel that's 40% covered gets 40% of the color. See <strong>Going further</strong>.</p>
+<h4 data-anchor="alpha-blending-painting-with-see-through-paint">Alpha blending: painting with see-through paint</h4>
+<p>Here's the big one. When you paint a half-transparent red over a blue pixel, the result is a mix. When you paint it over an empty, fully transparent pixel, it should still be red, just see-through.</p>
+<p>This was worked out in 1984 by Thomas Porter and Tom Duff at Lucasfilm, in a paper called "Compositing Digital Images". It's how film effects layered spaceships over backgrounds, and how every browser layers one element over another. Their "over" operation, with alphas written as 0 to 1:</p>
+<pre class="diagram"><code>  a = alpha of the new color (source)     b = alpha of the existing pixel (destination)
+
+  outAlpha = a + b × (1 − a)
+  outRGB   = ( newRGB × a  +  oldRGB × b × (1 − a) ) / outAlpha</code></pre>
+<p>Read it as coverage. The new paint covers fraction <code>a</code> of the pixel. Of what's left, <code>(1 − a)</code>, the old pixel covers fraction <code>b</code>. The color is the average of the two, weighted by how much each one covers. The <strong>divide by outAlpha</strong> turns "amount of light" back into "color".</p>
+<pre class="diagram"><code>  50% red over opaque blue:              50% red over nothing:
+  outAlpha = 0.5 + 1 × 0.5 = 1           outAlpha = 0.5 + 0 = 0.5
+  red  = (255×0.5 + 0) / 1   ≈ 128       red  = (255×0.5) / 0.5 = 255   ← still pure red
+  blue = (0 + 255×1×0.5) / 1 ≈ 127       alpha = 0.5 → 128</code></pre>
+<p>Colors stored this way are called <strong>straight alpha</strong>. Many renderers store colors already multiplied by alpha instead (<strong>premultiplied alpha</strong>), because then the formula needs no division. That choice has consequences, which you'll explore below.</p>
+<h4 data-anchor="gradients-one-color-per-position">Gradients: one color per position</h4>
+<p>A gradient answers one question per pixel: <em>how far along am I, from 0 to 1?</em> Then it mixes the two colors by that amount:</p>
+<pre class="diagram"><code>  mixColor(a, b, t) = a + (b − a) × t      (for each of R, G, B and A)
+
+  t = 0          t = 0.25        t = 0.5         t = 0.75        t = 1
+  ██ a           ██              ██ halfway      ██              ██ b</code></pre>
+<p>A vertical gradient gets <code>t</code> from the row. A radial gradient gets <code>t</code> from distance to a center point. Dividing each axis by its own radius (<code>rx</code>, <code>ry</code>) stretches the circle into an ellipse.</p>
+<p>That's exactly what CSS does. KineticIntro's background is written in CSS as:</p>
+<pre class="diagram"><code>  radial-gradient(70% 60% at 50% 38%, #1A2740, #0B0D12)
+                  └rx  ry┘   └cx  cy┘   inner     outer
+  on a 1080 × 1920 frame:  rx = 756   ry = 1152   cx = 540   cy = 729.6</code></pre>
+<p>When your tests pass, <code>tests.html</code> draws that exact background. It's the first real piece of the recreation.</p>
+<h3 data-anchor="your-turn">Your turn</h3>
+<ol><li><strong>hex.</strong> What should happen with <code>"#FFF"</code>, <code>"blue"</code>, or <code>"#12345G"</code>? A regular expression like <code>/^#?[0-9a-f]{6}$/i</code> is one way to check. Can you explain each part of it?</li><li><strong>blendPixel.</strong> Turn both alphas into 0–1 first. Handle the case where <code>outAlpha</code> is 0. What would dividing by 0 put in the pixel?</li><li><strong>fillRect.</strong> Round the four edges, then clip them to the frame *before* looping. Why is clipping first better than letting <code>blendPixel</code> ignore off-screen pixels?</li><li><strong>fillCircle.</strong> Compute the bounding box, clip it, then test each pixel's center.</li><li><strong>mixColor, fillVerticalGradient, fillRadialGradient.</strong> Where is the middle of row <code>y</code>? Why sample there instead of at its top edge?</li></ol>
+<h3 data-anchor="predict-then-run">Predict, then run</h3>
+<ol><li>How many pixels does <code>fillRect(f, 0.4, 0, 2, 1, c)</code> cover? And <code>fillRect(f, 0.6, 0, 2, 1, c)</code>?</li><li>A circle of radius 5 centered on a pixel center. The area of a circle is πr² ≈ 78.5. How many pixels will be filled?</li><li><code>[255, 0, 0, 128]</code> blended onto <code>[0, 0, 0, 0]</code>. What are the four numbers afterwards?</li></ol>
+<details><summary>Answers</summary>
+<ol><li>Two each. Edges 0 → 2, and 1 → 3.</li><li>81. Close to 78.5 but not equal: pixels are all-or-nothing, so the count wobbles around the true area.</li><li><code>[255, 0, 0, 128]</code>. The color stays pure red; only the alpha says "half there".</li></ol>
+</details>
+<h3 data-anchor="break-it">Break it</h3>
+<ol><li><strong>Forget the division.</strong> Remove <code>/ outAlpha</code> from <code>blendPixel</code>. Which tests fail? Blend 50% red onto a transparent pixel and look at the result: it's dark red, <code>[128, 0, 0, 128]</code>. When that pixel is later layered over something bright, it shows up as a dark fringe. Dark halos around cut-out images are this exact bug, in real software.</li><li><strong>Make the right edge inclusive.</strong> Change <code>fillRect</code> so it covers <code>right</code> too. Then draw two half-transparent rectangles side by side, one from 0 to 10 and the next from 10 to 20. Look closely at x = 10. What happened, and why does it look like a seam?</li><li><strong>Skip the bounding box.</strong> Make <code>fillCircle</code> loop over the whole frame. Time drawing 1,000 small circles on a 1080 × 1920 frame, before and after, with <code>console.time</code>.</li></ol>
+<h3 data-anchor="checkpoint">Checkpoint</h3>
+<ul><li><code>node tests/run.js 01</code> shows 17 of 17 passing.</li><li><code>tests.html</code> shows overlapping blended shapes, and a tall dark-blue glowing background. That background is KineticIntro's.</li><li>You can explain why half-transparent red over nothing stays red.</li></ul>
+<h3 data-anchor="in-the-real-world">In the real world</h3>
+<ul><li>Canvas's <code>globalAlpha</code> and CSS <code>opacity</code> both use Porter–Duff "over".</li><li>Browsers usually keep pixels premultiplied internally. That's why a canvas pixel with very low alpha can come back from <code>getImageData</code> with slightly different colors than you put in: precision was lost in the multiply and divide.</li><li>Motion Studio's <code>KineticIntro.tsx</code> paints its background with the CSS gradient above, then adds a second radial glow and a dark vignette on top. Those are three layers blended "over" each other, which you can now do by hand.</li></ul>
+<h3 data-anchor="study-buddy-prompts">Study buddy prompts</h3>
+<ul><li>"I'm on layer 01 of Motion from Scratch. Without giving me code, walk me through Porter–Duff 'over' by asking me what should happen in three cases I can check by hand."</li><li>"Ask me to predict which pixels fillRect(1.5, 0, 2, 1) covers, then tell me whether my reasoning (not just my answer) was right."</li><li>"Explain straight versus premultiplied alpha with an analogy, then give me a break-it experiment that shows the difference."</li></ul>
+<h3 data-anchor="going-further-optional">Going further (optional)</h3>
+<ul><li><strong>Antialiased circles.</strong> Instead of in-or-out, use coverage <code>clamp(r − distance + 0.5, 0, 1)</code> and multiply it into the color's alpha before blending. Compare the edges at scale in <code>tests.html</code>.</li><li><strong>Premultiplied mode.</strong> Write <code>blendPremultiplied</code> where colors are stored already multiplied by alpha. Show that the formula no longer needs a division, and find which test values it can't reproduce exactly after 8-bit rounding.</li></ul>
+  </div>
+  <aside class="bench" aria-label="Layer 01 workbench">
+    <div class="bench-head">
+      <span class="num">01</span><strong>Workbench</strong>
+      <span class="score" data-score></span>
+    </div>
+    <p class="bench-note">Your <code>src/01-shapes.js</code>. Edits save in this browser. Runs on top of your earlier layers.</p>
+    <textarea class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" id="editor-01" aria-label="Code for layer 01"></textarea>
+    <div class="bench-actions">
+      <button class="btn" type="button" data-run>Run tests <kbd>⌘↵</kbd></button>
+      <button class="btn ghost" type="button" data-copy>Copy</button>
+      <button class="btn ghost" type="button" data-reset>Reset to stub</button>
+    </div>
+    <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <div class="bench-error" data-error hidden></div>
+    <ul class="results" data-results></ul>
+    <div class="visuals" data-visuals></div>
+  </aside>
+</section>
+
+<section class="chapter" id="layer-02" data-layer="02">
+  <div class="read">
+    <header class="ch-head">
+      <span class="eyebrow">Layer 02</span>
+      <h2>Glyphs</h2>
+      <p class="lede">A font is a lookup table from characters to tiny pictures.</p>
+    </header>
+    <p class="meta"><strong>You'll write:</strong> <code>drawGlyph</code>, <code>measureText</code>, <code>drawText</code> in <code>src/02-glyphs.js</code><br><strong>Check it:</strong> <code>node tests/run.js 02</code><br><strong>Builds on:</strong> layers 00–01 (especially <code>fillRect</code>)</p>
+<p>KineticIntro is mostly words: <strong>DESIGN.</strong>, <strong>ANIMATE.</strong>, <strong>RENDER.</strong>, then <strong>MOTION·STUDIO</strong>. In this layer you'll draw text using nothing but the rectangles you already have and a font made of <code>#</code> and <code>.</code> characters. In layer 07 you'll switch to the browser's real fonts, and this layer is how you'll understand what the browser is doing for you.</p>
+<h3 data-anchor="under-the-hood">Under the hood</h3>
+<h4 data-anchor="two-kinds-of-fonts">Two kinds of fonts</h4>
+<p class="meta"><strong>Bitmap fonts</strong> store each character as a grid of on/off pixels. Arcade machines, early terminals, and the first Macintosh used them; Susan Kare drew the original Mac fonts on graph paper in 1983–84. They're simple and fast, but they only look right at one size.</p>
+<p class="meta"><strong>Outline fonts</strong> (TrueType, OpenType) store each character as curves, so they can be drawn at any size. Drawing one means rasterizing the curves into pixels with antialiasing, which is the "which pixels does this shape cover?" problem from layer 01, done very well. That's what the browser does when you write <code>font-size: 150px</code>.</p>
+<p>You're building a bitmap font renderer because it shows the whole pipeline with no magic: <em>character → lookup → grid → pixels</em>.</p>
+<h4 data-anchor="the-font-file">The font file</h4>
+<p><code>lib/font5x7.js</code> is the font. Every glyph is 7 rows of 5 cells:</p>
+<pre class="diagram"><code>   MS.FONT_5x7.N  =               drawn at scale 3:
+   [ "#...#",                     ■■■         ■■■
+     "##..#",                     ■■■■■■      ■■■
+     "#.#.#",                     ■■■   ■■■   ■■■
+     "#..##",          ──►        ■■■      ■■■■■■
+     "#...#",                     ■■■         ■■■
+     "#...#",                     ■■■         ■■■
+     "#...#" ]                    ■■■         ■■■
+                                  (each # becomes a 3 × 3 block)</code></pre>
+<p>Reading it is a nested loop: for each row <code>r</code>, for each column <code>c</code>, if the cell is <code>#</code>, fill a <code>scale × scale</code> square at <code>(x + c × scale, y + r × scale)</code>. Scaling by repeating each pixel as a block like this is called <strong>nearest-neighbor</strong> scaling. It's why pixel art stays crisp.</p>
+<h4 data-anchor="laying-out-a-line">Laying out a line</h4>
+<p>Text layout is the job of deciding where each glyph goes. Ours is the simplest possible version:</p>
+<pre class="diagram"><code>   x                                                    one glyph = 5 cells
+   │◄─ 5 ─►│◄1►│◄─ 5 ─►│◄1►│◄─ 5 ─►│                    tracking  = gap between glyphs
+   ┌───────┐   ┌───────┐   ┌───────┐
+   │   H   │   │   I   │   │   !   │                    width = 3 × 5 + 2 × 1 = 17 cells
+   └───────┘   └───────┘   └───────┘                          (× scale for pixels)
+   ◄──────────── measureText = 17 ───────────►</code></pre>
+<ul><li><strong>Advance</strong> is how far you move right after each glyph: its width plus the tracking.</li><li><strong>Tracking</strong> is uniform extra space between all letters. (Kerning, which tightens specific pairs like "AV", is a different thing. Our font skips it.)</li><li>Notice that tracking only goes *between* glyphs. The last glyph doesn't get a gap after it.</li></ul>
+<p class="meta"><strong>Alignment needs measuring first.</strong> To center text on <code>x</code>, you need its total width before drawing the first glyph, so the left edge is <code>x − width / 2</code>. Real layout engines work in the same two passes: measure everything, then place everything. KineticIntro centers every word, so you'll use this constantly.</p>
+<h4 data-anchor="characters-are-trickier-than-they-look">Characters are trickier than they look</h4>
+<ul><li><strong>Case.</strong> The font has only uppercase. Mapping <code>"g"</code> to <code>"G"</code> is a tiny case of what real fonts do with <strong>fallback</strong>: when the font lacks a character, find a substitute.</li><li><strong>Missing characters.</strong> When there's no substitute, show <strong>tofu</strong>: an empty box. (Google's font family Noto is named for "no more tofu".) Tofu is ugly on purpose. It tells you something is missing instead of silently skipping it.</li><li><strong>What counts as one character?</strong> <code>"MOTION·STUDIO"</code> has 13 characters, and <code>·</code> is one of them. But try <code>"👋".length</code> in the console: it says 2. JavaScript strings count 16-bit units, and many emoji take two. <code>for (const ch of text)</code> and <code>[...text]</code> walk real characters. A plain <code>for (let i = 0; i &lt; text.length; i++)</code> splits that emoji in half. Pick your loop carefully.</li></ul>
+<h4 data-anchor="sizing-for-the-real-video">Sizing for the real video</h4>
+<p>KineticIntro sets its words at a font size of 150 px in a 1080 px wide frame. Font size is the height of the font's whole design box, not of a capital letter. In Inter, the font it uses, capitals are about 73% of that, so roughly 110 px tall. Our capitals are 7 cells tall, so a scale of about 16 matches. Can <strong>ANIMATE.</strong> fit across 1080 pixels at scale 16 with tracking 1? How large can the scale get before it doesn't? Work it out with <code>measureText</code> once it passes.</p>
+<h3 data-anchor="your-turn">Your turn</h3>
+<ol><li><strong>measureText.</strong> Start here: it's pure arithmetic and has the clearest tests. What should it return for the empty string? For one glyph?</li><li><strong>drawGlyph.</strong> Look up the glyph (uppercase first). If it's missing, draw tofu, the outer ring of the 5 × 7 grid. Otherwise loop rows and columns and fill the <code>#</code> cells with <code>fillRect</code>.</li><li><strong>drawText.</strong> Measure once, work out the starting x from <code>align</code>, then walk the characters, advancing by one glyph plus tracking each time. Spaces advance without drawing.</li></ol>
+<h3 data-anchor="predict-then-run">Predict, then run</h3>
+<ol><li>How wide is <code>"DESIGN."</code> at scale 4 with tracking 1?</li><li>What does <code>drawGlyph(f, "Ä", 0, 0, 1, white)</code> draw?</li><li><code>drawText(f, "II", 20, 0, 1, white, { align: "center" })</code>: the width is 11, so the left edge is 14.5. Which pixel column gets the first ink, and why that one?</li></ol>
+<details><summary>Answers</summary>
+<ol><li>164 pixels: 7 glyphs × 5 cells × 4, plus 6 gaps × 1 × 4.</li><li>Tofu. "Ä" isn't in the font, and uppercasing it doesn't help.</li><li>Column 15. Your <code>fillRect</code> rounds edges, and <code>round(14.5)</code> is 15. Text lands on whole pixels, just like rectangles.</li></ol>
+</details>
+<h3 data-anchor="break-it">Break it</h3>
+<ol><li><strong>Put tracking after every glyph</strong>, including the last, in <code>measureText</code>. Which tests fail? Center a word and look: it drifts right by half a gap. Real UI text that looks "slightly off-center" is often this bug.</li><li><strong>Loop by index.</strong> Change <code>drawText</code> to <code>for (let i = 0; i &lt; text.length; i++)</code> and draw <code>"HI 👋"</code>. How many tofu boxes appear for the one emoji, and why?</li><li><strong>Skip the uppercase step.</strong> Draw <code>"Design."</code>. What appears?</li></ol>
+<h3 data-anchor="checkpoint">Checkpoint</h3>
+<ul><li><code>node tests/run.js 02</code> shows 11 of 11 passing.</li><li><code>tests.html</code> shows <strong>DESIGN.</strong> in big pixel letters, plus an alignment test with a pink center line and one tofu box.</li><li>You can explain why centering text needs <code>measureText</code> before the first glyph is drawn.</li></ul>
+<h3 data-anchor="in-the-real-world">In the real world</h3>
+<ul><li>Canvas's <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/measureText" target="_blank" rel="noopener"><code>measureText</code></a> and <code>textAlign</code> do what you just did, for outline fonts, with kerning and shaping on top.</li><li>Text shaping engines like HarfBuzz handle what our font ignores: kerning, ligatures, scripts that join letters, and right-to-left text.</li><li>In Motion Studio's <code>KineticIntro.tsx</code>, each word is centered with flexbox and drawn by the browser at a 150 px font size. In layer 07 you'll switch to real fonts too, so you can compare your pixel version with the browser's directly.</li></ul>
+<h3 data-anchor="study-buddy-prompts">Study buddy prompts</h3>
+<ul><li>"I'm on layer 02 of Motion from Scratch. Ask me questions until I can explain the difference between advance, tracking and kerning. No code."</li><li>"Here's my measureText. Don't fix it; give me one input where it's wrong and let me work out why."</li><li>"Explain how outline fonts get rasterized, connecting it to the pixel-center rule I learned in layer 01."</li></ul>
+<h3 data-anchor="going-further-optional">Going further (optional)</h3>
+<ul><li><strong>Design your own glyphs.</strong> Add lowercase letters or symbols to a copy of the font. What's the smallest grid where lowercase "g" still has a readable descender?</li><li><strong>Outlines.</strong> Draw text with a 1-cell dark outline by drawing it shifted in 8 directions, then on top. Count how many <code>fillRect</code> calls that costs, and think about why real renderers don't do it this way.</li></ul>
+  </div>
+  <aside class="bench" aria-label="Layer 02 workbench">
+    <div class="bench-head">
+      <span class="num">02</span><strong>Workbench</strong>
+      <span class="score" data-score></span>
+    </div>
+    <p class="bench-note">Your <code>src/02-glyphs.js</code>. Edits save in this browser. Runs on top of your earlier layers.</p>
+    <textarea class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" id="editor-02" aria-label="Code for layer 02"></textarea>
+    <div class="bench-actions">
+      <button class="btn" type="button" data-run>Run tests <kbd>⌘↵</kbd></button>
+      <button class="btn ghost" type="button" data-copy>Copy</button>
+      <button class="btn ghost" type="button" data-reset>Reset to stub</button>
+    </div>
+    <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <div class="bench-error" data-error hidden></div>
+    <ul class="results" data-results></ul>
+    <div class="visuals" data-visuals></div>
+  </aside>
+</section>
+<script type="text/plain" id="lib-course">// lib/course.js — the course map. PROVIDED.
+// Every page and the test runner read this list, so a layer only has to be
+// added here once.
+(function (MS) {
+  MS.COURSE = {
+    title: "Motion from Scratch",
+    subtitle: "How to go from pixels to motion",
+    layers: [
+      { id: "00", slug: "pixels", title: "Pixels", builds: "a framebuffer: memory you can see", ready: true },
+      { id: "01", slug: "shapes", title: "Shapes & blending", builds: "rectangles, circles, alpha, gradients", ready: true },
+      { id: "02", slug: "glyphs", title: "Glyphs", builds: "text from a hand-made bitmap font", ready: true },
+      { id: "03", slug: "time", title: "Time", builds: "frame = f(n) and a player that keeps time", ready: false },
+      { id: "04", slug: "interpolate", title: "Interpolate", builds: "lerp, clamp, ranges, extrapolation", ready: false },
+      { id: "05", slug: "easing", title: "Easing", builds: "a cubic-Bézier solver", ready: false },
+      { id: "06", slug: "springs", title: "Springs", builds: "physics stepping and stability", ready: false },
+      { id: "07", slug: "canvas", title: "Hand-off to canvas", builds: "transforms, blur, then real fonts on canvas", ready: false },
+      { id: "08", slug: "scenes", title: "Scenes", builds: "sequences, a camera, masks, seeded randomness", ready: false },
+      { id: "09", slug: "kinetic-intro", title: "KineticIntro", builds: "the recreation", ready: false },
+      { id: "10", slug: "export", title: "Export", builds: "frames to MP4, then map it to Remotion", ready: false },
+    ],
+  };
+  MS.COURSE.files = function (layer) {
+    const base = `${layer.id}-${layer.slug}`;
+    return { src: `src/${base}.js`, test: `tests/${base}.test.js`, doc: `docs/${base}.md` };
+  };
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="lib-font">// lib/font5x7.js — a 5×7 bitmap font. PROVIDED: you don't edit this file.
+//
+// Every glyph is 7 rows of 5 characters. "#" = ink, "." = empty.
+// This is the same idea early computers and arcade machines used: a font is
+// just a lookup table from a character to a tiny grid of on/off pixels.
+//
+//   "A" ->  .###.      row 0
+//           #...#      row 1
+//           #...#      row 2
+//           #####      row 3
+//           #...#      row 4
+//           #...#      row 5
+//           #...#      row 6
+//
+// Only uppercase letters exist. Layer 02 asks you to handle lowercase input.
+(function (MS) {
+  const g = (...rows) => rows;
+  MS.FONT_5x7 = {
+    A: g(".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"),
+    B: g("####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."),
+    C: g(".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."),
+    D: g("####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."),
+    E: g("#####", "#....", "#....", "####.", "#....", "#....", "#####"),
+    F: g("#####", "#....", "#....", "####.", "#....", "#....", "#...."),
+    G: g(".###.", "#...#", "#....", "#.###", "#...#", "#...#", ".####"),
+    H: g("#...#", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"),
+    I: g("#####", "..#..", "..#..", "..#..", "..#..", "..#..", "#####"),
+    J: g("..###", "...#.", "...#.", "...#.", "...#.", "#..#.", ".##.."),
+    K: g("#...#", "#..#.", "#.#..", "##...", "#.#..", "#..#.", "#...#"),
+    L: g("#....", "#....", "#....", "#....", "#....", "#....", "#####"),
+    M: g("#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#"),
+    N: g("#...#", "##..#", "#.#.#", "#..##", "#...#", "#...#", "#...#"),
+    O: g(".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."),
+    P: g("####.", "#...#", "#...#", "####.", "#....", "#....", "#...."),
+    Q: g(".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#"),
+    R: g("####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"),
+    S: g(".####", "#....", "#....", ".###.", "....#", "....#", "####."),
+    T: g("#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."),
+    U: g("#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."),
+    V: g("#...#", "#...#", "#...#", "#...#", "#...#", ".#.#.", "..#.."),
+    W: g("#...#", "#...#", "#...#", "#.#.#", "#.#.#", "##.##", "#...#"),
+    X: g("#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "#...#"),
+    Y: g("#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."),
+    Z: g("#####", "....#", "...#.", "..#..", ".#...", "#....", "#####"),
+    0: g(".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."),
+    1: g("..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###."),
+    2: g(".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"),
+    3: g("####.", "....#", "....#", ".###.", "....#", "....#", "####."),
+    4: g("...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#."),
+    5: g("#####", "#....", "####.", "....#", "....#", "#...#", ".###."),
+    6: g(".###.", "#....", "#....", "####.", "#...#", "#...#", ".###."),
+    7: g("#####", "....#", "...#.", "..#..", ".#...", ".#...", ".#..."),
+    8: g(".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###."),
+    9: g(".###.", "#...#", "#...#", ".####", "....#", "....#", ".###."),
+    ".": g(".....", ".....", ".....", ".....", ".....", ".##..", ".##.."),
+    ",": g(".....", ".....", ".....", ".....", ".##..", "..#..", ".#..."),
+    "!": g("..#..", "..#..", "..#..", "..#..", "..#..", ".....", "..#.."),
+    "?": g(".###.", "#...#", "....#", "...#.", "..#..", ".....", "..#.."),
+    "-": g(".....", ".....", ".....", "#####", ".....", ".....", "....."),
+    ":": g(".....", ".##..", ".##..", ".....", ".##..", ".##..", "....."),
+    "'": g("..#..", "..#..", ".#...", ".....", ".....", ".....", "....."),
+    "/": g("....#", "...#.", "...#.", "..#..", ".#...", ".#...", "#...."),
+    "(": g("...#.", "..#..", ".#...", ".#...", ".#...", "..#..", "...#."),
+    ")": g(".#...", "..#..", "...#.", "...#.", "...#.", "..#..", ".#..."),
+    "+": g(".....", "..#..", "..#..", "#####", "..#..", "..#..", "....."),
+    "=": g(".....", ".....", "#####", ".....", "#####", ".....", "....."),
+    "·": g(".....", ".....", ".....", ".##..", ".##..", ".....", "....."),
+    " ": g(".....", ".....", ".....", ".....", ".....", ".....", "....."),
+  };
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="lib-check">// lib/check.js — a tiny test library. PROVIDED.
+// The same tests run in Node (`node tests/run.js`) and in the browser
+// (open tests.html). Everything you build draws into plain arrays, so no
+// screen is needed to check it.
+(function (MS) {
+  MS.tests = [];
+  MS.visuals = [];
+
+  // Stubs in src/ do `throw MS.todo("setPixel")` until you write them.
+  MS.todo = function (name) {
+    const e = new Error(`${name}() is not written yet`);
+    e.todo = true;
+    return e;
+  };
+
+  MS.test = function (layer, name, fn) { MS.tests.push({ layer, name, fn }); };
+
+  // A visual is a picture the browser test page shows next to the results.
+  // fn returns a frame ({ width, height, data }).
+  MS.visual = function (layer, name, fn) { MS.visuals.push({ layer, name, fn }); };
+
+  class CheckError extends Error {}
+  const show = v => {
+    if (v instanceof Uint8ClampedArray || Array.isArray(v)) return `[${Array.from(v).join(", ")}]`;
+    return typeof v === "string" ? JSON.stringify(v) : String(v);
+  };
+
+  const t = {
+    ok(cond, msg) { if (!cond) throw new CheckError(msg || "expected something to be true"); },
+    eq(actual, expected, msg) {
+      if (actual !== expected) throw new CheckError(`${msg ? msg + ": " : ""}expected ${show(expected)}, got ${show(actual)}`);
+    },
+    close(actual, expected, eps = 1e-6, msg) {
+      if (typeof actual !== "number" || Number.isNaN(actual) || Math.abs(actual - expected) > eps)
+        throw new CheckError(`${msg ? msg + ": " : ""}expected about ${expected} (±${eps}), got ${show(actual)}`);
+    },
+    deep(actual, expected, msg) {
+      const a = actual == null ? actual : Array.from(actual), e = expected == null ? expected : Array.from(expected);
+      const same = a === e || (Array.isArray(a) && Array.isArray(e) && a.length === e.length && a.every((v, i) => v === e[i]));
+      if (!same) throw new CheckError(`${msg ? msg + ": " : ""}expected ${show(expected)}, got ${show(actual)}`);
+    },
+    pixel(frame, x, y, expected, msg, tol = 0) {
+      const i = (y * frame.width + x) * 4, d = frame.data;
+      const got = [d[i], d[i + 1], d[i + 2], d[i + 3]];
+      const ok = expected.every((v, k) => Math.abs(got[k] - v) <= tol);
+      if (!ok) throw new CheckError(`${msg ? msg + ": " : ""}pixel (${x}, ${y}) should be ${show(expected)}${tol ? ` (±${tol})` : ""}, got ${show(got)}`);
+    },
+    throws(fn, msg) {
+      let threw = false;
+      try { fn(); } catch (e) { if (e.todo) throw e; threw = true; }
+      if (!threw) throw new CheckError(msg || "expected this to throw an error");
+    },
+  };
+
+  MS.runTests = function (layerId) {
+    return MS.tests.filter(x => !layerId || x.layer === layerId).map(x => {
+      try { x.fn(t); return { layer: x.layer, name: x.name, status: "pass" }; }
+      catch (e) {
+        if (e && e.todo) return { layer: x.layer, name: x.name, status: "todo", message: e.message };
+        const msg = e instanceof CheckError ? e.message : `${e && e.name ? e.name : "Error"}: ${e && e.message ? e.message : e}`;
+        return { layer: x.layer, name: x.name, status: "fail", message: msg };
+      }
+    });
+  };
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="lib-present">// lib/present.js — put a frame on the screen. PROVIDED (browser only).
+//
+//   frame.data ──► ImageData ──► canvas ──► compositor ──► GPU ──► display
+//
+// putImageData copies your bytes straight into the canvas. No blending, no
+// scaling: what's in memory is exactly what you get. We make the canvas the
+// same size as the frame and let CSS zoom it up with `image-rendering:
+// pixelated`, so small frames show their pixels as crisp squares.
+(function (MS) {
+  MS.present = function (frame, canvas, zoom = 1) {
+    canvas.width = frame.width;
+    canvas.height = frame.height;
+    const image = new ImageData(new Uint8ClampedArray(frame.data), frame.width, frame.height);
+    canvas.getContext("2d").putImageData(image, 0, 0);
+    canvas.style.width = frame.width * zoom + "px";
+    canvas.style.imageRendering = "pixelated";
+    return canvas;
+  };
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="stub-00">// Layer 00 · Pixels — a framebuffer: memory you can see.
+// Read docs/00-pixels.md first. Run `node tests/run.js 00` to check your work.
+//
+// A frame is a plain object:
+//   { width, height, data }
+// where `data` is a Uint8ClampedArray holding 4 numbers per pixel, row by row:
+//
+//   data:  [ R G B A | R G B A | R G B A | ... ]
+//            pixel 0   pixel 1   pixel 2
+//
+// A color is an array [r, g, b] or [r, g, b, a], each 0–255.
+// If alpha is missing, treat it as 255 (fully opaque).
+(function (MS) {
+  /**
+   * Make a new frame, every pixel transparent black [0, 0, 0, 0].
+   * Throw an Error if width or height is not a positive whole number.
+   * @returns {{ width: number, height: number, data: Uint8ClampedArray }}
+   */
+  function createFrame(width, height) {
+    throw MS.todo("createFrame");
+  }
+
+  /**
+   * Where does pixel (x, y) start inside frame.data?
+   * Return the index of its R value. (G, B and A follow right after it.)
+   * Assume x and y are whole numbers inside the frame.
+   */
+  function pixelIndex(frame, x, y) {
+    throw MS.todo("pixelIndex");
+  }
+
+  /**
+   * Write `color` into pixel (x, y), replacing what was there.
+   * - Round fractional coordinates down (2.7 → 2).
+   * - If (x, y) is outside the frame, do nothing. Don't throw, and don't
+   *   let x = width "wrap around" onto the next row.
+   */
+  function setPixel(frame, x, y, color) {
+    throw MS.todo("setPixel");
+  }
+
+  /**
+   * Read pixel (x, y) as a new array [r, g, b, a].
+   * Round coordinates down like setPixel. Return null if outside the frame.
+   */
+  function getPixel(frame, x, y) {
+    throw MS.todo("getPixel");
+  }
+
+  /**
+   * Fill every pixel of the frame with `color`.
+   */
+  function clearFrame(frame, color) {
+    throw MS.todo("clearFrame");
+  }
+
+  Object.assign(MS, { createFrame, pixelIndex, setPixel, getPixel, clearFrame });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="stub-01">// Layer 01 · Shapes & blending — rectangles, circles, alpha, gradients.
+// Read docs/01-shapes.md first. Run `node tests/run.js 01` to check your work.
+// You can (and should) use your layer 00 functions here.
+(function (MS) {
+  /**
+   * Turn a CSS-style hex string into a color array.
+   *   hex("#5B8CFF")      → [91, 140, 255, 255]
+   *   hex("5b8cff", 128)  → [91, 140, 255, 128]
+   * Accept upper or lower case, with or without "#".
+   * Throw an Error for anything that isn't exactly 6 hex digits.
+   */
+  function hex(str, alpha = 255) {
+    throw MS.todo("hex");
+  }
+
+  /**
+   * Paint `color` OVER pixel (x, y), respecting its alpha ("source-over").
+   * With a = alpha of the new color, b = alpha of the existing pixel,
+   * both as 0–1:
+   *
+   *   outAlpha = a + b × (1 − a)
+   *   outRGB   = (newRGB × a + oldRGB × b × (1 − a)) / outAlpha
+   *
+   * Write outAlpha back as 0–255. If outAlpha is 0, the pixel becomes
+   * [0, 0, 0, 0]. Round coordinates down; ignore pixels outside the frame.
+   */
+  function blendPixel(frame, x, y, color) {
+    throw MS.todo("blendPixel");
+  }
+
+  /**
+   * Blend a w × h rectangle whose top-left corner is (x, y).
+   * Round the edges to whole pixels first:
+   *   left = round(x), right = round(x + w)   (right is exclusive)
+   *   top  = round(y), bottom = round(y + h)  (bottom is exclusive)
+   * Clip to the frame, so a rectangle hanging off the edge is fine.
+   */
+  function fillRect(frame, x, y, w, h, color) {
+    throw MS.todo("fillRect");
+  }
+
+  /**
+   * Blend a circle with center (cx, cy) and radius r.
+   * A pixel is inside when its CENTER, (px + 0.5, py + 0.5), is at
+   * distance <= r from (cx, cy). Only visit pixels in the circle's
+   * bounding box, not the whole frame.
+   */
+  function fillCircle(frame, cx, cy, r, color) {
+    throw MS.todo("fillCircle");
+  }
+
+  /**
+   * Mix two colors: t = 0 gives a, t = 1 gives b, 0.5 is halfway.
+   * Mix all four channels (missing alpha = 255). Don't round.
+   */
+  function mixColor(a, b, t) {
+    throw MS.todo("mixColor");
+  }
+
+  /**
+   * Fill the whole frame from `top` color to `bottom` color.
+   * Row y uses t = (y + 0.5) / height, so you sample each row at its middle.
+   * Overwrite pixels (setPixel), don't blend.
+   */
+  function fillVerticalGradient(frame, top, bottom) {
+    throw MS.todo("fillVerticalGradient");
+  }
+
+  /**
+   * Fill the whole frame with an elliptical radial gradient, like CSS
+   * `radial-gradient(rx ry at cx cy, inner, outer)`.
+   * For each pixel center (x + 0.5, y + 0.5):
+   *   d = sqrt( ((x + 0.5 − cx) / rx)² + ((y + 0.5 − cy) / ry)² )
+   *   t = min(d, 1)
+   * and write mixColor(inner, outer, t). Overwrite, don't blend.
+   */
+  function fillRadialGradient(frame, cx, cy, rx, ry, inner, outer) {
+    throw MS.todo("fillRadialGradient");
+  }
+
+  Object.assign(MS, { hex, blendPixel, fillRect, fillCircle, mixColor, fillVerticalGradient, fillRadialGradient });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="stub-02">// Layer 02 · Glyphs — text from a hand-made bitmap font.
+// Read docs/02-glyphs.md first. Run `node tests/run.js 02` to check your work.
+//
+// The font lives in lib/font5x7.js as MS.FONT_5x7: an object mapping a
+// character to 7 strings of 5 characters, "#" for ink and "." for empty.
+// Use fillRect from layer 01 to draw each "#" as a scale × scale block.
+(function (MS) {
+  const GLYPH_W = 5;
+  const GLYPH_H = 7;
+
+  /**
+   * Draw one character with its top-left corner at (x, y).
+   * Each "#" cell becomes a filled square of size `scale` × `scale`.
+   * - The font only has uppercase letters: "a" must draw like "A".
+   * - A character missing from the font draws "tofu": a hollow 5 × 7 box
+   *   (the outer ring of cells filled, the inside empty).
+   */
+  function drawGlyph(frame, ch, x, y, scale, color) {
+    throw MS.todo("drawGlyph");
+  }
+
+  /**
+   * How wide is `text` in pixels?
+   * Each glyph is GLYPH_W cells wide, and `tracking` empty cells sit
+   * BETWEEN glyphs (not after the last one). Multiply cells by `scale`.
+   *   measureText("AB", 1)    → 5 + 1 + 5 = 11
+   *   measureText("AB", 3)    → 33
+   *   measureText("", 3)      → 0
+   */
+  function measureText(text, scale, tracking = 1) {
+    throw MS.todo("measureText");
+  }
+
+  /**
+   * Draw a line of text and return its width (same number measureText gives).
+   * opts.tracking : empty cells between glyphs (default 1)
+   * opts.align    : "left" (default) — x is the left edge
+   *                 "center"         — x is the middle
+   *                 "right"          — x is the right edge
+   * A space draws nothing but still takes up a glyph's width.
+   */
+  function drawText(frame, text, x, y, scale, color, opts = {}) {
+    throw MS.todo("drawText");
+  }
+
+  Object.assign(MS, { GLYPH_W, GLYPH_H, drawGlyph, measureText, drawText });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="test-00">// tests/00-pixels.test.js — PROVIDED. Read a failing test to see what's expected.
+(function (MS) {
+  const L = "00";
+  const count = (f, pred) => { let n = 0; for (let i = 0; i < f.data.length; i += 4) if (pred(f.data, i)) n++; return n; };
+
+  MS.test(L, "createFrame makes width × height × 4 bytes, all zero", t => {
+    const f = MS.createFrame(3, 2);
+    t.eq(f.width, 3, "width"); t.eq(f.height, 2, "height");
+    t.ok(f.data instanceof Uint8ClampedArray, "data should be a Uint8ClampedArray");
+    t.eq(f.data.length, 24, "3 × 2 pixels × 4 channels");
+    t.ok(f.data.every(v => v === 0), "every byte starts at 0 (transparent black)");
+  });
+
+  MS.test(L, "createFrame rejects sizes that aren't positive whole numbers", t => {
+    t.throws(() => MS.createFrame(0, 5), "width 0 should throw");
+    t.throws(() => MS.createFrame(4, -1), "negative height should throw");
+    t.throws(() => MS.createFrame(2.5, 2), "width 2.5 should throw");
+  });
+
+  MS.test(L, "pixelIndex walks rows left to right, 4 bytes per pixel", t => {
+    const f = MS.createFrame(10, 5);
+    t.eq(MS.pixelIndex(f, 0, 0), 0, "(0, 0)");
+    t.eq(MS.pixelIndex(f, 1, 0), 4, "(1, 0) is one pixel = 4 bytes later");
+    t.eq(MS.pixelIndex(f, 0, 1), 40, "(0, 1) skips a whole row of 10 pixels");
+    t.eq(MS.pixelIndex(f, 3, 2), 92, "(3, 2)");
+  });
+
+  MS.test(L, "setPixel writes exactly 4 bytes in the right place", t => {
+    const f = MS.createFrame(4, 3);
+    MS.setPixel(f, 2, 1, [10, 20, 30, 40]);
+    t.pixel(f, 2, 1, [10, 20, 30, 40]);
+    t.eq(count(f, (d, i) => d[i] || d[i + 1] || d[i + 2] || d[i + 3]), 1, "only one pixel should change");
+  });
+
+  MS.test(L, "setPixel treats a missing alpha as 255", t => {
+    const f = MS.createFrame(2, 2);
+    MS.setPixel(f, 1, 1, [91, 140, 255]);
+    t.pixel(f, 1, 1, [91, 140, 255, 255]);
+  });
+
+  MS.test(L, "setPixel rounds fractional coordinates down", t => {
+    const f = MS.createFrame(4, 4);
+    MS.setPixel(f, 2.7, 1.2, [255, 0, 0]);
+    t.pixel(f, 2, 1, [255, 0, 0, 255]);
+  });
+
+  MS.test(L, "setPixel ignores pixels outside the frame (no throw, no wrap-around)", t => {
+    const f = MS.createFrame(3, 3);
+    MS.setPixel(f, -1, 0, [255, 255, 255]);
+    MS.setPixel(f, 3, 0, [255, 255, 255]);   // x = width must NOT land on (0, 1)
+    MS.setPixel(f, 0, 3, [255, 255, 255]);
+    MS.setPixel(f, 0, -1, [255, 255, 255]);
+    t.ok(f.data.every(v => v === 0), "nothing should be drawn; check (0, 1) for wrap-around");
+  });
+
+  MS.test(L, "Uint8ClampedArray clamps and rounds for you", t => {
+    const f = MS.createFrame(1, 1);
+    MS.setPixel(f, 0, 0, [300, -5, 127.6]);
+    t.pixel(f, 0, 0, [255, 0, 128, 255], "300 → 255, −5 → 0, 127.6 → 128");
+  });
+
+  MS.test(L, "getPixel reads back what setPixel wrote", t => {
+    const f = MS.createFrame(5, 5);
+    MS.setPixel(f, 4, 4, [1, 2, 3, 4]);
+    t.deep(MS.getPixel(f, 4, 4), [1, 2, 3, 4]);
+    t.deep(MS.getPixel(f, 4.9, 4.1), [1, 2, 3, 4], "fractional coordinates round down");
+    t.ok(Array.isArray(MS.getPixel(f, 0, 0)), "getPixel should return a plain array");
+  });
+
+  MS.test(L, "getPixel returns null outside the frame", t => {
+    const f = MS.createFrame(2, 2);
+    t.eq(MS.getPixel(f, 2, 0), null, "x = width");
+    t.eq(MS.getPixel(f, 0, -1), null, "y = -1");
+  });
+
+  MS.test(L, "clearFrame fills every pixel", t => {
+    const f = MS.createFrame(6, 4);
+    MS.clearFrame(f, [11, 13, 18]);
+    t.eq(count(f, (d, i) => d[i] === 11 && d[i + 1] === 13 && d[i + 2] === 18 && d[i + 3] === 255), 24, "all 24 pixels should be [11, 13, 18, 255]");
+  });
+
+  // ---- pictures for tests.html ----
+  MS.visual(L, "Checkerboard: every other pixel, via setPixel", () => {
+    const f = MS.createFrame(16, 16);
+    MS.clearFrame(f, [26, 39, 64]);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if ((x + y) % 2 === 0) MS.setPixel(f, x, y, [234, 240, 250]);
+    return f;
+  });
+  MS.visual(L, "XOR pattern: color = x ^ y", () => {
+    const f = MS.createFrame(64, 64);
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const v = (x ^ y) * 4; MS.setPixel(f, x, y, [v, 140, 255 - v]); }
+    return f;
+  });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="test-01">// tests/01-shapes.test.js — PROVIDED.
+(function (MS) {
+  const L = "01";
+  const inked = f => { let n = 0; for (let i = 3; i < f.data.length; i += 4) if (f.data[i]) n++; return n; };
+
+  MS.test(L, "hex parses #RRGGBB into [r, g, b, a]", t => {
+    t.deep(MS.hex("#5B8CFF"), [91, 140, 255, 255]);
+    t.deep(MS.hex("1a2740"), [26, 39, 64, 255], "no #, lowercase");
+    t.deep(MS.hex("#0B0D12", 128), [11, 13, 18, 128], "custom alpha");
+  });
+
+  MS.test(L, "hex rejects anything that isn't 6 hex digits", t => {
+    t.throws(() => MS.hex("#FFF"), "short form #FFF isn't supported");
+    t.throws(() => MS.hex("blue"), "color names aren't hex");
+    t.throws(() => MS.hex("#12345G"), "G isn't a hex digit");
+  });
+
+  MS.test(L, "blendPixel: an opaque color simply replaces", t => {
+    const f = MS.createFrame(1, 1);
+    MS.setPixel(f, 0, 0, [0, 0, 255]);
+    MS.blendPixel(f, 0, 0, [255, 0, 0, 255]);
+    t.pixel(f, 0, 0, [255, 0, 0, 255]);
+  });
+
+  MS.test(L, "blendPixel: alpha 0 changes nothing", t => {
+    const f = MS.createFrame(1, 1);
+    MS.setPixel(f, 0, 0, [0, 0, 255]);
+    MS.blendPixel(f, 0, 0, [255, 0, 0, 0]);
+    t.pixel(f, 0, 0, [0, 0, 255, 255]);
+  });
+
+  MS.test(L, "blendPixel: half-transparent red over opaque blue", t => {
+    const f = MS.createFrame(1, 1);
+    MS.setPixel(f, 0, 0, [0, 0, 255]);
+    MS.blendPixel(f, 0, 0, [255, 0, 0, 128]);
+    t.pixel(f, 0, 0, [128, 0, 127, 255], "about halfway between red and blue", 1);
+  });
+
+  MS.test(L, "blendPixel: onto a transparent pixel keeps the color, not a darkened one", t => {
+    const f = MS.createFrame(1, 1);
+    MS.blendPixel(f, 0, 0, [255, 0, 0, 128]);
+    t.pixel(f, 0, 0, [255, 0, 0, 128], "still pure red, just half transparent", 1);
+  });
+
+  MS.test(L, "blendPixel: half red over half blue", t => {
+    const f = MS.createFrame(1, 1);
+    MS.setPixel(f, 0, 0, [0, 0, 255, 128]);
+    MS.blendPixel(f, 0, 0, [255, 0, 0, 128]);
+    t.pixel(f, 0, 0, [170, 0, 85, 192], "alpha adds up to about 75%", 1);
+  });
+
+  MS.test(L, "blendPixel ignores pixels outside the frame", t => {
+    const f = MS.createFrame(2, 2);
+    MS.blendPixel(f, 2, 0, [255, 255, 255]);
+    MS.blendPixel(f, -1, 1, [255, 255, 255]);
+    t.eq(inked(f), 0);
+  });
+
+  MS.test(L, "fillRect covers exactly w × h pixels", t => {
+    const f = MS.createFrame(10, 10);
+    MS.fillRect(f, 2, 3, 4, 2, [255, 255, 255]);
+    t.eq(inked(f), 8, "4 × 2 = 8 pixels");
+    t.pixel(f, 2, 3, [255, 255, 255, 255], "top-left corner is inside");
+    t.pixel(f, 5, 4, [255, 255, 255, 255], "bottom-right pixel is inside");
+    t.pixel(f, 6, 4, [0, 0, 0, 0], "x + w is outside (exclusive)");
+    t.pixel(f, 2, 5, [0, 0, 0, 0], "y + h is outside (exclusive)");
+  });
+
+  MS.test(L, "fillRect rounds edges and clips to the frame", t => {
+    const f = MS.createFrame(5, 5);
+    MS.fillRect(f, -3, 1.6, 5, 1, [255, 255, 255]);   // x −3..2 → 0..2, y 1.6..2.6 → rows 2
+    t.eq(inked(f), 2, "only x = 0 and 1 on row 2 are inside the frame");
+    t.pixel(f, 1, 2, [255, 255, 255, 255]);
+  });
+
+  MS.test(L, "fillRect blends instead of overwriting", t => {
+    const f = MS.createFrame(1, 1);
+    MS.setPixel(f, 0, 0, [0, 0, 255]);
+    MS.fillRect(f, 0, 0, 1, 1, [255, 0, 0, 128]);
+    t.pixel(f, 0, 0, [128, 0, 127, 255], "", 1);
+  });
+
+  MS.test(L, "fillCircle tests each pixel's center against the radius", t => {
+    const a = MS.createFrame(21, 21);
+    MS.fillCircle(a, 10.5, 10.5, 5, [255, 255, 255]);
+    t.eq(inked(a), 81, "radius 5 centered on a pixel center covers 81 pixels");
+    t.pixel(a, 10, 10, [255, 255, 255, 255], "center");
+    t.pixel(a, 10, 4, [0, 0, 0, 0], "just outside the top");
+    const b = MS.createFrame(20, 20);
+    MS.fillCircle(b, 10, 10, 3.2, [255, 255, 255]);
+    t.eq(inked(b), 32, "radius 3.2 centered on a pixel corner covers 32 pixels");
+  });
+
+  MS.test(L, "fillCircle clips at the frame edge", t => {
+    const f = MS.createFrame(10, 10);
+    MS.fillCircle(f, 0, 0, 3, [255, 255, 255]);
+    t.ok(inked(f) > 0 && inked(f) < 12, "a quarter circle should be drawn without errors");
+  });
+
+  MS.test(L, "mixColor blends all four channels", t => {
+    t.deep(MS.mixColor([0, 0, 0], [255, 100, 50, 0], 0), [0, 0, 0, 255], "t = 0 gives a (alpha defaults to 255)");
+    t.deep(MS.mixColor([0, 0, 0], [255, 100, 50, 0], 1), [255, 100, 50, 0], "t = 1 gives b");
+    t.deep(MS.mixColor([0, 0, 0], [255, 100, 50, 0], 0.5), [127.5, 50, 25, 127.5], "halfway, unrounded");
+  });
+
+  MS.test(L, "fillVerticalGradient samples each row at its middle", t => {
+    const f = MS.createFrame(1, 2);
+    MS.fillVerticalGradient(f, [0, 0, 0], [200, 100, 40]);
+    t.pixel(f, 0, 0, [50, 25, 10, 255], "row 0 uses t = 0.25");
+    t.pixel(f, 0, 1, [150, 75, 30, 255], "row 1 uses t = 0.75");
+  });
+
+  MS.test(L, "fillRadialGradient fades from inner to outer", t => {
+    const f = MS.createFrame(4, 4);
+    MS.fillRadialGradient(f, 2, 2, 2, 2, [255, 255, 255], [0, 0, 0]);
+    t.pixel(f, 1, 1, [165, 165, 165, 255], "near the center", 1);
+    t.pixel(f, 0, 1, [53, 53, 53, 255], "farther out", 1);
+    t.pixel(f, 0, 0, [0, 0, 0, 255], "the corner is past the radius, so pure outer");
+  });
+
+  MS.test(L, "fillRadialGradient stretches into an ellipse", t => {
+    const f = MS.createFrame(40, 10);
+    MS.fillRadialGradient(f, 20, 5, 20, 5, [255, 255, 255], [0, 0, 0]);
+    const left = MS.getPixel(f, 0, 5)[0], top = MS.getPixel(f, 20, 0)[0];
+    t.close(left, top, 30, "the left edge and top edge are both about one radius away");
+  });
+
+  // ---- pictures ----
+  MS.visual(L, "Shapes, blended", () => {
+    const f = MS.createFrame(96, 64);
+    MS.clearFrame(f, MS.hex("#0B0D12"));
+    MS.fillRect(f, 8, 8, 44, 30, MS.hex("#5B8CFF"));
+    MS.fillCircle(f, 52, 36, 20, MS.hex("#FF5C8A", 170));
+    MS.fillRect(f, 40, 20, 48, 12, MS.hex("#EAF0FA", 90));
+    return f;
+  });
+  MS.visual(L, "Motion Studio's background: radial-gradient(70% 60% at 50% 38%, #1A2740, #0B0D12)", () => {
+    const f = MS.createFrame(108, 192);
+    MS.fillRadialGradient(f, 108 * 0.5, 192 * 0.38, 108 * 0.7, 192 * 0.6, MS.hex("#1A2740"), MS.hex("#0B0D12"));
+    return f;
+  });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="test-02">// tests/02-glyphs.test.js — PROVIDED.
+(function (MS) {
+  const L = "02";
+  const W = [255, 255, 255, 255], EMPTY = [0, 0, 0, 0];
+  const inked = f => { let n = 0; for (let i = 3; i < f.data.length; i += 4) if (f.data[i]) n++; return n; };
+  const inkCount = ch => MS.FONT_5x7[ch].join("").split("").filter(c => c === "#").length;
+
+  MS.test(L, "measureText: glyph widths plus tracking between them", t => {
+    t.eq(MS.measureText("", 3), 0, "empty text is 0 wide");
+    t.eq(MS.measureText("A", 1), 5, "one glyph, no gap");
+    t.eq(MS.measureText("AB", 1), 11, "5 + 1 + 5");
+    t.eq(MS.measureText("AB", 3), 33, "everything scales");
+    t.eq(MS.measureText("AB", 1, 2), 12, "tracking 2 means a 2-cell gap");
+    t.eq(MS.measureText("A B", 2), 34, "a space counts as a glyph");
+  });
+
+  MS.test(L, "drawGlyph copies the font's # cells at scale 1", t => {
+    const f = MS.createFrame(5, 7);
+    MS.drawGlyph(f, "R", 0, 0, 1, W);
+    const g = MS.FONT_5x7.R;
+    for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++)
+      t.pixel(f, c, r, g[r][c] === "#" ? W : EMPTY, `row ${r}, column ${c} of "R"`);
+  });
+
+  MS.test(L, "drawGlyph: every cell becomes a scale × scale block", t => {
+    const f = MS.createFrame(20, 28);
+    MS.drawGlyph(f, "T", 0, 0, 4, W);
+    t.eq(inked(f), inkCount("T") * 16, "each # becomes 4 × 4 = 16 pixels");
+    t.pixel(f, 19, 3, W, "T's top bar reaches the right edge");
+    t.pixel(f, 0, 4, EMPTY, "row 1 of T is empty on the left");
+  });
+
+  MS.test(L, "drawGlyph positions the glyph at (x, y)", t => {
+    const f = MS.createFrame(12, 10);
+    MS.drawGlyph(f, "I", 6, 2, 1, W);
+    t.pixel(f, 6, 2, W, "I's top-left cell lands at (6, 2)");
+    t.pixel(f, 5, 2, EMPTY, "nothing left of x");
+    t.pixel(f, 6, 1, EMPTY, "nothing above y");
+  });
+
+  MS.test(L, "drawGlyph draws lowercase as uppercase", t => {
+    const a = MS.createFrame(5, 7), b = MS.createFrame(5, 7);
+    MS.drawGlyph(a, "g", 0, 0, 1, W);
+    MS.drawGlyph(b, "G", 0, 0, 1, W);
+    t.deep(a.data, b.data, '"g" should look exactly like "G"');
+  });
+
+  MS.test(L, "drawGlyph draws tofu for missing characters", t => {
+    const f = MS.createFrame(5, 7);
+    MS.drawGlyph(f, "@", 0, 0, 1, W);
+    t.pixel(f, 0, 0, W, "top-left corner"); t.pixel(f, 4, 6, W, "bottom-right corner");
+    t.pixel(f, 2, 0, W, "top edge"); t.pixel(f, 0, 3, W, "left edge");
+    t.pixel(f, 2, 3, EMPTY, "the inside stays empty");
+    t.eq(inked(f), 20, "the outer ring of a 5 × 7 box is 20 cells");
+  });
+
+  MS.test(L, "drawText advances one glyph plus tracking each character", t => {
+    const f = MS.createFrame(30, 7);
+    const w = MS.drawText(f, "II", 0, 0, 1, W);
+    t.eq(w, 11, "drawText returns the width");
+    t.pixel(f, 6, 0, W, "the second I starts at x = 5 + 1");
+    t.pixel(f, 5, 0, EMPTY, "the tracking gap is empty");
+  });
+
+  MS.test(L, "drawText: spaces take room but draw nothing", t => {
+    const f = MS.createFrame(30, 7);
+    MS.drawText(f, "I I", 0, 0, 1, W);
+    t.eq(inked(f), inkCount("I") * 2, "only the two I's have ink");
+    t.pixel(f, 12, 0, W, "the second I starts after a glyph-wide space");
+  });
+
+  MS.test(L, "drawText aligns center and right around x", t => {
+    const c = MS.createFrame(40, 7);
+    MS.drawText(c, "II", 20, 0, 1, W, { align: "center" });   // width 11 → left edge 14.5 → 15 after rounding
+    t.pixel(c, 15, 0, W, "centered: left edge near 20 − 11 / 2");
+    t.pixel(c, 13, 0, EMPTY);
+    const r = MS.createFrame(40, 7);
+    MS.drawText(r, "II", 40, 0, 1, W, { align: "right" });
+    t.pixel(r, 39, 0, W, "right-aligned: the last column touches x");
+    t.pixel(r, 28, 0, EMPTY, "and starts at x − 11");
+  });
+
+  MS.test(L, "drawText uses opts.tracking", t => {
+    const f = MS.createFrame(30, 7);
+    t.eq(MS.drawText(f, "II", 0, 0, 1, W, { tracking: 3 }), 13);
+    t.pixel(f, 8, 0, W, "second I starts at 5 + 3");
+  });
+
+  MS.test(L, "text blends, so transparent ink shows the background", t => {
+    const f = MS.createFrame(5, 7);
+    MS.clearFrame(f, [0, 0, 255]);
+    MS.drawGlyph(f, "I", 0, 0, 1, [255, 0, 0, 128]);
+    t.pixel(f, 0, 0, [128, 0, 127, 255], "half red over blue", 1);
+  });
+
+  // ---- pictures ----
+  MS.visual(L, "DESIGN. at scale 4", () => {
+    const f = MS.createFrame(184, 44);
+    MS.clearFrame(f, MS.hex("#0B0D12"));
+    MS.drawText(f, "DESIGN.", 92, 8, 4, MS.hex("#EAF0FA"), { align: "center" });   // 164 px wide
+    return f;
+  });
+  MS.visual(L, "Alignment and tofu", () => {
+    const f = MS.createFrame(200, 60);
+    MS.clearFrame(f, MS.hex("#141821"));
+    MS.fillRect(f, 100, 0, 1, 60, MS.hex("#FF5C8A"));
+    MS.drawText(f, "LEFT", 100, 6, 2, MS.hex("#EAF0FA"));
+    MS.drawText(f, "CENTER", 100, 24, 2, MS.hex("#5B8CFF"), { align: "center" });
+    MS.drawText(f, "RIGHT @", 100, 42, 2, MS.hex("#EAF0FA"), { align: "right" });
+    return f;
+  });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id).textContent;
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+  const key = id => "mfs-src-" + id;
+  const codeFor = id => {
+    const ed = document.getElementById("editor-" + id);
+    return ed ? ed.value : (store.get(key(id)) ?? $("stub-" + id));
+  };
+  const run = src => new Function(src)();
+  const escH = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const mark = { pass: "✓", fail: "✗", todo: "·" };
+
+  function runLayer(section) {
+    const id = section.dataset.layer;
+    const errBox = section.querySelector("[data-error]");
+    const list = section.querySelector("[data-results]");
+    const vis = section.querySelector("[data-visuals]");
+    errBox.hidden = true; list.innerHTML = ""; vis.innerHTML = "";
+    globalThis.MS = {};
+    ["lib-course", "lib-font", "lib-check", "lib-present"].forEach(s => run($(s)));
+    const layers = MS.COURSE.layers.filter(l => l.ready && l.id <= id);
+    for (const l of layers) {
+      try { run(codeFor(l.id)); }
+      catch (e) {
+        errBox.hidden = false;
+        errBox.textContent = (l.id === id ? "Your code" : "Your layer " + l.id + " code") + " didn't load: " + e.name + ": " + e.message;
+        return;
+      }
+    }
+    run($("test-" + id));
+    const results = MS.runTests(id);
+    const passed = results.filter(r => r.status === "pass").length;
+    section.querySelector("[data-score]").textContent = passed + " / " + results.length;
+    list.innerHTML = results.map(r => '<li class="' + r.status + '"><span class="mark">' + mark[r.status] + "</span><span>" + escH(r.name) + (r.message ? '<span class="msg">' + escH(r.message) + "</span>" : "") + "</span></li>").join("");
+    for (const v of MS.visuals.filter(v => v.layer === id)) {
+      const fig = document.createElement("figure"), cap = document.createElement("figcaption");
+      try {
+        const frame = v.fn();
+        const zoom = Math.max(1, Math.min(5, Math.floor(200 / frame.width)));
+        fig.appendChild(MS.present(frame, document.createElement("canvas"), zoom));
+        cap.textContent = v.name;
+      } catch (e) { cap.innerHTML = "<strong>" + escH(v.name) + "</strong><br>" + (e.todo ? "Waiting on: " : "Error: ") + escH(e.message); }
+      fig.appendChild(cap); vis.appendChild(fig);
+    }
+  }
+
+  document.querySelectorAll(".chapter").forEach(section => {
+    const id = section.dataset.layer;
+    const ed = section.querySelector(".editor");
+    ed.value = store.get(key(id)) ?? $("stub-" + id);
+    ed.addEventListener("input", () => store.set(key(id), ed.value));
+    ed.addEventListener("keydown", e => {
+      if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); ed.setRangeText("  ", ed.selectionStart, ed.selectionEnd, "end"); store.set(key(id), ed.value); }
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); runLayer(section); }
+    });
+    section.querySelector("[data-run]").addEventListener("click", () => runLayer(section));
+    const confirm = section.querySelector("[data-confirm]");
+    section.querySelector("[data-reset]").addEventListener("click", () => { confirm.hidden = false; });
+    section.querySelector("[data-reset-no]").addEventListener("click", () => { confirm.hidden = true; });
+    section.querySelector("[data-reset-yes]").addEventListener("click", () => { ed.value = $("stub-" + id); store.set(key(id), ed.value); confirm.hidden = true; runLayer(section); });
+    section.querySelector("[data-copy]").addEventListener("click", e => {
+      const b = e.currentTarget;
+      const done = ok => { b.textContent = ok ? "Copied" : "Select and copy"; setTimeout(() => (b.textContent = "Copy"), 1500); };
+      try { navigator.clipboard.writeText(ed.value).then(() => done(true), () => { ed.select(); done(false); }); }
+      catch (err) { ed.select(); done(false); }
+    });
+    runLayer(section);
+  });
+
+  // highlight the tab for the chapter in view
+  const tabs = [...document.querySelectorAll(".tab[data-layer]")];
+  const io = new IntersectionObserver(entries => {
+    for (const en of entries) if (en.isIntersecting)
+      tabs.forEach(t => t.setAttribute("aria-current", String(t.dataset.layer === en.target.dataset.layer)));
+  }, { rootMargin: "-40% 0px -55% 0px" });
+  document.querySelectorAll(".chapter").forEach(s => io.observe(s));
+})();
+</script>
+</body>
+</html>

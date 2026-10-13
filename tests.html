@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tests · Motion from Scratch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,700;112,800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;600&family=Silkscreen&display=swap">
+<link rel="stylesheet" href="lib/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:14px">
+    <div class="pegbar" aria-hidden="true"><i></i><i></i><i></i></div>
+    <span class="eyebrow">Motion from Scratch · tests</span>
+    <h1>Your work, checked</h1>
+    <p class="lede">Every test and picture below runs your code from <code>src/</code>. Save a file, then reload this page. The same tests run in a terminal with <code>node tests/run.js</code>.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" id="rerun" type="button">Reload and re-run</button>
+      <a class="btn ghost" href="index.html" style="text-decoration:none">Course home</a>
+    </div>
+  </header>
+  <div id="errors"></div>
+  <main id="layers" style="display:flex;flex-direction:column;gap:24px"></main>
+</div>
+
+<script src="lib/course.js"></script>
+<script src="lib/font5x7.js"></script>
+<script src="lib/check.js"></script>
+<script src="lib/present.js"></script>
+<script src="lib/loader.js"></script>
+<script>
+(async function () {
+  document.getElementById("rerun").addEventListener("click", () => location.reload());
+  const { ready, errors } = await MS.loadCourse();
+  const errBox = document.getElementById("errors");
+  if (errors.length) {
+    errBox.innerHTML = errors.map(e => `<div class="banner"><strong>${e.file}</strong> line ${e.line}: ${e.message}<br><span style="color:var(--muted)">Fix this first. Tests that depend on this file can't run until it loads.</span></div>`).join("");
+  }
+  const mark = { pass: "✓", fail: "✗", todo: "·" };
+  const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const root = document.getElementById("layers");
+  for (const l of ready) {
+    const results = MS.runTests(l.id);
+    const passed = results.filter(r => r.status === "pass").length;
+    const sec = document.createElement("section");
+    sec.className = "sheet"; sec.id = "layer-" + l.id;
+    sec.innerHTML = `
+      <div class="layer-head"><span class="num">${l.id}</span><h2>${l.title}</h2><span class="score">${passed} / ${results.length}</span></div>
+      <ul class="results">${results.map(r => `<li class="${r.status}"><span class="mark" aria-label="${r.status}">${mark[r.status]}</span><span>${esc(r.name)}${r.message ? `<span class="msg">${esc(r.message)}</span>` : ""}</span></li>`).join("")}</ul>
+      <div class="visuals"></div>`;
+    const vis = sec.querySelector(".visuals");
+    for (const v of MS.visuals.filter(v => v.layer === l.id)) {
+      const fig = document.createElement("figure");
+      const cap = document.createElement("figcaption");
+      try {
+        const frame = v.fn();
+        const zoom = Math.max(1, Math.min(6, Math.floor(260 / frame.width)));
+        fig.appendChild(MS.present(frame, document.createElement("canvas"), zoom));
+        cap.textContent = v.name;
+      } catch (e) {
+        cap.innerHTML = `<strong>${esc(v.name)}</strong><br>${e.todo ? "Waiting on: " : "Error: "}${esc(e.message)}`;
+      }
+      fig.appendChild(cap); vis.appendChild(fig);
+    }
+    root.appendChild(sec);
+  }
+})();
+</script>
+</body>
+</html>

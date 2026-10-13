@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion from Scratch</title>
+<meta name="description" content="How to go from pixels to motion: build a video engine from a single pixel up to a rendered MP4, one layer at a time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,700;112,800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;600&family=Silkscreen&display=swap">
+<link rel="stylesheet" href="lib/style.css">
+<style>
+  .map { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .map li { display: grid; grid-template-columns: 52px 1fr auto; gap: 4px 14px; align-items: center; padding-block: 12px; border-bottom: 1px solid var(--line); }
+  .map li:first-child { border-top: 1px solid var(--line); }
+  .map .t { font-weight: 700; }
+  .map .b { grid-column: 2 / 3; font-size: 0.9rem; color: var(--muted); }
+  .map .s { grid-row: 1 / 3; grid-column: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .map .s a { font-size: 0.85rem; }
+  .map .num { grid-row: 1 / 3; justify-self: start; }
+  .map li.soon { opacity: 0.55; }
+  .steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 10px; max-width: 66ch; }
+  .stack { font-family: var(--mono); font-size: 12.5px; line-height: 1.45; background: transparent; border: 1px dashed var(--line); color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:16px">
+    <div class="pegbar" aria-hidden="true"><i></i><i></i><i></i></div>
+    <span class="eyebrow">A course in 11 layers</span>
+    <h1>Motion from Scratch</h1>
+    <p class="lede">How to go from pixels to motion. Start with one pixel, add one idea per layer, and finish by rebuilding a real motion-graphics intro and exporting it as an MP4. No libraries, no install.</p>
+  </header>
+
+<pre class="stack" aria-label="The stack you build, bottom to top">
+  10  Export          frames → MP4, then map it all to Remotion
+  09  KineticIntro    the recreation
+  08  Scenes          sequences, camera, masks, seeded randomness
+  07  Canvas          transforms + blur by hand, then real fonts
+  06  Springs         physics stepping and stability
+  05  Easing          a cubic-Bézier solver
+  04  Interpolate     lerp, clamp, ranges, extrapolation
+  03  Time            frame = f(n), a player that keeps time
+  02  Glyphs          text from a hand-made bitmap font
+  01  Shapes          rectangles, circles, alpha, gradients
+  00  Pixels          a framebuffer: memory you can see
+      ▲ each layer is built only from the layers below it
+</pre>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><strong>Read</strong> the layer's chapter in <code>docs/</code> (or the interactive guide).</li>
+      <li><strong>Write</strong> the functions in <code>src/</code>. Each comment is the spec, and each body starts as a placeholder that says "not written yet".</li>
+      <li><strong>Check</strong> by opening <a href="tests.html">tests.html</a> or running <code>node tests/run.js</code>. Pictures appear as your code starts working.</li>
+      <li><strong>Get unstuck</strong> with an AI study buddy. Open this folder in Claude Code or Codex; <code>CLAUDE.md</code> and <code>AGENTS.md</code> make it ask questions and give hints, never answers.</li>
+    </ol>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2>The layers</h2>
+    <ul class="map" id="map"></ul>
+  </section>
+
+  <p style="font-size:0.85rem;color:var(--muted)">Code MIT. Chapters CC BY 4.0. Inspired by <a href="https://www.nand2tetris.org/">Nand2Tetris</a> and by <a href="https://github.com/MoussaabBadla/claude-motion-studio">Claude Motion Studio</a>, whose KineticIntro you rebuild.</p>
+</div>
+
+<script src="lib/course.js"></script>
+<script src="lib/font5x7.js"></script>
+<script src="lib/check.js"></script>
+<script src="lib/loader.js"></script>
+<script>
+(async function () {
+  const map = document.getElementById("map");
+  const render = scores => {
+    map.innerHTML = MS.COURSE.layers.map(l => {
+      const f = MS.COURSE.files(l), sc = scores[l.id];
+      let pill = '<span class="pill soon">coming soon</span>';
+      if (l.ready && sc) pill = sc.p === sc.n ? `<span class="pill pass">${sc.p}/${sc.n} done</span>` : sc.p ? `<span class="pill fail">${sc.p}/${sc.n}</span>` : `<span class="pill todo">not started</span>`;
+      const links = l.ready ? `<a href="${f.doc}">read</a><a href="tests.html#layer-${l.id}">tests</a>` : "";
+      return `<li class="${l.ready ? "" : "soon"}"><span class="num">${l.id}</span><span class="t">${l.title}</span><span class="s">${pill}${links}</span><span class="b">${l.builds}</span></li>`;
+    }).join("");
+  };
+  render({});
+  const { ready } = await MS.loadCourse();
+  const scores = {};
+  for (const l of ready) { const r = MS.runTests(l.id); scores[l.id] = { p: r.filter(x => x.status === "pass").length, n: r.length }; }
+  render(scores);
+})();
+</script>
+</body>
+</html>
