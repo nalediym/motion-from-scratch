@@ -25,7 +25,7 @@
           { id: "01", slug: "shapes", title: "Shapes & blending", builds: "rectangles, circles, alpha, gradients", ready: true },
           { id: "02", slug: "glyphs", title: "Glyphs", builds: "text from a hand-made bitmap font", ready: true },
           { id: "03", slug: "time", title: "Time", builds: "frame = f(n) and a player that keeps time", ready: true },
-          { id: "04", slug: "interpolate", title: "Interpolate", builds: "lerp, clamp, ranges, extrapolation", ready: false },
+          { id: "04", slug: "interpolate", title: "Interpolate", builds: "lerp, clamp, ranges, extrapolation", ready: true },
           { id: "05", slug: "easing", title: "Easing", builds: "a cubic-Bézier solver", ready: false },
           { id: "06", slug: "springs", title: "Springs", builds: "physics stepping and stability", ready: false },
           { id: "07", slug: "canvas", title: "Hand-off to canvas", builds: "transforms, blur, then real fonts on canvas", ready: false },
@@ -505,6 +505,14 @@
             "q2": "f3db86c8",
             "q3": "082b249c"
           }
+        },
+        "04": {
+          "mystery": "14babd90",
+          "questions": {
+            "q1": "f69a7409",
+            "q2": "bb2bd808",
+            "q3": "865e7876"
+          }
         }
       };
     })(globalThis.MS = globalThis.MS || {});
@@ -833,6 +841,76 @@
           if (!failed.caption && caption !== "00:00:01:06") hints.push(`The caption reads "${caption}". Every timecode field has two digits, and the last one counts frames within the current second.`);
           const matches = MS.hashFrame(frame) === data.mystery && want.every((v, i) => picked[i] === v);
           return { wrong: matches ? 0 : 1, hints };
+        },
+      });
+    })(globalThis.MS = globalThis.MS || {});
+
+    // lib/mysteries/04-interpolate.js — layer 04's checkpoint picture. PROVIDED.
+    // A long-exposure photo of one light moved by your interpolate: every stroke
+    // is a keyframed move, and the light changes color as it travels. Every rule
+    // right writes a word, underlined with eased, fading dots.
+    // draw() runs the learner's functions; check() says which rule went wrong,
+    // never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+    (function (MS) {
+      const M = 6, TOP = 6, LEFT = [6, 26, 48, 68, 88];   // each letter's left edge
+      const W = 108, H = TOP + 18 + 5 + 2 + M;
+      const CLAMP = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
+      // One light on one timeline. Each stroke: keyframe times, the light's x and y
+      // at each keyframe (inside its letter's box, 16 pixels tall), and when the light is on.
+      const STROKES = [
+        { letter: 0, keys: [0, 6], xs: [0, 12], ys: [0, 0], on: [0, 6] },
+        { letter: 0, keys: [10, 12, 16], xs: [6, 6, 6], ys: [4, 6, 16], on: [6, 16] },                 // on before its first keyframe
+        { letter: 1, keys: [20, 23, 25, 29, 30], xs: [0, 4, 8, 12, 16], ys: [0, 16, 5, 16, 0], on: [20, 30] },
+        { letter: 2, keys: [34, 38, 42, 46], xs: [12, 0, 0, 12], ys: [0, 0, 16, 16], on: [32, 48], opts: CLAMP },   // on longer than its keyframes
+        { letter: 2, keys: [50, 52], xs: [0, 9], ys: [8, 8], on: [50, 52] },
+        { letter: 3, keys: [56, 60, 62, 65, 68, 70, 74], xs: [12, 0, 0, 9, 0, 0, 12], ys: [0, 0, 8, 8, 8, 16, 16], on: [56, 74] },
+        { letter: 4, keys: [78, 83, 84, 89], xs: [0, 0, 12, 12], ys: [16, 0, 16, 0], on: [78, 89] },
+      ];
+      const GLOW = { keys: [0, 45, 90], colors: [[255, 92, 138], [91, 140, 255], [234, 240, 250]] };   // the light's color over time
+      const FADE = [[234, 240, 250, 255], [90, 144, 250, 39]];                                        // the underline fades out
+      const px = v => Math.floor(v + 0.5 + 1e-7);   // nearest whole pixel; halves go right, whatever the last bit of rounding error
+
+      MS.mystery("04", {
+        draw() {
+          const frame = MS.createFrame(W, H);
+          MS.clearFrame(frame, [11, 13, 18]);
+          const failed = [];
+          STROKES.forEach((st, i) => {
+            try {
+              const x0 = LEFT[st.letter];
+              for (let k = 0; k <= (st.on[1] - st.on[0]) * 8; k++) {   // the shutter catches the light 8 times per time unit
+                const s = st.on[0] + k / 8;
+                const color = MS.interpolateColors(Math.floor(s), GLOW.keys, GLOW.colors);
+                MS.fillRect(frame, x0 + px(MS.interpolate(s, st.keys, st.xs, st.opts)), TOP + px(MS.interpolate(s, st.keys, st.ys, st.opts)), 2, 2, color);
+              }
+            } catch (e) { failed.push(`stroke ${i + 1}: ${e.message}`); }
+          });
+          try {
+            for (let k = 0; k <= 12; k++)
+              MS.fillRect(frame, px(MS.interpolate(k, [0, 4, 12], [M, 38, W - M - 2], { easing: t => t * t })), TOP + 23, 2, 2, MS.interpolateColors(k, [0, 12], FADE));
+          } catch (e) { failed.push(`the underline: ${e.message}`); }
+          return { frame, failed };
+        },
+        check({ frame, failed }, data) {
+          const hints = failed.map(msg => `Part of the picture couldn't be drawn (${msg}).`);
+          // Small probes, one per rule, on a range with uneven keyframes.
+          const R = [0, 4, 5, 10], V = [5, 40, 50, 0];
+          const run = fn => { try { return fn(); } catch (e) { return NaN; } };
+          const near = (got, want) => Array.isArray(want)
+            ? Array.isArray(got) && got.length === want.length && want.every((w, i) => Math.abs(got[i] - w) < 1e-6)
+            : Math.abs(got - want) < 1e-6;
+          if (!near([1, 4.5, 6, 9].map(x => run(() => MS.interpolate(x, R, V))), [13.75, 45, 40, 10]))
+            hints.push("Some letters are bent out of shape. Keyframes don't have to be evenly spaced: the segment an input falls in depends on the keyframe times themselves.");
+          if (!near(run(() => MS.interpolate(-2, R, V)), -12.5))
+            hints.push("The T's stem is wrong at the top. Its light switches on before the first keyframe, and before the first keyframe \"extend\" carries on along the FIRST segment's line.");
+          if (!near(run(() => MS.interpolate(12, R, V, { extrapolateRight: "clamp" })), 0) || !near(run(() => MS.interpolate(-3, R, V, { extrapolateLeft: "clamp" })), 5))
+            hints.push("The first E's light stays on longer than its keyframes, clamped at both ends. Clamping holds the value of the very first or very last keyframe, however many keyframes there are.");
+          if (!near(run(() => MS.interpolate(7.5, R, V, { easing: t => t * t })), 37.5))
+            hints.push("The dots under the word should bunch up at the start of each segment. Easing reshapes t, the progress through the segment the input is in.");
+          if (!near(run(() => MS.interpolateColors(0.25, [0, 1], [[0, 0, 0, 0], [0, 0, 0, 200]])), [0, 0, 0, 50]))
+            hints.push("The dots under the word should fade out. Alpha is interpolated just like red, green and blue.");
+          const ok = MS.hashFrame(frame) === data.mystery;
+          return { wrong: ok ? 0 : 1, hints };
         },
       });
     })(globalThis.MS = globalThis.MS || {});
@@ -2764,6 +2842,509 @@
     - **Read the original.** The HTML Standard's [animation frames](https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#animation-frames) section: when `requestAnimationFrame` callbacks run, and what the timestamp means.
     - Give the player controls: pause, scrub to any frame (easy, because a frame is just `f(n)`), and play at half speed.
     - Write `timecodeDropFrame(n)` for 29.97 fps, which skips the labels `:00` and `:01` at the start of every minute except every tenth minute. Check it against an online timecode calculator.
+
+  </script>
+  <script type="text/markdown">
+    ## Layer 04 · Interpolate
+
+    _Every moving number is a line between keyframes._
+
+    **You'll write:** `lerp`, `inverseLerp`, `clamp`, `interpolate`, `interpolateColors` in `src/04-interpolate.js`
+    **Builds on:** layers 00–03
+
+    Layer 03 gave every frame a number. Now each frame needs to know where things are: how faded a word is at frame 12, how far the light sweep has traveled by frame 150. KineticIntro answers every one of those questions with a single function from Remotion, `interpolate`. Here's its light sweep:
+
+    ```js
+    interpolate(frame, [140, 172], [-20, 130], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    ```
+
+    Between frames 140 and 172, the sweep travels from −20% to 130% of the way across the logo, and before and after that it stays put. By the end of this layer you'll have written `interpolate` yourself, options and all, plus a version for colors.
+
+    ### Under the hood
+
+    #### Keyframes and in-betweens
+
+    In hand-drawn animation, a lead animator drew the **keyframes**, the poses that matter, and assistants called [in-betweeners](https://en.wikipedia.org/wiki/Inbetweening) drew every frame between them. Software took over that job, now called *tweening*: you say where something is at a few moments, and the computer fills in the rest.
+
+    The simplest way to fill in is a straight line. **lerp**, short for *linear interpolation*, walks a fraction `t` of the way from `a` to `b`:
+
+    ```text
+      lerp(a, b, t) = a + (b − a) × t
+
+      t:   0          0.25       0.5                   1          1.5
+           40 ─────── 50 ─────── 60 ────────────────── 80 · · · · 100
+           a                                           b
+    ```
+
+    `t` is a fraction, not a frame: 0 is the start, 1 is the end, 0.5 is halfway. Nothing stops it going past 1 or below 0; the line just keeps going. You've already written one: layer 01's `mixColor` is a lerp on four channels at once.
+
+    #### Map, don't move
+
+    `inverseLerp` runs lerp backwards: given a value, which `t` gives it? Put the two together and you can map any range onto any other. Say a word fades in between frames 30 and 50, and you want its opacity at frame 35:
+
+    ```text
+      frames    30 ────●─────────── 50      inverseLerp(30, 50, 35) = 0.25
+                      35
+      opacity    0 ────●───────────  1      lerp(0, 1, 0.25) = 0.25
+    ```
+
+    First turn the input into a fraction of its range, then turn that fraction into a point in the output range. For two keyframes, that's all `interpolate` does. Notice what's missing: nothing is stored between frames. The opacity at frame 35 comes from 35 alone, which is exactly what layer 03's frame = f(n) asked for.
+
+    > **Study buddy:** "Ask me questions until I can explain why interpolate is inverseLerp followed by lerp, using a fade-out as the example. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2004%20%28Interpolate%29%3A%20lerp%2C%20clamp%2C%20ranges%2C%20extrapolation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20interpolate%20is%20inverseLerp%20followed%20by%20lerp%2C%20using%20a%20fade-out%20as%20the%20example.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2004%20%28Interpolate%29%3A%20lerp%2C%20clamp%2C%20ranges%2C%20extrapolation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20interpolate%20is%20inverseLerp%20followed%20by%20lerp%2C%20using%20a%20fade-out%20as%20the%20example.%20No%20code.)
+
+    #### Many keyframes
+
+    With more than two keyframes, the ranges become a chain of **segments**. Find the segment the input falls in, then map within that segment alone:
+
+    ```text
+      inputRange    0 ──────────── 30 ────── 50 ──────────────── 90
+      outputRange   0              100       60                  60
+                    └──── seg 0 ────┘└ seg 1 ─┘└────── seg 2 ─────┘
+
+      input 40 falls in segment 1:   t = (40 − 30) / (50 − 30) = 0.5
+                                     output = lerp(100, 60, 0.5) = 80
+    ```
+
+    Keyframes don't have to be evenly spaced, and in real animation they rarely are: each word in KineticIntro takes 26 frames to come in and 22 to leave. What `interpolate` does insist on is that the inputs are **strictly increasing**. If they weren't, one input could sit inside two segments at once, and there'd be no single right answer. The outputs can go up, down, or both.
+
+    #### Past the ends
+
+    Before the first keyframe and after the last, `interpolate` has to make something up. That's **extrapolation**. Say a word scales up from 0.8 to 1 between frames 0 and 10 (KineticIntro's words start at 80% size). What's its scale at frame 20?
+
+    ```text
+      scale
+       1.2 ┤                    ·      "extend" keeps going along the end segment's line
+       1.1 ┤               ·
+       1.0 ┤          ●━━━━━━━━━━━━    "clamp" holds the end value
+       0.9 ┤     ·
+       0.8 ┤●                          ● a keyframe
+           └┬─────────┬─────────┬──▶ frame
+            0        10        20
+    ```
+
+    - **"extend"**, Remotion's default, keeps going along the end segment's line: 1.2, and still growing.
+    - **"clamp"** holds the end value: 1.
+    - **"identity"** returns the input itself: 20. It only makes sense when input and output measure the same thing.
+
+    `extrapolateLeft` and `extrapolateRight` choose separately for each end. "extend" is the honest mathematical continuation, but anything with a natural limit, like opacity, a progress bar or a fade, needs "clamp". KineticIntro clamps every single call.
+
+    #### Easing plugs in at t
+
+    One more option, `easing`, is a function that reshapes `t` before it's mapped to the output. It takes the progress through the segment and returns a new progress:
+
+    ```text
+      t → t         ●────●────●────●────●────●────●────●────●      even steps
+      t → t × t     ●●─●──●───●─────●──────●───────●────────●      slow start, fast finish
+    ```
+
+    Each dot is where the value is after another eighth of the time. Because easing works on `t`, the start and end don't move: `t` = 0 still gives the first output and `t` = 1 the last. Easing only changes *when* the value gets there. With several keyframes, every segment gets its own trip from 0 to 1, so the easing starts over at each keyframe. Layer 05 builds real easing curves; this layer just calls whatever function it's given.
+
+    #### Colors are four numbers
+
+    `interpolateColors` blends colors one channel at a time: red with red, green with green, blue with blue, alpha with alpha, each its own interpolation over the same input range. Two things differ from plain numbers:
+
+    - **It always clamps.** There's no color past "fully red" to extend into; the channel would leave 0–255.
+    - **It rounds.** A channel is a whole byte. A `Uint8ClampedArray` would round for you, but it sends exact halves to the nearest *even* number (layer 00's bonus). Rounding with [`Math.round`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round) yourself turns 127.5 into 128 every time.
+
+    Remotion's own [`interpolateColors()`](https://www.remotion.dev/docs/interpolate-colors) works the same way: channel by channel, clamped at both ends, rounded.
+
+    ### Your turn
+
+    Work through `src/04-interpolate.js` top to bottom. Each function's comment is its spec. Some questions to guide you, in order:
+
+    1. **lerp.** What should `lerp(a, b, 0)` and `lerp(a, b, 1)` give? Check your formula against both before running anything.
+    2. **inverseLerp.** If `lerp(a, b, t)` gives `v`, what's `t`? Why does `a === b` have to be an error?
+    3. **clamp.** What should `clamp(1.3, 0, 1)` and `clamp(−0.2, 0, 1)` give?
+    4. **interpolate.** Check the ranges first; the spec lists what to reject. Then, on paper, for an inputRange of `[0, 4, 6]`: which segment do the inputs −1, 0, 4, 5 and 9 use? Last, for each option: does it act on the input, on `t`, or on the output?
+    5. **interpolateColors.** Which function you've already written mixes two colors? Which one already finds the segment and clamps?
+
+    Run the tests after each function. A failing test tells you exactly what it expected.
+
+    Once it works, the test pictures move: two blocks that show "extend" against "clamp", a dot that visits four corners, and a color ramp through three stops.
+
+    > **Study buddy:** "Give me an inputRange with uneven keyframes and five inputs, some before and after the ends. Ask me which segment each one uses and what t is. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2004%20%28Interpolate%29%3A%20lerp%2C%20clamp%2C%20ranges%2C%20extrapolation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20an%20inputRange%20with%20uneven%20keyframes%20and%20five%20inputs%2C%20some%20before%20and%20after%20the%20ends.%20Ask%20me%20which%20segment%20each%20one%20uses%20and%20what%20t%20is.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2004%20%28Interpolate%29%3A%20lerp%2C%20clamp%2C%20ranges%2C%20extrapolation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20an%20inputRange%20with%20uneven%20keyframes%20and%20five%20inputs%2C%20some%20before%20and%20after%20the%20ends.%20Ask%20me%20which%20segment%20each%20one%20uses%20and%20what%20t%20is.%20No%20code.)
+
+
+  </script>
+  <script type="text/markdown">
+    ### ✏️ Your code for layer 04
+
+    This cell is your `src/04-interpolate.js`. When editing locally, change it and everything below re-runs by itself.
+
+    **Stuck?** Ask a study buddy that gives hints, not answers: [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2004%20%28Interpolate%29%3A%20lerp%2C%20clamp%2C%20ranges%2C%20extrapolation.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2004%20%28Interpolate%29%3A%20lerp%2C%20clamp%2C%20ranges%2C%20extrapolation.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next.)
+  </script>
+  <script type="module" pinned>
+    layer03; // run after the layer before
+    // Layer 04 · Interpolate — lerp, clamp, ranges, extrapolation.
+    // Read the chapter first (docs/04-interpolate.md). Each comment below is a spec; the tests check it.
+    (function (MS) {
+      /**
+       * Linear interpolation: a at t = 0, b at t = 1, and everything along the
+       * straight line between and beyond. Don't clamp t.
+       *   lerp(10, 20, 0.25) → 12.5
+       */
+      function lerp(a, b, t) {
+        throw MS.todo("lerp");
+      }
+
+      /**
+       * The opposite of lerp: what t gives v? (v − a) as a fraction of (b − a).
+       *   inverseLerp(10, 20, 15) → 0.5
+       * Throw an Error if a === b.
+       */
+      function inverseLerp(a, b, v) {
+        throw MS.todo("inverseLerp");
+      }
+
+      /**
+       * v, kept between min and max.
+       *   clamp(12, 0, 10) → 10
+       */
+      function clamp(v, min, max) {
+        throw MS.todo("clamp");
+      }
+
+      /**
+       * Map `input` from inputRange onto outputRange, like Remotion's interpolate.
+       *   interpolate(5, [0, 10], [0, 100]) → 50
+       * Both ranges have the same length (at least 2), and inputRange must be
+       * strictly increasing; throw an Error otherwise. With more than two points,
+       * use the segment the input falls in. Past the ends, options decide:
+       *   extrapolateLeft / extrapolateRight:
+       *     "extend"   (default) keep going along the end segment's line
+       *     "clamp"    stay at the end value
+       *     "identity" return the input itself
+       *   easing: a function applied to t, the progress through the segment
+       *     (0 at its start, 1 at its end), before t is mapped to the output.
+       *     With "extend", t keeps going past 0 and 1 and is still eased.
+       *     Default: t => t.
+       */
+      function interpolate(input, inputRange, outputRange, options = {}) {
+        throw MS.todo("interpolate");
+      }
+
+      /**
+       * Interpolate between colors ([r, g, b] or [r, g, b, a]; missing alpha is
+       * 255), one channel at a time, clamped at both ends. Round each channel to
+       * a whole number and return [r, g, b, a].
+       *   interpolateColors(0.5, [0, 1], [[0, 0, 0], [200, 200, 200]]) → [100, 100, 100, 255]
+       */
+      function interpolateColors(input, inputRange, colors) {
+        throw MS.todo("interpolateColors");
+      }
+
+      Object.assign(MS, { lerp, inverseLerp, clamp, interpolate, interpolateColors });
+    })(globalThis.MS = globalThis.MS || {});
+
+    const layer04 = true;
+  </script>
+  <script type="module">
+    layer04;
+    const report04 = (() => {
+      const MS = globalThis.MS;
+      MS.tests = MS.tests.filter(t => t.layer !== "04");
+      MS.visuals = MS.visuals.filter(v => v.layer !== "04");
+    // tests/04-interpolate.test.js — PROVIDED. Read a failing test to see what's expected.
+    (function (MS) {
+      const L = "04";
+      const sq = t => t * t;
+
+      MS.test(L, "lerp: a at t = 0, b at t = 1, and in between", t => {
+        t.eq(MS.lerp(10, 20, 0), 10, "t = 0");
+        t.eq(MS.lerp(10, 20, 1), 20, "t = 1");
+        t.eq(MS.lerp(10, 20, 0.25), 12.5, "t = 0.25");
+        t.eq(MS.lerp(8, 2, 0.5), 5, "it works downhill too");
+      });
+
+      MS.test(L, "lerp doesn't stop at the ends", t => {
+        t.eq(MS.lerp(0, 10, 1.5), 15, "t = 1.5");
+        t.eq(MS.lerp(0, 10, -0.5), -5, "t = -0.5");
+      });
+
+      MS.test(L, "inverseLerp: where v sits between a and b", t => {
+        t.eq(MS.inverseLerp(10, 20, 15), 0.5);
+        t.eq(MS.inverseLerp(0, 4, 1), 0.25);
+        t.eq(MS.inverseLerp(20, 10, 15), 0.5, "a > b works too");
+        t.eq(MS.inverseLerp(0, 10, 20), 2, "outside the range");
+      });
+
+      MS.test(L, "inverseLerp refuses a range of zero width", t => {
+        t.throws(() => MS.inverseLerp(3, 3, 3), "a === b would divide by zero");
+      });
+
+      MS.test(L, "clamp keeps a value between min and max", t => {
+        t.eq(MS.clamp(5, 0, 10), 5, "inside");
+        t.eq(MS.clamp(-3, 0, 10), 0, "below");
+        t.eq(MS.clamp(12, 0, 10), 10, "above");
+      });
+
+      MS.test(L, "interpolate maps one range onto another", t => {
+        t.eq(MS.interpolate(5, [0, 10], [0, 100]), 50);
+        t.eq(MS.interpolate(30, [20, 40], [1, 0]), 0.5, "a fade out: outputs can go down");
+      });
+
+      MS.test(L, "interpolate with several points uses the segment the input falls in", t => {
+        t.eq(MS.interpolate(15, [0, 10, 20], [0, 1, 3]), 2, "halfway along the second segment");
+        t.eq(MS.interpolate(10, [0, 10, 20], [0, 1, 3]), 1, "exactly on a point");
+        t.eq(MS.interpolate(25, [0, 10, 20, 30], [0, 10, 0, 10]), 5, "the third segment of three");
+      });
+
+      MS.test(L, "interpolate keeps going past both ends by default", t => {
+        t.eq(MS.interpolate(15, [0, 10], [0, 100]), 150, "past the right end");
+        t.eq(MS.interpolate(-2, [0, 10], [0, 100]), -20, "past the left end");
+        t.eq(MS.interpolate(25, [0, 10, 20], [0, 100, 110]), 115, "past the end of the LAST segment, at its slope");
+      });
+
+      MS.test(L, "extrapolate 'clamp' holds the end value", t => {
+        t.eq(MS.interpolate(15, [0, 10], [0, 100], { extrapolateRight: "clamp" }), 100, "right");
+        t.eq(MS.interpolate(-5, [0, 10], [0, 100], { extrapolateLeft: "clamp" }), 0, "left");
+        t.eq(MS.interpolate(15, [0, 10], [0, 100], { extrapolateLeft: "clamp" }), 150, "clamping the left leaves the right alone");
+      });
+
+      MS.test(L, "extrapolate 'identity' returns the input itself", t => {
+        t.eq(MS.interpolate(15, [0, 10], [0, 100], { extrapolateRight: "identity" }), 15);
+        t.eq(MS.interpolate(-4, [0, 10], [0, 100], { extrapolateLeft: "identity" }), -4);
+      });
+
+      MS.test(L, "easing reshapes progress through each segment", t => {
+        t.eq(MS.interpolate(5, [0, 10], [0, 100], { easing: sq }), 25, "halfway in, t² = 0.25");
+        t.eq(MS.interpolate(15, [0, 10, 20], [0, 10, 20], { easing: sq }), 12.5, "easing restarts in each segment");
+        t.eq(MS.interpolate(15, [0, 10], [0, 100], { easing: sq, extrapolateRight: "clamp" }), 100, "clamped: easing sees t = 1");
+        t.eq(MS.interpolate(15, [0, 10], [0, 100], { easing: sq }), 225, "extended: t = 1.5 is eased too (1.5² = 2.25)");
+      });
+
+      MS.test(L, "interpolate rejects ranges it can't use", t => {
+        t.throws(() => MS.interpolate(1, [0, 10], [0, 5, 10]), "different lengths");
+        t.throws(() => MS.interpolate(1, [0], [5]), "only one point");
+        t.throws(() => MS.interpolate(1, [0, 0], [0, 1]), "two inputs the same");
+        t.throws(() => MS.interpolate(1, [10, 0], [0, 1]), "inputs going down");
+      });
+
+      MS.test(L, "interpolateColors blends each channel and rounds", t => {
+        t.deep(MS.interpolateColors(0.5, [0, 1], [[0, 0, 0, 255], [255, 100, 50, 255]]), [128, 50, 25, 255], "halfway: 127.5 rounds to 128");
+        t.deep(MS.interpolateColors(0.5, [0, 1], [[0, 0, 0], [200, 200, 200]]), [100, 100, 100, 255], "missing alpha counts as 255");
+      });
+
+      MS.test(L, "interpolateColors goes through several stops and stops at the ends", t => {
+        const red = [255, 0, 0, 255], green = [0, 255, 0, 255], blue = [0, 0, 255, 255];
+        t.deep(MS.interpolateColors(1.5, [0, 1, 2], [red, green, blue]), [0, 128, 128, 255], "between the 2nd and 3rd stop");
+        t.deep(MS.interpolateColors(3, [0, 1, 2], [red, green, blue]), blue, "past the end it stays on the last color");
+        t.deep(MS.interpolateColors(-1, [0, 1, 2], [red, green, blue]), red, "before the start it stays on the first");
+      });
+
+      // ---- pictures ----
+      MS.animation(L, "Extend (top) keeps going; clamp (bottom) stops at the last point", () => MS.createComposition({
+        width: 96, height: 30, fps: 30, durationInFrames: 60,
+        render(frame, n) {
+          MS.clearFrame(frame, [11, 13, 18]);
+          MS.fillRect(frame, 0, 14, 96, 1, [40, 50, 70]);
+          MS.fillRect(frame, MS.interpolate(n, [10, 40], [6, 70]), 4, 8, 8, MS.hex("#5B8CFF"));
+          MS.fillRect(frame, MS.interpolate(n, [10, 40], [6, 70], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }), 18, 8, 8, MS.hex("#FF5C8A"));
+        },
+      }));
+
+      MS.animation(L, "Keyframes: a dot through four corners", () => MS.createComposition({
+        width: 64, height: 40, fps: 30, durationInFrames: 60,
+        render(frame, n) {
+          MS.clearFrame(frame, [11, 13, 18]);
+          const keys = [0, 15, 30, 45, 59];
+          MS.fillCircle(frame, MS.interpolate(n, keys, [10, 54, 54, 10, 10]), MS.interpolate(n, keys, [10, 10, 30, 30, 10]), 4, MS.hex("#EAF0FA"));
+        },
+      }));
+
+      MS.visual(L, "A color ramp through three stops (interpolateColors)", () => {
+        const f = MS.createFrame(96, 12);
+        const stops = [MS.hex("#1A2740"), MS.hex("#5B8CFF"), MS.hex("#FF5C8A")];
+        for (let x = 0; x < f.width; x++) MS.fillRect(f, x, 0, 1, 12, MS.interpolateColors(x, [0, 48, 95], stops));
+        return f;
+      });
+    })(globalThis.MS = globalThis.MS || {});
+
+      return MS.runLayerReport("04");
+    })();
+    const el04 = document.createElement("div");
+    el04.innerHTML = report04.html;
+    display(el04);
+  </script>
+  <script type="text/markdown">
+    ### Predict, then run
+
+    Guess first, then run.
+
+
+  </script>
+  <script type="module">
+    layer04; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 1: a fade-in from frame 0 to 30, with only its right end clamped.
+        // What opacity does it give at frame −10, before the fade starts?
+        const myGuess = null; // TODO: your guess, to 2 decimals
+        MS.reveal("opacity at frame −10", myGuess, Math.round(MS.interpolate(-10, [0, 30], [0, 1], { extrapolateRight: "clamp" }) * 100) / 100);
+      });
+      display(out);
+    }
+  </script>
+  <script type="module">
+    layer04; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 2: what color is halfway between pure red and pure green?
+        const myGuess = null; // TODO: your guess, as [r, g, b, a]
+        MS.reveal("halfway from red to green", myGuess, MS.interpolateColors(0.5, [0, 1], [[255, 0, 0], [0, 255, 0]]));
+      });
+      display(out);
+    }
+  </script>
+  <script type="module">
+    layer04; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Predict 3: a move from 0 to 100 over frames 0–20, eased with t => t * t.
+        // At which whole frame does it first reach halfway (50)?
+        const myGuess = null; // TODO: your guess, a frame number
+        let n = 0;
+        while (MS.interpolate(n, [0, 20], [0, 100], { easing: t => t * t }) < 50) n++;
+        MS.reveal("first frame at or past 50", myGuess, n);
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    <details><summary>Answers</summary>
+
+    1. −0.33. Only the right end was clamped, so the left end still extends, backwards along the fade's line to an opacity below zero. This happens for real: KineticIntro shows each word from two frames *before* its animation starts, and those frames sit before the first keyframe. A browser treats a negative opacity as 0, so you'd never notice here, but a position or a scale has no such safety net. Clamp both ends.
+    2. `[128, 128, 0, 255]`: a dim olive, not the bright yellow you might expect. Each channel is only halfway up, and sRGB numbers aren't proportional to light: a channel at 128 gives off only about a fifth of the light of 255 (see the [sRGB transfer function](https://en.wikipedia.org/wiki/SRGB#Transfer_function_(%22gamma%22))). Halfway in numbers is much darker than halfway in light. That's why CSS lets you choose where colors get mixed: [`color-mix(in oklab, red, lime)`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) blends in a space built to match how bright colors look.
+    3. 15. With `t × t`, the value reaches halfway when `t × t` = 0.5, so `t` ≈ 0.71: frame 14.1 of 20. Frame 15 is the first whole frame past it. An eased move can spend most of its time on the first half of the distance; layer 05 makes curves that ease in, out, or both.
+
+    </details>
+
+    ### Break it
+
+    Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.
+
+    #### 1. Only ever use the first segment
+
+
+  </script>
+  <script type="module">
+    layer04; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 1: what is finding the segment for?
+        // TODO(break-it), in src/04-interpolate.js → interpolate:
+        //   always use the first two keyframes, whatever the input. Change nothing else.
+        const keys = [0, 15, 30, 45, 60];
+        for (const n of [0, 10, 20, 35, 50]) {
+          const x = MS.interpolate(n, keys, [10, 54, 54, 10, 10]), y = MS.interpolate(n, keys, [10, 10, 30, 30, 10]);
+          console.log("frame " + n + " → (" + Math.round(x) + ", " + Math.round(y) + ")");
+        }
+        // TODO: the dot should visit four corners of a 64 × 40 frame. After the change, where does it go, and why?
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    #### 2. Ease the output instead of t
+
+
+  </script>
+  <script type="module">
+    layer04; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 2: why does easing work on t?
+        // TODO(break-it), in src/04-interpolate.js → interpolate:
+        //   apply easing to the final output value instead of to t.
+        const easeIn = t => t * t;
+        for (const n of [0, 5, 10]) console.log("frame " + n + " → " + MS.interpolate(n, [0, 10], [100, 200], { easing: easeIn }));
+        // TODO: before the change the value goes 100, 125, 200. What does it do after, and why?
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    An easing function expects a progress between 0 and 1. Handed a value like 150, it has nothing sensible to say.
+
+    #### 3. Let any inputRange through
+
+
+  </script>
+  <script type="module">
+    layer04; // uses your code above
+    {
+      const out = document.createElement("pre");
+      out.textContent = MS.runExperimentFn(() => {
+        // Break it 3: why must the inputs be strictly increasing?
+        // TODO(break-it), in src/04-interpolate.js → interpolate:
+        //   delete the check that the inputs are strictly increasing.
+        const keys = [0, 20, 10, 30];   // 10 comes after 20
+        for (const n of [5, 15, 25]) {
+          try { console.log(n + " → " + MS.interpolate(n, keys, [0, 100, 200, 300])); }
+          catch (e) { console.log(n + " → " + e.message); }
+        }
+        // TODO: 15 lies between 0 and 20, and also between 20 and 10. Which segment did your code use?
+        //   Is either answer right?
+      });
+      display(out);
+    }
+  </script>
+  <script type="text/markdown">
+
+    ### Checkpoint
+
+    When all 14 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a long-exposure photo of a light moved by your `interpolate`. Its traps: keyframes that aren't evenly spaced, a light switched on before its first keyframe, another left on past both ends of a long chain of keyframes, easing that restarts every segment, and a fade in alpha. The three questions are below.
+
+
+  </script>
+  <script type="module" pinned>
+    layer04; // after your code
+    // Checkpoint 04 · Interpolate. Replace each null with your answer.
+    MS.answers("04", {
+      // 1. KineticIntro's light sweep is
+      //      interpolate(frame, [140, 172], [-20, 130], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+      //    Where is the sweep at frame 164?
+      q1: null,
+      // 2. A title slides in with interpolate(frame, [0, 20], [-160, 0]) and no options.
+      //    Where is it at frame 26?
+      q2: null,
+      // 3. A background fades through three colors:
+      //      interpolateColors(frame, [0, 60, 90], [MS.hex("#1A2740"), MS.hex("#5B8CFF"), MS.hex("#FFFFFF")])
+      //    What is its red channel at frame 70?
+      q3: null,
+    });
+    const answers04 = true;
+  </script>
+  <script type="module">
+    answers04; report04; // after your answers and this layer's tests
+    {
+      const cp = MS.runCheckpoint("04", MS.runTests("04"));
+      const el = document.createElement("div");
+      el.innerHTML = MS.checkpointHTML(cp);
+      display(el);
+    }
+  </script>
+  <script type="text/markdown">
+
+    ### In the real world
+
+    - Remotion's [`interpolate()`](https://www.remotion.dev/docs/interpolate) is this function: same arguments, same "extend" default, same options, plus a fourth extrapolation, "wrap".
+    - CSS animations are keyframes on a 0–100% input range. An [`@keyframes`](https://developer.mozilla.org/en-US/docs/Web/CSS/@keyframes) rule lists values at percentages, the browser interpolates every frame between them, and [`animation-timing-function`](https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timing-function) eases each pair of keyframes separately, the way your easing restarts every segment.
+    - GPUs have lerp built in: GLSL's [`mix()`](https://registry.khronos.org/OpenGL-Refpages/gl4/html/mix.xhtml) is lerp, and [`smoothstep()`](https://registry.khronos.org/OpenGL-Refpages/gl4/html/smoothstep.xhtml) is a clamped `inverseLerp` with easing built in.
+
+    ### Going further (optional)
+
+    - **Read the original.** Remotion's [`interpolate.ts`](https://github.com/remotion-dev/remotion/blob/main/packages/core/src/interpolate.ts). The file has grown to handle strings and more, but look for `findRange` and `interpolateFunction`: a few dozen lines between them that do what yours does. Does its `findRange` pick the same segment as yours when an input lands exactly on a keyframe? Does it matter?
+    - Add Remotion's fourth mode, "wrap": past the end, start the range over, like layer 03's looping player.
+    - Mix light instead of numbers: convert each channel to linear light with the sRGB transfer function, interpolate, convert back, and compare your red-to-green midpoint with `interpolateColors`.
 
   </script>
 </notebook>
