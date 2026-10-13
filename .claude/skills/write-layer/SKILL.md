@@ -7,7 +7,7 @@ description: For course maintainers only. Write or revise a Motion from Scratch 
 
 This is maintainer work (see "Maintainers" in AGENTS.md). If the person is taking the course, stop and use the `motion-tutor` skill instead.
 
-1. **Get the kit.** Ask where the private kit folder is (solutions and answers). It must stay outside the repo; never copy its contents into the repo or paste answers into chat logs that get committed.
+1. **Get the kit.** The private kit (solutions and answers) lives in `kit/`, which git ignores; ask for it if it is missing. Never commit it, copy its contents into tracked files, or paste answers into chat logs that get committed.
 2. **Read AUTHORING.md** and the previous layer's chapter, starter code and tests, so the new layer builds on them and matches their voice.
 3. **Scaffold.** `node tools/new-layer.js NN --kit <kit>` (the layer must already be in `lib/course.js`).
 4. **Pin down the behavior first.** Write the solution in `<kit>/solutions/`, then the tests, then the starter code's spec comments. Every function in `src/` only throws `MS.todo`.

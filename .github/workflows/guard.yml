@@ -1,0 +1,33 @@
+name: Guard
+
+# Keeps solutions out of the repo, on every branch and pull request.
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: No kit files are tracked
+        run: |
+          leaked=$(git ls-files | grep -E '(^|/)kit(/|$)|(^|/)solutions/|answers\.json$' || true)
+          if [ -n "$leaked" ]; then
+            echo "::error::Private kit files are tracked:"; echo "$leaked"; exit 1
+          fi
+
+      - name: Starter code solves nothing
+        run: |
+          set +e
+          node tests/run.js > run.txt 2>&1; code=$?
+          set -e
+          tail -3 run.txt
+          if [ "$code" -eq 0 ] || ! grep -q '^0 passed · 0 failing · ' run.txt; then
+            echo "::error::Some starter code passes or fails tests: every src/ function must only throw MS.todo."; exit 1
+          fi
