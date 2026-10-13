@@ -200,7 +200,7 @@ body { padding-block: 24px 80px; }
   </details>
   <div class="banner" data-progress-banner hidden></div>
   <div class="tabbar">
-    <nav class="tabs" aria-label="Layers"><a class="tab" href="#layer-00" data-layer="00"><span class="num">00</span>Pixels</a><a class="tab" href="#layer-01" data-layer="01"><span class="num">01</span>Shapes & blending</a><a class="tab" href="#layer-02" data-layer="02"><span class="num">02</span>Glyphs</a><a class="tab" href="#layer-03" data-layer="03"><span class="num">03</span>Time</a><a class="tab" href="#layer-04" data-layer="04"><span class="num">04</span>Interpolate</a><span class="tab soon">05–10 coming soon</span></nav>
+    <nav class="tabs" aria-label="Layers"><a class="tab" href="#layer-00" data-layer="00"><span class="num">00</span>Pixels</a><a class="tab" href="#layer-01" data-layer="01"><span class="num">01</span>Shapes & blending</a><a class="tab" href="#layer-02" data-layer="02"><span class="num">02</span>Glyphs</a><a class="tab" href="#layer-03" data-layer="03"><span class="num">03</span>Time</a><a class="tab" href="#layer-04" data-layer="04"><span class="num">04</span>Interpolate</a><a class="tab" href="#layer-05" data-layer="05"><span class="num">05</span>Easing</a><span class="tab soon">06–10 coming soon</span></nav>
     <div class="tools">
       <button class="btn ghost tip" type="button" data-save data-tip="Copies a private link with your code and answers. Open it on another device to pick up where you left off. Nothing is uploaded.">Save progress</button>
       <a class="btn ghost tip" data-showcase href="showcase.html" target="_blank" rel="noopener" data-tip="Opens a page that runs your engine and shows what it draws, ready to share. Your checkpoint answers stay private.">Share my engine ↗</a>
@@ -1103,6 +1103,173 @@ MS.answers("04", {
     <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send it too.</p><pre data-tutor-text></pre></details>
   </aside>
 </section>
+
+<section class="chapter" id="layer-05" data-layer="05">
+  <div class="read">
+    <header class="ch-head">
+      <span class="eyebrow">Layer 05</span>
+      <h2>Easing</h2>
+      <p class="lede">A curve that decides when, not where.</p>
+      <a class="to-bench" href="#bench-05">Open the workbench ↓</a>
+    </header>
+    <p class="meta"><strong>You'll write:</strong> <code>bezierPoint</code>, <code>bezierSlope</code>, <code>solveBezierX</code>, <code>cubicBezier</code> in <code>src/05-easing.js</code><br><strong>Builds on:</strong> layers 00–04</p>
+<p>Layer 04's <code>interpolate</code> takes an <code>easing</code> function and reshapes <code>t</code> with it. This layer makes the functions worth passing. KineticIntro defines two curves in its code: <strong>APPLE</strong>, <code>bezier(0.16, 1, 0.3, 1)</code>, which every entrance uses, and <strong>SMOOTH</strong>, <code>bezier(0.6, 0, 0.2, 1)</code>, for every exit. Those four numbers are the same ones CSS takes in <code>cubic-bezier()</code>. By the end of this layer you'll turn any four numbers into an easing function, the way a browser does, with a little numerical root-finding.</p>
+<h3 data-anchor="under-the-hood">Under the hood</h3>
+<h4 data-anchor="why-ease">Why ease</h4>
+<p>Nothing in the real world starts or stops instantly. A ball rolling to a stop slows down; a car pulling away speeds up. Linear motion jumps to full speed on the first frame and halts dead on the last, and our eyes read that as mechanical. An <strong>easing function</strong> fixes this by changing <em>when</em> the value gets where it's going: it takes the fraction of the time that has passed, <code>x</code>, and returns the fraction of the distance covered, <code>y</code>. It starts at (0, 0) and ends at (1, 1), and the shape between is the personality.</p>
+<p>CSS describes that shape with a <a href="https://www.w3.org/TR/css-easing-1/#cubic-bezier-easing-functions" target="_blank" rel="noopener">cubic Bézier curve</a> and two control points, P1 = (x1, y1) and P2 = (x2, y2). Its keywords are just named curves: <code>ease</code> is <code>cubic-bezier(0.25, 0.1, 0.25, 1)</code>, <code>ease-in</code> is <code>(0.42, 0, 1, 1)</code>, <code>ease-out</code> is <code>(0, 0, 0.58, 1)</code>.</p>
+<h4 data-anchor="a-b-zier-curve-is-lerps-of-lerps">A Bézier curve is lerps of lerps</h4>
+<p>In 1959, Paul de Casteljau, a mathematician at Citroën, found a way to describe smooth car-body curves to a computer; Pierre Bézier at Renault published the same curves a few years later, and they took his name. De Casteljau's way of computing a point on the curve uses nothing but layer 04's <code>lerp</code>. For an easing curve, the four control values along one axis are 0, <code>p1</code>, <code>p2</code> and 1:</p>
+<pre class="diagram"><code>  control values:   0           p1           p2           1
+  lerp by u:              a            b            c             a = lerp(0, p1, u), …
+  lerp again:                    d            e                   d = lerp(a, b, u), …
+  and once more:                      B(u)                        B(u) = lerp(d, e, u)</code></pre>
+<p>Run it once with the x values and once with the y values, and you get the point (x, y) on the curve at parameter <code>u</code>. Multiply the lerps out and you get a cubic polynomial in <code>u</code> instead, which is how browsers write it. Either way works. <code>bezierSlope</code> is that polynomial's derivative: how fast the curve moves along one axis as <code>u</code> grows.</p>
+<h4 data-anchor="the-catch-u-isn-t-time">The catch: u isn't time</h4>
+<p>As <code>u</code> runs from 0 to 1, the point travels along the curve, but <code>x</code> and <code>y</code> <em>both</em> depend on <code>u</code>. An easing function is asked a different question: at time <code>x</code>, what's <code>y</code>? To answer it, first find the <code>u</code> where the curve's x equals the time you were given, then read the curve's y at that <code>u</code>:</p>
+<pre class="diagram"><code>  x (time) ──solve──▶ u ──bezierPoint(y1, y2, u)──▶ y (progress)</code></pre>
+<p>There's no tidy formula for that first arrow. (Cubic equations do have a formula, but it's fussy and loses precision.) So browsers find <code>u</code> numerically.</p>
+<h4 data-anchor="newton-s-method">Newton's method</h4>
+<p>Guess a <code>u</code>, see how far its x is from the target, then use the slope to jump to where a straight line would hit the target: <code>u ← u − error ÷ slope</code>. Here's ease-in (x1 = 0.42, x2 = 1) looking for x = 0.6, starting from the guess <code>u</code> = 0.6:</p>
+<pre class="diagram"><code>  step   u          x at u       error        slope   next u = u − error ÷ slope
+  0      0.6        0.76896      +0.169       1.037   0.4370
+  1      0.4370     0.58058      −0.0194      1.256   0.4525
+  2      0.4525     0.59988      −0.00012     1.240   0.452605
+  3      0.452605   0.60000000   −0.000000005    close enough</code></pre>
+<p>The error goes 0.17, 0.02, 0.0001, 0.000000005: each step roughly doubles the number of correct digits. That's <a href="https://en.wikipedia.org/wiki/Newton%27s_method" target="_blank" rel="noopener">Newton's method</a>, and it's usually done in three or four steps.</p>
+<blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain why Newton's method divides by the slope, and what goes wrong when the slope is nearly zero. Use a curve that isn't an easing curve. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2005%20%28Easing%29%3A%20a%20cubic-B%C3%A9zier%20solver.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20Newton%27s%20method%20divides%20by%20the%20slope%2C%20and%20what%20goes%20wrong%20when%20the%20slope%20is%20nearly%20zero.%20Use%20a%20curve%20that%20isn%27t%20an%20easing%20curve.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2005%20%28Easing%29%3A%20a%20cubic-B%C3%A9zier%20solver.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20Newton%27s%20method%20divides%20by%20the%20slope%2C%20and%20what%20goes%20wrong%20when%20the%20slope%20is%20nearly%20zero.%20Use%20a%20curve%20that%20isn%27t%20an%20easing%20curve.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
+<h4 data-anchor="bisection-the-safety-net">Bisection, the safety net</h4>
+<p>Newton's method has a weak spot: where the curve goes flat, the slope is near zero, and dividing by it flings <code>u</code> far away. <strong>Bisection</strong> can't fail. The curve's x only ever increases, so the answer is always inside a known gap, starting with 0 to 1. Check the middle: if its x is too big, the answer is in the left half; otherwise it's in the right half. Each check halves the gap:</p>
+<pre class="diagram"><code>  [0 ─────────────────────────────── 1]    x at 0.5 too big?   keep the left half
+  [0 ─────────────── 0.5]                  x at 0.25 too small? keep the right half
+          [0.25 ──── 0.5]                  … 24 halvings make the gap smaller than 1e-7</code></pre>
+<p>It's slow but sure, so real solvers use both: a few Newton steps, and bisection when Newton stalls or wanders outside 0 to 1. That's exactly what <a href="https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h" target="_blank" rel="noopener">WebKit's <code>UnitBezier</code></a>, the code behind Safari's CSS animations, does.</p>
+<h4 data-anchor="only-x-has-to-behave">Only x has to behave</h4>
+<p>CSS insists that x1 and x2 stay between 0 and 1, and it rejects the curve otherwise. Outside that range the curve's x can turn around and run backwards, which would mean time running backwards: one moment <code>x</code> would have three different <code>u</code>s and no single answer. That's the same reason layer 04 insisted on increasing keyframes.</p>
+<p>The y values have no such rule. A y control point above 1 makes the value <strong>overshoot</strong> its target and settle back, like <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>; one below 0 makes it back up before it starts, called <strong>anticipation</strong>. Both are old tricks from hand-drawn animation.</p>
+<h3 data-anchor="your-turn">Your turn</h3>
+<p>Work through <code>src/05-easing.js</code> top to bottom. Each function's comment is its spec. Some questions to guide you, in order:</p>
+<ol><li><strong>bezierPoint.</strong> Which layer 04 function can you build it from? What should it give at <code>u</code> = 0 and <code>u</code> = 1, whatever <code>p1</code> and <code>p2</code> are?</li><li><strong>bezierSlope.</strong> If you multiplied the lerps out into a polynomial, how do you take its derivative? The test "bezierSlope is how fast bezierPoint changes" lets you check your answer numerically.</li><li><strong>solveBezierX.</strong> What's a good first guess for <code>u</code>? When should you stop trusting Newton's method? If you use bisection, what tells you which half to keep?</li><li><strong>cubicBezier.</strong> It returns a function. What does that function do with x = −0.5? Where do x1 and x2 get checked: once, or on every call?</li></ol>
+<p>Run the tests after each function. A failing test tells you exactly what it expected.</p>
+<p>Once it works, the test pictures show five easing curves with their control points, five dots making the same move with five timings, and a word rising in with APPLE and fading out with SMOOTH.</p>
+<blockquote class="ask"><strong>Study buddy:</strong> "I'll describe how my solveBezierX works, in words. Don't fix it. Give me a curve and an x where it would fail, and let me work out why." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2005%20%28Easing%29%3A%20a%20cubic-B%C3%A9zier%20solver.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27ll%20describe%20how%20my%20solveBezierX%20works%2C%20in%20words.%20Don%27t%20fix%20it.%20Give%20me%20a%20curve%20and%20an%20x%20where%20it%20would%20fail%2C%20and%20let%20me%20work%20out%20why." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2005%20%28Easing%29%3A%20a%20cubic-B%C3%A9zier%20solver.%20Here%27s%20what%20I%20want%20help%20with%3A%20I%27ll%20describe%20how%20my%20solveBezierX%20works%2C%20in%20words.%20Don%27t%20fix%20it.%20Give%20me%20a%20curve%20and%20an%20x%20where%20it%20would%20fail%2C%20and%20let%20me%20work%20out%20why." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
+<h3 data-anchor="predict-then-run">Predict, then run</h3>
+<p>Guess first, then run.</p>
+<div class="tryit" data-kind="predict" data-layer="05" data-key="05-p1">
+<textarea class="tryit-code" rows="5" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 1 code">// Predict 1: CSS ease-in is cubic-bezier(0.42, 0, 1, 1). Halfway along its curve
+// (u = 0.5), what fraction of the time has passed? That's the curve's x at u = 0.5.
+const myGuess = null; // TODO: your guess, to 4 decimals
+MS.reveal("ease-in's x at u = 0.5", myGuess, MS.bezierPoint(0.42, 1, 0.5));</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<div class="tryit" data-kind="predict" data-layer="05" data-key="05-p2">
+<textarea class="tryit-code" rows="8" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 2 code">// Predict 2: cubic-bezier(0.34, 1.56, 0.64, 1) overshoots. What's the highest
+// value it reaches? Its control point says 1.56.
+const myGuess = null; // TODO: your guess, to 2 decimals
+const back = MS.cubicBezier(0.34, 1.56, 0.64, 1);
+let highest = 0;
+for (let i = 0; i &lt;= 1000; i++) highest = Math.max(highest, back(i / 1000));
+MS.reveal("the highest value", myGuess, Math.round(highest * 100) / 100);</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<div class="tryit" data-kind="predict" data-layer="05" data-key="05-p3">
+<textarea class="tryit-code" rows="8" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 3 code">// Predict 3: KineticIntro's APPLE, cubic-bezier(0.16, 1, 0.3, 1). What fraction
+// of the time does it take to cover 90% of the distance?
+const myGuess = null; // TODO: your guess, to 2 decimals
+const APPLE = MS.cubicBezier(0.16, 1, 0.3, 1);
+let x = 0;
+while (APPLE(x) &lt; 0.9) x = Math.round((x + 0.01) * 100) / 100;
+MS.reveal("time to cover 90%", myGuess, x);</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<details><summary>Answers</summary>
+<ol><li>0.6575. Halfway along the curve, two thirds of the time has already gone: <code>u</code> is the curve's own parameter, not time. That gap is why <code>solveBezierX</code> exists.</li><li>1.1. A control point pulls the curve toward it but never reaches it, so 1.56 only lifts the peak to about 1.1. The same is true of every Bézier control point, which is why designers drag handles further than the shape they want.</li><li>0.33. APPLE covers 90% of the move in a third of the time and spends the other two thirds on the last 10%. That long, gentle settle is what makes KineticIntro's words feel like they land rather than stop.</li></ol>
+</details>
+<h3 data-anchor="break-it">Break it</h3>
+<p>Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.</p>
+<h4 data-anchor="1-skip-the-solve">1. Skip the solve</h4>
+<div class="tryit" data-kind="break" data-layer="05" data-key="05-b1">
+<textarea class="tryit-code" rows="7" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 1 code">// Break it 1: why solve for u at all?
+// TODO(break-it), in src/05-easing.js → cubicBezier:
+//   skip solveBezierX and use x itself as u. Change nothing else.
+const easeIn = MS.cubicBezier(0.42, 0, 1, 1);
+for (const x of [0.25, 0.5, 0.75]) console.log("ease-in at x = " + x + " → " + easeIn(x).toFixed(4));
+// TODO: what does ease-in give at x = 0.5 after the change? Which curve are you really drawing now?</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<h4 data-anchor="2-newton-s-method-with-no-safety-net">2. Newton's method with no safety net</h4>
+<div class="tryit" data-kind="break" data-layer="05" data-key="05-b2">
+<textarea class="tryit-code" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 2 code">// Break it 2: what is the fallback for?
+// TODO(break-it), in src/05-easing.js → solveBezierX:
+//   use Newton's method only: start at u = x, take 8 steps, return u. Nothing else.
+for (const x of [0.3, 0.45, 0.5, 0.55]) {
+  const u = MS.solveBezierX(1, 0, x);
+  console.log("x = " + x + " → u = " + u + ", the curve's x there: " + MS.bezierPoint(1, 0, u));
+}
+// TODO: this curve goes flat at u = 0.5. Which x values go wrong after the change, and why those?</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<h4 data-anchor="3-settle-for-less-precision">3. Settle for less precision</h4>
+<div class="tryit" data-kind="break" data-layer="05" data-key="05-b3">
+<textarea class="tryit-code" rows="7" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 3 code">// Break it 3: how accurate is accurate enough?
+// TODO(break-it), in src/05-easing.js → solveBezierX:
+//   stop as soon as the curve's x is within 0.01 of x, instead of 1e-7.
+const APPLE = MS.cubicBezier(0.16, 1, 0.3, 1);
+for (const x of [0.05, 0.1, 0.2, 0.4]) console.log("x = " + x + " → a 1920-pixel move is at " + (APPLE(x) * 1920).toFixed(1) + " px");
+// TODO: how many pixels does the looser answer move things? Would you see it on a 1080 × 1920 video?</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
+<pre class="tryit-out" hidden></pre>
+</div>
+<p>A curve that's steep in x magnifies small errors in <code>u</code>. The precision you need depends on how far things move on screen, which is why the spec asks for 1e-7.</p>
+<h3 data-anchor="checkpoint">Checkpoint</h3>
+<p>When all 15 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a freeze-frame: dots flying in from scattered places, each on its own easing curve, caught at the instant when they should line up into a word. Its traps: everyday curves, curves that start flat, go flat in the middle or end flat, curves that overshoot, and times outside 0 to 1. The three questions are below.</p>
+<div class="cpcell" data-layer="05">
+<textarea class="tryit-code" rows="13" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint 05 answers">// Checkpoint 05 · Easing. Replace each null with your answer.
+MS.answers("05", {
+  // 1. CSS's default timing function, ease, is cubic-bezier(0.25, 0.1, 0.25, 1).
+  //    Halfway through the time (x = 0.5), how far along is the value? Round to 3 decimals.
+  q1: null,
+  // 2. KineticIntro brings each word in over 26 frames with APPLE, cubic-bezier(0.16, 1, 0.3, 1).
+  //    What is the progress after 5 frames? Round to 2 decimals.
+  q2: null,
+  // 3. KineticIntro's SMOOTH is cubic-bezier(0.6, 0, 0.2, 1). At what time x does it reach
+  //    exactly halfway (y = 0.5)? Round to 3 decimals. There's a way to do this without a solver.
+  q3: null,
+});</textarea>
+<div class="tryit-actions"><button class="btn" type="button" data-cp-run>Run checkpoint</button><button class="btn ghost" type="button" data-cp-reset>Reset</button></div>
+<div class="cp-result" data-cp-out hidden></div>
+</div>
+<h3 data-anchor="in-the-real-world">In the real world</h3>
+<ul><li>CSS transitions and animations take these curves directly: <code>transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1)</code>. The keywords <code>ease</code>, <code>ease-in</code> and the rest are fixed curves defined in the <a href="https://www.w3.org/TR/css-easing-1/" target="_blank" rel="noopener">CSS Easing Functions</a> spec.</li><li>Remotion's <a href="https://www.remotion.dev/docs/easing" target="_blank" rel="noopener"><code>Easing.bezier()</code></a> is the same idea, code borrowed from React Native: it starts from a table of 11 samples for a better first guess, then takes Newton steps or bisects.</li><li>Design tools speak the same language: Figma's custom easing, After Effects' graph editor and Apple's <a href="https://developer.apple.com/documentation/quartzcore/camediatimingfunction" target="_blank" rel="noopener"><code>CAMediaTimingFunction</code></a> all describe timing with two control points.</li></ul>
+<h3 data-anchor="going-further-optional">Going further (optional)</h3>
+<ul><li><strong>Read the original.</strong> The <a href="https://www.w3.org/TR/css-easing-1/#cubic-bezier-easing-functions" target="_blank" rel="noopener">cubic Bézier easing functions</a> section of CSS Easing Functions. Notice what browsers do with times below 0 or above 1: instead of clamping, they extend the curve along its tangent lines.</li><li>Do the same: replace clamping with CSS's tangent-line rule, and check that <code>interpolate</code> with "extend" now keeps moving smoothly past the end.</li><li>Count your solver's Newton steps for 1,000 values of x, then add an 11-sample lookup table for the first guess, like Remotion's, and count again.</li></ul>
+  </div>
+  <aside class="bench" id="bench-05" aria-label="Layer 05 workbench">
+    <div class="bench-head">
+      <span class="num">05</span><strong>Workbench</strong>
+      <span class="score" data-score></span>
+    </div>
+    <p class="bench-note">Your <code>src/05-easing.js</code>. Edits save in this browser. Runs on top of your earlier layers.</p>
+    <textarea class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" id="editor-05" aria-label="Code for layer 05"></textarea>
+    <div class="bench-actions">
+      <button class="btn" type="button" data-run>Run tests <kbd data-kbd>⌘↵</kbd></button>
+      <button class="btn ghost" type="button" data-copy>Copy</button>
+      <button class="btn ghost" type="button" data-reset>Reset to starter code</button>
+    </div>
+    <p class="bench-confirm" data-confirm hidden>Replace your code with the starter code? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <p class="help">Stuck? <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2005%20%28Easing%29%3A%20a%20cubic-B%C3%A9zier%20solver.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Ask Claude</a> · <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2005%20%28Easing%29%3A%20a%20cubic-B%C3%A9zier%20solver.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Ask ChatGPT</a>
+      <span class="level"><span class="tip" tabindex="0" data-tip="How much help a tutor may give you. 1 is questions only; 5 points at the line to look at. The Ask links and Claude in Chrome both follow it.">Hint level</span><span class="dots" role="radiogroup" aria-label="Hint level"><button type="button" role="radio" aria-checked="false" data-level="1" title="1: ask what I expected, what happened and what I've tried" aria-label="Level 1: ask what I expected, what happened and what I've tried"></button><button type="button" role="radio" aria-checked="false" data-level="2" title="2: point at a failing test's expected vs actual values" aria-label="Level 2: point at a failing test's expected vs actual values"></button><button type="button" role="radio" aria-checked="false" data-level="3" title="3: ask a concept question and point to the chapter section" aria-label="Level 3: ask a concept question and point to the chapter section"></button><button type="button" role="radio" aria-checked="false" data-level="4" title="4: explain with an analogy or ASCII diagram, using different numbers" aria-label="Level 4: explain with an analogy or ASCII diagram, using different numbers"></button><button type="button" role="radio" aria-checked="false" data-level="5" title="5: point at the line to look at and ask about it" aria-label="Level 5: point at the line to look at and ask about it"></button></span><span class="level-now" data-hint-level></span></span></p>
+    <div class="bench-error" data-error hidden></div>
+    <ul class="results" data-results></ul>
+    <div class="visuals" data-visuals></div>
+    <details class="tutor-sees"><summary>What your tutor sees</summary><p class="bench-note">Claude in Chrome reads this when you type <code>/tutor</code> (<a href="index.html#chrome">set it up</a>). The Ask links send it too.</p><pre data-tutor-text></pre></details>
+  </aside>
+</section>
 <script type="text/plain" id="lib-course">// lib/course.js — the course map. PROVIDED.
 // Every page and the test runner read this list, so a layer only has to be
 // added here once.
@@ -1116,7 +1283,7 @@ MS.answers("04", {
       { id: "02", slug: "glyphs", title: "Glyphs", builds: "text from a hand-made bitmap font", ready: true },
       { id: "03", slug: "time", title: "Time", builds: "frame = f(n) and a player that keeps time", ready: true },
       { id: "04", slug: "interpolate", title: "Interpolate", builds: "lerp, clamp, ranges, extrapolation", ready: true },
-      { id: "05", slug: "easing", title: "Easing", builds: "a cubic-Bézier solver", ready: false },
+      { id: "05", slug: "easing", title: "Easing", builds: "a cubic-Bézier solver", ready: true },
       { id: "06", slug: "springs", title: "Springs", builds: "physics stepping and stability", ready: false },
       { id: "07", slug: "canvas", title: "Hand-off to canvas", builds: "transforms, blur, then real fonts on canvas", ready: false },
       { id: "08", slug: "scenes", title: "Scenes", builds: "sequences, a camera, masks, seeded randomness", ready: false },
@@ -1643,6 +1810,14 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
         "q2": "bb2bd808",
         "q3": "865e7876"
       }
+    },
+    "05": {
+      "mystery": "d2880456",
+      "questions": {
+        "q1": "44f75058",
+        "q2": "cdbb59ea",
+        "q3": "0ee3a105"
+      }
     }
   };
 })(globalThis.MS = globalThis.MS || {});
@@ -1978,6 +2153,81 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   });
 })(globalThis.MS = globalThis.MS || {});
 </script>
+<script type="text/plain" id="mystery-05">// lib/mysteries/05-easing.js — layer 05's checkpoint picture. PROVIDED.
+// A freeze-frame: every dot is flying from a scattered start, each on its own
+// easing curve, caught at the instant when, if every curve is right, they all
+// line up into a word. Each letter's dots ride one kind of tricky curve.
+// draw() runs the learner's functions; check() says which rule went wrong,
+// never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+(function (MS) {
+  const { shuffle } = MS.mysteryKit;
+  const WORD = "BEZIER", C = 3, M = 5;
+  // One family of curves per letter. Each dot gets a curve [x1, y1, x2, y2] and
+  // a point on it, u (or, for the last letter, an x outside the curve).
+  const FAMILIES = [
+    { trap: "everyday", curves: [[0.25, 0.1, 0.25, 1], [0.16, 1, 0.3, 1], [0.6, 0, 0.2, 1], [0.42, 0, 0.58, 1]], us: [0.2, 0.33, 0.47, 0.6, 0.74] },
+    { trap: "flat start", curves: [[0, 0.6, 0.4, 1], [0, 0.8, 0.6, 1], [0, 0.5, 0.25, 1]], us: [0.03, 0.06, 0.1, 0.16] },
+    { trap: "flat middle", curves: [[1, 0, 0, 1], [1, 0.2, 0, 0.8], [0.95, 0.05, 0.05, 0.95]], us: [0.3, 0.38, 0.44, 0.56, 0.62] },
+    { trap: "overshoot", curves: [[0.34, 1.56, 0.64, 1], [0.7, -0.4, 0.4, 1.4], [0.5, -0.5, 0.5, 1.5]], us: [0.5, 0.65, 0.8, 0.92] },
+    { trap: "flat end", curves: [[0.42, 0, 1, 1], [0.6, 0.2, 1, 0.8], [0.3, 0.1, 1, 0.6]], us: [0.75, 0.84, 0.9, 0.95] },
+    { trap: "outside", curves: [[0.25, 0.1, 0.25, 1], [0.16, 1, 0.3, 1]], xs: [-0.6, 1.25, -0.2, 2, 0, 1] },
+  ];
+  // Where each dot starts, relative to the spot where it should be caught.
+  const OFFSETS = [];
+  for (let dy = -12; dy <= 12; dy++) for (let dx = -12; dx <= 12; dx++) if (Math.abs(dx) + Math.abs(dy) >= 8) OFFSETS.push([dx, dy]);
+  shuffle(OFFSETS, 5);
+  const px = v => Math.floor(v + 0.5 + 1e-7);
+  const STOPS = [[255, 92, 138], [91, 140, 255], [234, 240, 250]];
+
+  MS.mystery("05", {
+    draw() {
+      const W = M * 2 + (WORD.length * 6 - 1) * C, H = M * 2 + 7 * C;
+      const frame = MS.createFrame(W, H);
+      MS.clearFrame(frame, [11, 13, 18]);
+      const scattered = WORD.split("").map(() => 0), failed = [];
+      let dot = 0;
+      [...WORD].forEach((ch, j) => {
+        const fam = FAMILIES[j], color = MS.interpolateColors(j, [0, 2.5, 5], STOPS);
+        const eases = fam.curves.map(c => { try { return MS.cubicBezier(...c); } catch (e) { failed.push(`cubicBezier(${c.join(", ")}) threw "${e.message}"`); return null; } });
+        let k = 0;
+        MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
+          if (cell !== "#") return;
+          const P = [M + (j * 6 + c) * C, M + r * C], o = OFFSETS[dot++ % OFFSETS.length];
+          const ci = k % fam.curves.length, [x1, y1, x2, y2] = fam.curves[ci];
+          let x, y;
+          if (fam.xs) { x = fam.xs[k % fam.xs.length]; y = x <= 0 ? 0 : 1; }
+          else { const u = fam.us[k % fam.us.length]; x = MS.bezierPoint(x1, x2, u); y = MS.bezierPoint(y1, y2, u); }
+          k++;
+          // Start A and end B are chosen so that at progress y the dot is exactly at P.
+          let A, B;
+          if (y === 0) { A = P; B = [P[0] + o[0], P[1] + o[1]]; }
+          else { A = [P[0] + o[0], P[1] + o[1]]; B = [P[0] + o[0] - o[0] / y, P[1] + o[1] - o[1] / y]; }
+          let got = NaN;
+          try { if (eases[ci]) got = eases[ci](x); } catch (e) { failed.push(`easing ${ci + 1} of the ${"BEZIER"[j]} threw "${e.message}" at x = ${x}`); }
+          const at = [px(A[0] + (B[0] - A[0]) * got), px(A[1] + (B[1] - A[1]) * got)];
+          if (at[0] !== P[0] || at[1] !== P[1]) scattered[j]++;
+          if (Number.isFinite(at[0]) && Number.isFinite(at[1])) MS.fillRect(frame, at[0], at[1], C, C, color);
+        }));
+      });
+      return { frame, scattered, failed: [...new Set(failed)] };
+    },
+    check({ frame, scattered, failed }, data) {
+      const hints = failed.map(msg => `${msg}. x1 and x2 may be anything from 0 to 1, including exactly 0 or 1.`);
+      const why = [
+        "The B is scattered. Its dots ride everyday curves like CSS ease. An easing's input is x, the time, not the curve's parameter u: y is read off the curve at the u whose x matches.",
+        "The first E is scattered. Its curves start flat (x1 = 0), so near the start x barely changes as u grows. Your solver has to find u there too.",
+        "The Z is scattered. Its curves go flat in the middle (x1 = 1, x2 = 0), where the slope is 0. A step that divides by the slope can't be trusted there.",
+        "The I is scattered. Its curves overshoot: y goes above 1 or below 0, and an easing function returns those values as they are.",
+        "The second E is scattered. Its curves end flat (x2 = 1), so near the end x barely changes as u grows. Your solver has to find u there too.",
+        "The R is scattered. Its dots ask for x below 0 or above 1. Clamp x to 0–1 first: anything up to 0 gives exactly 0, anything from 1 up gives exactly 1.",
+      ];
+      scattered.forEach((n, j) => { if (n) hints.push(`${why[j]} (${n} dot${n === 1 ? "" : "s"} off.)`); });
+      const ok = MS.hashFrame(frame) === data.mystery;
+      return { wrong: ok ? 0 : 1, hints };
+    },
+  });
+})(globalThis.MS = globalThis.MS || {});
+</script>
 <script type="text/plain" id="stub-00">// Layer 00 · Pixels — a framebuffer: memory you can see.
 // Read the chapter first (docs/00-pixels.md). Each comment below is a spec; the tests check it.
 //
@@ -2295,6 +2545,54 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   }
 
   Object.assign(MS, { lerp, inverseLerp, clamp, interpolate, interpolateColors });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="stub-05">// Layer 05 · Easing — a cubic-Bézier solver.
+// Read the chapter first (docs/05-easing.md). Each comment below is a spec; the tests check it.
+(function (MS) {
+  /**
+   * One coordinate of a cubic Bézier easing curve at parameter u (0 to 1).
+   * The curve's four control values are 0, p1, p2, 1: it starts at 0, ends
+   * at 1, and p1 and p2 pull it in between.
+   *   bezierPoint(0.2, 0.8, 0.25) → 0.2125
+   */
+  function bezierPoint(p1, p2, u) {
+    throw MS.todo("bezierPoint");
+  }
+
+  /**
+   * How fast bezierPoint(p1, p2, u) changes as u grows: its derivative.
+   *   bezierSlope(0.3, 0.9, 0) → 0.9    (3 × p1 at the start)
+   *   bezierSlope(1, 0, 0.5)   → 0      (this curve goes flat in the middle)
+   */
+  function bezierSlope(p1, p2, u) {
+    throw MS.todo("bezierSlope");
+  }
+
+  /**
+   * Find the u (0 to 1) where the curve's x reaches `x`, so that
+   *   |bezierPoint(x1, x2, u) − x| < 1e-7
+   * x1 and x2 are between 0 and 1, so there is exactly one such u.
+   * x = 0 gives 0 and x = 1 gives 1. It must work for every curve,
+   * including ones that go flat (slope 0) somewhere.
+   */
+  function solveBezierX(x1, x2, x) {
+    throw MS.todo("solveBezierX");
+  }
+
+  /**
+   * CSS's cubic-bezier(x1, y1, x2, y2): return an easing function that
+   * takes a time progress x and returns the curve's y at that x.
+   * - Throw an Error if x1 or x2 is outside 0–1 (y1 and y2 can be anything).
+   * - The function clamps x to 0–1 first, and returns exactly 0 at x = 0
+   *   and exactly 1 at x = 1.
+   *   cubicBezier(0.42, 0, 1, 1)(0.5) → about 0.3154   (CSS ease-in)
+   */
+  function cubicBezier(x1, y1, x2, y2) {
+    throw MS.todo("cubicBezier");
+  }
+
+  Object.assign(MS, { bezierPoint, bezierSlope, solveBezierX, cubicBezier });
 })(globalThis.MS = globalThis.MS || {});
 </script>
 <script type="text/plain" id="test-00">// tests/00-pixels.test.js — PROVIDED. Read a failing test to see what's expected.
@@ -2863,6 +3161,159 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     const stops = [MS.hex("#1A2740"), MS.hex("#5B8CFF"), MS.hex("#FF5C8A")];
     for (let x = 0; x < f.width; x++) MS.fillRect(f, x, 0, 1, 12, MS.interpolateColors(x, [0, 48, 95], stops));
     return f;
+  });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="test-05">// tests/05-easing.test.js — PROVIDED. Read a failing test to see what's expected.
+(function (MS) {
+  const L = "05";
+
+  MS.test(L, "bezierPoint starts at 0 and ends at 1", t => {
+    t.close(MS.bezierPoint(0.3, 0.9, 0), 0, 1e-12, "u = 0");
+    t.close(MS.bezierPoint(0.3, 0.9, 1), 1, 1e-12, "u = 1");
+  });
+
+  MS.test(L, "bezierPoint in between", t => {
+    t.close(MS.bezierPoint(0.2, 0.8, 0.25), 0.2125, 1e-12, "p1 = 0.2, p2 = 0.8, u = 0.25");
+    t.close(MS.bezierPoint(1, 1, 0.5), 0.875, 1e-12, "p1 = p2 = 1, u = 0.5");
+    t.close(MS.bezierPoint(1.5, -0.5, 0.25), 0.578125, 1e-12, "control values can be outside 0–1");
+  });
+
+  MS.test(L, "bezierPoint with control values 1/3 and 2/3 is a straight line", t => {
+    for (const u of [0.1, 0.37, 0.9]) t.close(MS.bezierPoint(1 / 3, 2 / 3, u), u, 1e-12, `u = ${u}`);
+  });
+
+  MS.test(L, "bezierSlope at the ends: 3 × p1 at the start, 3 × (1 − p2) at the end", t => {
+    t.close(MS.bezierSlope(0.3, 0.9, 0), 0.9, 1e-12, "u = 0");
+    t.close(MS.bezierSlope(0.3, 0.9, 1), 0.3, 1e-12, "u = 1");
+  });
+
+  MS.test(L, "bezierSlope in between", t => {
+    t.close(MS.bezierSlope(0.2, 0.8, 0.25), 1.05, 1e-12, "p1 = 0.2, p2 = 0.8, u = 0.25");
+    t.close(MS.bezierSlope(1 / 3, 2 / 3, 0.4), 1, 1e-12, "a straight line has slope 1 everywhere");
+    t.close(MS.bezierSlope(1, 0, 0.5), 0, 1e-12, "this curve goes flat in the middle");
+  });
+
+  MS.test(L, "bezierSlope is how fast bezierPoint changes", t => {
+    const h = 1e-6;
+    for (const u of [0.15, 0.5, 0.8]) {
+      const rate = (MS.bezierPoint(0.7, 0.1, u + h) - MS.bezierPoint(0.7, 0.1, u - h)) / (2 * h);
+      t.close(MS.bezierSlope(0.7, 0.1, u), rate, 1e-6, `u = ${u}`);
+    }
+  });
+
+  MS.test(L, "solveBezierX: x = 0 gives u = 0, x = 1 gives u = 1", t => {
+    t.eq(MS.solveBezierX(0.25, 0.25, 0), 0, "x = 0");
+    t.eq(MS.solveBezierX(0.25, 0.25, 1), 1, "x = 1");
+  });
+
+  // u must be in 0–1, and the curve's x at u must be within 1e-7 of the x asked for.
+  const solves = (t, x1, x2, x) => {
+    const u = MS.solveBezierX(x1, x2, x), where = `x1 = ${x1}, x2 = ${x2}, x = ${x}`;
+    t.ok(typeof u === "number" && u >= 0 && u <= 1, `${where}: u should be between 0 and 1, got ${u}`);
+    t.close(MS.bezierPoint(x1, x2, u), x, 1e-7, `${where}: the curve's x at your u`);
+  };
+
+  MS.test(L, "solveBezierX finds the u whose x matches", t => {
+    for (const x of [0.1, 0.3, 0.6, 0.9]) solves(t, 0.25, 0.25, x);
+    for (const x of [0.05, 0.5, 0.95]) solves(t, 0.42, 1, x);
+  });
+
+  MS.test(L, "solveBezierX still works where the curve goes flat", t => {
+    for (const x of [0.3, 0.49, 0.5, 0.51]) solves(t, 1, 0, x);   // flat in the middle
+    solves(t, 0, 0, 0.000001);                                     // flat at the start
+    solves(t, 1, 1, 0.999999);                                     // flat at the end
+  });
+
+  MS.test(L, "cubicBezier makes an easing function: 0 at the start, 1 at the end", t => {
+    const f = MS.cubicBezier(0.25, 0.1, 0.25, 1);
+    t.eq(typeof f, "function", "cubicBezier returns a function");
+    t.eq(f(0), 0, "x = 0");
+    t.eq(f(1), 1, "x = 1");
+  });
+
+  MS.test(L, "cubicBezier: x below 0 or above 1 is clamped first", t => {
+    const f = MS.cubicBezier(0.25, 0.1, 0.25, 1);
+    t.eq(f(-0.5), 0, "x = −0.5");
+    t.eq(f(1.5), 1, "x = 1.5");
+  });
+
+  MS.test(L, "cubicBezier: a straight line gives x back", t => {
+    const f = MS.cubicBezier(0.3, 0.3, 0.7, 0.7);
+    for (const x of [0.1, 0.45, 0.8]) t.close(f(x), x, 1e-6, `x = ${x}`);
+  });
+
+  MS.test(L, "cubicBezier matches the browser's ease-in and ease-out", t => {
+    t.close(MS.cubicBezier(0.42, 0, 1, 1)(0.5), 0.315357, 1e-5, "ease-in at x = 0.5");
+    t.close(MS.cubicBezier(0, 0, 0.58, 1)(0.5), 0.684643, 1e-5, "ease-out at x = 0.5");
+    const inOut = MS.cubicBezier(0.42, 0, 0.58, 1);
+    t.close(inOut(0.2) + inOut(0.8), 1, 1e-6, "ease-in-out is symmetric: f(0.2) + f(0.8) = 1");
+  });
+
+  MS.test(L, "cubicBezier lets y overshoot past 1", t => {
+    const back = MS.cubicBezier(0.34, 1.56, 0.64, 1);
+    t.ok(back(0.6) > 1, `this curve goes past 1 before settling; at x = 0.6 it gave ${back(0.6)}`);
+  });
+
+  MS.test(L, "cubicBezier rejects x control points outside 0–1, but y can be anything", t => {
+    t.throws(() => MS.cubicBezier(-0.1, 0, 0.5, 1), "x1 = −0.1");
+    t.throws(() => MS.cubicBezier(0.5, 0, 1.2, 1), "x2 = 1.2");
+    MS.cubicBezier(0, 0, 1, 1);
+    MS.cubicBezier(1, 0, 0, 1);
+    MS.cubicBezier(0.5, -2, 0.5, 3);
+  });
+
+  // ---- pictures ----
+  const CURVES = [
+    ["LINEAR", [0, 0, 1, 1]], ["EASE", [0.25, 0.1, 0.25, 1]], ["APPLE", [0.16, 1, 0.3, 1]],
+    ["SMOOTH", [0.6, 0, 0.2, 1]], ["BACK", [0.34, 1.56, 0.64, 1]],
+  ];
+  const BG = [11, 13, 18], INK = [234, 240, 250, 255], DIM = [60, 70, 90], BLUE = [91, 140, 255, 255];   // #EAF0FA, #5B8CFF
+
+  MS.visual(L, "Five easing curves: time goes right, progress goes up", () => {
+    const S = 36, H = 48, PAD = 6, f = MS.createFrame(CURVES.length * (S + PAD) + PAD, H + 18);
+    MS.clearFrame(f, BG);
+    CURVES.forEach(([name, [x1, y1, x2, y2]], i) => {
+      const ox = PAD + i * (S + PAD), oy = 4, ease = MS.cubicBezier(x1, y1, x2, y2);
+      const at = (x, y) => [ox + x * (S - 1), oy + (H - 1) * (1 - 0.6 * y)];   // y = 1 sits 40% from the top: room to overshoot
+      for (let k = 0; k <= 40; k++) {   // the control handles, P0 → P1 and P3 → P2
+        MS.fillRect(f, ...at(MS.lerp(0, x1, k / 40), MS.lerp(0, y1, k / 40)), 1, 1, DIM);
+        MS.fillRect(f, ...at(MS.lerp(1, x2, k / 40), MS.lerp(1, y2, k / 40)), 1, 1, DIM);
+      }
+      for (let k = 0; k <= 200; k++) MS.fillRect(f, ...at(k / 200, ease(k / 200)), 1, 1, INK);
+      MS.fillCircle(f, ...at(x1, y1), 1.5, BLUE);
+      MS.fillCircle(f, ...at(x2, y2), 1.5, BLUE);
+      MS.drawText(f, name, ox + S / 2, H + 8, 1, DIM, { align: "center" });
+    });
+    return f;
+  });
+
+  MS.animation(L, "The same move in the same second, with five timings", () => MS.createComposition({
+    width: 120, height: CURVES.length * 10 + 4, fps: 30, durationInFrames: 45,
+    render(frame, n) {
+      MS.clearFrame(frame, BG);
+      CURVES.forEach(([name, c], i) => {
+        const y = 3 + i * 10;
+        MS.drawText(frame, name, 2, y + 1, 1, DIM);
+        MS.fillRect(frame, 40, y + 4, 76, 1, [30, 36, 50]);
+        const x = MS.interpolate(n, [0, 30], [40, 110], { easing: MS.cubicBezier(...c), extrapolateRight: "clamp" });
+        MS.fillCircle(frame, x + 3, y + 4.5, 3, INK);
+      });
+    },
+  }));
+
+  MS.animation(L, "KineticIntro's timing: a word rises in with APPLE, fades out with SMOOTH", () => {
+    const APPLE = MS.cubicBezier(0.16, 1, 0.3, 1), SMOOTH = MS.cubicBezier(0.6, 0, 0.2, 1);
+    return MS.createComposition({
+      width: 100, height: 30, fps: 30, durationInFrames: 60,
+      render(frame, n) {
+        MS.clearFrame(frame, BG);
+        const y = MS.interpolate(n, [2, 24], [30, 8], { easing: APPLE, extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        const fade = MS.interpolate(n, [30, 52], [1, 0], { easing: SMOOTH, extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        MS.drawText(frame, "DESIGN.", 50, y, 2, [...INK.slice(0, 3), Math.round(255 * fade)], { align: "center" });
+        MS.fillRect(frame, 0, 22, 100, 8, BG);   // a mask: the word rises from behind this edge
+      },
+    });
   });
 })(globalThis.MS = globalThis.MS || {});
 </script>
