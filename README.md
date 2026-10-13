@@ -23,14 +23,31 @@ The final project is a from-scratch rebuild of `KineticIntro` from [Claude Motio
 
 > **Status:** layers 00–02 are ready. Layers 03–10 are being written.
 
-## Start
+## How to get started
 
-1. Get the code: `git clone https://github.com/nalediym/motion-from-scratch` (or download the ZIP).
-2. Open `index.html` in your browser. It's the course map, and it shows your progress.
-3. Read `docs/00-pixels.md`, then fill in `src/00-pixels.js`.
-4. Check your work: open `tests.html`, or run `node tests/run.js` in a terminal.
+Pick one way to work. Every option has the same chapters, starter code and tests.
 
-You don't need Node to take the course; the browser runs everything. Node just lets you (and an AI study buddy) run the same tests from a terminal.
+| Way | Good for | Start |
+|---|---|---|
+| **Interactive guide** | Fastest; nothing to install. Code saves in your browser | [Open the guide](https://nalediym.github.io/motion-from-scratch/guide.html) |
+| **Google Colab** | A notebook in your Google Drive | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nalediym/motion-from-scratch/blob/main/notebooks/colab.ipynb) |
+| **Your own editor** | Working with Claude Code or Codex as a study buddy | `git clone https://github.com/nalediym/motion-from-scratch` or [download the ZIP](https://github.com/nalediym/motion-from-scratch/archive/refs/heads/main.zip) |
+| **Jupyter / VS Code** | A local JavaScript notebook (Deno kernel) | [`notebooks/jupyter-deno.ipynb`](notebooks/jupyter-deno.ipynb) |
+| **Observable** | Read and run online; edit locally | [Observable view](https://nalediym.github.io/motion-from-scratch/observable/observable.html) · [`notebooks/observable.html`](notebooks/observable.html) |
+
+**Working in your own editor:**
+
+1. Open `index.html` in your browser. It's the course map, and it shows your progress.
+2. Read `docs/00-pixels.md`, then fill in `src/00-pixels.js`.
+3. Check your work: open `tests.html`, or run `node tests/run.js` in a terminal.
+
+You don't need Node to take the course; the browser runs everything. Node lets you (and an AI study buddy) run the same tests from a terminal. Run `node tools/pictures.js 01` to save a layer's pictures as PNG files.
+
+**Jupyter / VS Code setup:** install [Deno](https://docs.deno.com/runtime/getting_started/installation/), run `deno jupyter --install`, then open `notebooks/jupyter-deno.ipynb` and pick the Deno kernel.
+
+**Editing the Observable notebook:** download `notebooks/observable.html`, then in its folder run `npx -p @observablehq/notebook-kit notebooks preview --root .` and edit the file in any editor; the page reloads as you save. [Observable Desktop](https://observablehq.com/notebook-kit/desktop) (macOS) can open it too.
+
+**You're done with a layer** when every test passes and you can answer its checkpoint questions without looking. You're done with the course when layer 10 exports your KineticIntro as an MP4.
 
 ## How each layer works
 
@@ -49,7 +66,8 @@ There are no solutions in this repo. The tests are the judge, like Nand2Tetris.
 Stuck? Ask an AI, and it won't do the work for you.
 
 - **Claude Code or Codex:** open this folder in the agent. `CLAUDE.md` and `AGENTS.md` tell it to ask questions first, climb a hint ladder one step at a time, and never write your solution. It can run the tests to see exactly where you are.
-- **ChatGPT, Claude.ai, or any chat:** paste the contents of `AGENTS.md` as your first message, then your question and your code.
+- **Claude.ai or ChatGPT in one click:** the course home and every workbench in the guide have links that open a new chat with short tutor rules filled in. You need to be signed in. (These links use a URL format the chat apps support but don't officially document.)
+- **Any other chat:** paste the contents of `AGENTS.md` as your first message, then your question and your code.
 
 Good first prompts:
 
@@ -60,13 +78,18 @@ Good first prompts:
 ## Layout
 
 ```text
-docs/      the chapters
-src/       your code (one file per layer)
-tests/     the tests, plus run.js for the terminal
-lib/       provided helpers: font, test library, page loader, styles
-index.html course map and progress
-tests.html results and pictures
+docs/       the chapters
+src/        your code (one file per layer)
+tests/      the tests, plus run.js for the terminal
+lib/        provided helpers: font, test library, PNG writer, page loader, styles
+notebooks/  Colab, Jupyter (Deno) and Observable versions of the course
+tools/      pictures.js for learners; build scripts for maintainers
+index.html  course map, ways to start, and progress
+guide.html  the interactive guide
+tests.html  results and pictures
 ```
+
+**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/build-guide.js && node tools/build-notebooks.js` and commit the results. CI checks they're up to date, then publishes the site to GitHub Pages.
 
 ## Credits
 

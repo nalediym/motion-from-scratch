@@ -21,6 +21,16 @@
   .map li.soon { opacity: 0.55; }
   .steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 10px; max-width: 66ch; }
   .stack { font-family: var(--mono); font-size: 12.5px; line-height: 1.45; background: transparent; border: 1px dashed var(--line); color: var(--ink); }
+  .ways { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .way { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .way:first-child { border-color: var(--key); }
+  .way p { font-size: 0.93rem; flex: 1; }
+  .way .btn { align-self: flex-start; text-decoration: none; }
+  .tag { font-family: var(--pixel); font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-row .btn { text-decoration: none; }
+  .buddy { border: 1px dashed var(--pencil); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .small { font-size: 0.88rem; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -47,14 +57,59 @@
       ▲ each layer is built only from the layers below it
 </pre>
 
-  <section style="display:flex;flex-direction:column;gap:14px">
-    <h2>How it works</h2>
+  <section id="start" style="display:flex;flex-direction:column;gap:16px">
+    <h2>How to get started</h2>
+    <p>Pick one way to work. They all have the same chapters, starter code and tests, so you can switch later.</p>
+    <div class="ways">
+      <article class="way">
+        <span class="tag">Fastest · nothing to install</span>
+        <h3>In your browser</h3>
+        <p>Read each layer and write its code side by side. Tests and pictures run on the page, and your code saves in this browser.</p>
+        <a class="btn" href="guide.html">Open the guide</a>
+      </article>
+      <article class="way">
+        <span class="tag">Notebook · Google account</span>
+        <h3>Google Colab</h3>
+        <p>The whole course as one notebook. Save a copy to your Drive first, so your work is kept.</p>
+        <a class="btn" data-link="colab" href="#" target="_blank" rel="noopener">Open in Colab</a>
+      </article>
+      <article class="way">
+        <span class="tag">Best with an AI coding agent</span>
+        <h3>Your own editor</h3>
+        <p>Download the code, write in <code>src/</code>, and check with <code>tests.html</code> or <code>node tests/run.js</code>. Claude Code and Codex follow the course's tutor rules automatically.</p>
+        <span class="btn-row"><a class="btn" data-link="zip" href="#">Download ZIP</a><a class="btn ghost" data-link="repo" href="#" target="_blank" rel="noopener">GitHub</a></span>
+      </article>
+      <article class="way">
+        <span class="tag">Notebook · runs locally</span>
+        <h3>Jupyter or VS Code</h3>
+        <p>A JavaScript notebook using the Deno kernel. Install Deno, run <code>deno jupyter --install</code>, then open <code>notebooks/jupyter-deno.ipynb</code>.</p>
+        <a class="btn ghost" data-link="deno" href="#" target="_blank" rel="noopener">See the notebook</a>
+      </article>
+      <article class="way">
+        <span class="tag">Notebook · read online, edit locally</span>
+        <h3>Observable</h3>
+        <p>Read every chapter and watch the tests run online. To edit, download <code>notebooks/observable.html</code> and run it with Observable's free preview tool or Observable Desktop.</p>
+        <a class="btn ghost" data-link="observable" href="#" target="_blank" rel="noopener">Open in Observable view</a>
+      </article>
+    </div>
+
+    <h3 style="margin-top:8px">Then, for every layer</h3>
     <ol class="steps">
-      <li><strong>Read</strong> the layer's chapter in <code>docs/</code> (or the interactive guide).</li>
-      <li><strong>Write</strong> the functions in <code>src/</code>. Each comment is the spec, and each body starts as a placeholder that says "not written yet".</li>
-      <li><strong>Check</strong> by opening <a href="tests.html">tests.html</a> or running <code>node tests/run.js</code>. Pictures appear as your code starts working.</li>
-      <li><strong>Get unstuck</strong> with an AI study buddy. Open this folder in Claude Code or Codex; <code>CLAUDE.md</code> and <code>AGENTS.md</code> make it ask questions and give hints, never answers.</li>
+      <li><strong>Read</strong> the chapter. It explains what's happening underneath, with diagrams.</li>
+      <li><strong>Predict</strong> before you run anything: write your guess down, then check it.</li>
+      <li><strong>Write</strong> the functions. Each comment in the starter code is the spec; each body says "not written yet" until you replace it.</li>
+      <li><strong>Check</strong> with the tests. A failing test tells you the exact value it expected and what it got. Pictures appear as your code starts working.</li>
+      <li><strong>Break it</strong> on purpose, using the chapter's experiments, and explain what happened.</li>
+      <li><strong>Move on</strong> when every test passes and you can answer the checkpoint questions without looking.</li>
     </ol>
+    <p>You've finished the course when layer 10 exports your own KineticIntro as an MP4.</p>
+
+    <div class="buddy">
+      <h3>Stuck? Bring a study buddy</h3>
+      <p>These links open a new chat with the course's tutor rules already filled in: it asks questions and gives one hint at a time, but never writes your code. You need to be signed in.</p>
+      <span class="btn-row"><a class="btn" data-link="claude" href="#" target="_blank" rel="noopener">Open Claude</a><a class="btn ghost" data-link="chatgpt" href="#" target="_blank" rel="noopener">Open ChatGPT</a></span>
+      <p class="small">Using <strong>Claude Code</strong>? Download the code, then open the folder in the Claude desktop app's Code tab, or run <code>claude</code> inside it. It reads <code>CLAUDE.md</code> on its own and can run the tests to see where you are. Codex reads <code>AGENTS.md</code> the same way.</p>
+    </div>
   </section>
 
   <section style="display:flex;flex-direction:column;gap:14px">
@@ -71,6 +126,9 @@
 <script src="lib/loader.js"></script>
 <script>
 (async function () {
+  const C = MS.COURSE;
+  const links = { colab: C.colab, zip: C.zip, repo: C.repo, deno: C.repo + "/blob/main/notebooks/jupyter-deno.ipynb", observable: C.observable, claude: C.claudeLink(null), chatgpt: C.chatgptLink(null) };
+  document.querySelectorAll("[data-link]").forEach(a => { a.href = links[a.dataset.link]; });
   const map = document.getElementById("map");
   const render = scores => {
     map.innerHTML = MS.COURSE.layers.map(l => {

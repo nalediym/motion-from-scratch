@@ -14,6 +14,7 @@ const read = rel => fs.readFileSync(path.join(root, rel), "utf8");
 const ctx = vm.createContext({});
 vm.runInContext(read("lib/course.js"), ctx);
 const COURSE = ctx.MS.COURSE;
+const C = COURSE;
 const ready = COURSE.layers.filter(l => l.ready);
 
 // ---------- a small Markdown converter for the subset the chapters use ----------
@@ -128,6 +129,7 @@ const sections = chapters.map(({ l, lede, html }) => `
       <button class="btn ghost" type="button" data-reset>Reset to stub</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers): <a href="${C.claudeLink(l)}" target="_blank" rel="noopener">Claude</a> · <a href="${C.chatgptLink(l)}" target="_blank" rel="noopener">ChatGPT</a></p>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
     <div class="visuals" data-visuals></div>
@@ -176,6 +178,11 @@ body { padding-block: 24px 80px; }
 .bench-confirm { font-size: 0.85rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .bench-error { border: 1px dashed var(--fail); color: var(--fail); font-family: var(--mono); font-size: 0.8rem; padding: 8px 10px; border-radius: 6px; overflow-wrap: anywhere; }
 .bench .visuals canvas { max-width: 100%; }
+.bench-buddy { font-size: 0.82rem; color: var(--muted); }
+.howto { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; max-width: 760px; }
+.howto summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
+.howto ol { margin: 10px 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+.howto p { font-size: 0.92rem; }
 @media (max-width: 960px) {
   .chapter { grid-template-columns: minmax(0, 1fr); }
   .bench { position: static; max-height: none; }
@@ -188,6 +195,17 @@ body { padding-block: 24px 80px; }
   <span class="eyebrow">The interactive guide</span>
   <h1>${COURSE.title}</h1>
   <p class="lede">${COURSE.subtitle}. Read a layer on the left and write its code on the right. Tests and pictures run in your browser. Prefer your own editor? Clone <a href="https://github.com/nalediym/motion-from-scratch">the repo</a>; it has the same chapters, stubs and tests.</p>
+  <details class="howto">
+    <summary>How to use this guide</summary>
+    <ol>
+      <li><strong>Read</strong> a layer on the left. Answer the <em>Predict, then run</em> questions before peeking.</li>
+      <li><strong>Write</strong> its functions in the workbench on the right. Your code saves in this browser as you type.</li>
+      <li><strong>Run tests</strong> (or press ⌘/Ctrl + Enter). Failing tests show the value they expected and what they got; pictures appear as your code works.</li>
+      <li><strong>Break it</strong> with the chapter's experiments, then move to the next layer when every test passes.</li>
+      <li><strong>Stuck?</strong> Each workbench has study-buddy links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers.</li>
+    </ol>
+    <p>Want to keep your work outside this browser? Use <strong>Copy</strong> and paste into the matching file in <a href="${C.repo}">the repo</a>, or work in <a href="${C.colab}" target="_blank" rel="noopener">Google Colab</a>. All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
+  </details>
   <nav class="tabs" aria-label="Layers">${tabs}</nav>
 </div>
 ${sections}

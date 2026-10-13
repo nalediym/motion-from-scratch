@@ -121,6 +121,11 @@ body { padding-block: 24px 80px; }
 .bench-confirm { font-size: 0.85rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .bench-error { border: 1px dashed var(--fail); color: var(--fail); font-family: var(--mono); font-size: 0.8rem; padding: 8px 10px; border-radius: 6px; overflow-wrap: anywhere; }
 .bench .visuals canvas { max-width: 100%; }
+.bench-buddy { font-size: 0.82rem; color: var(--muted); }
+.howto { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; max-width: 760px; }
+.howto summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
+.howto ol { margin: 10px 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+.howto p { font-size: 0.92rem; }
 @media (max-width: 960px) {
   .chapter { grid-template-columns: minmax(0, 1fr); }
   .bench { position: static; max-height: none; }
@@ -133,6 +138,17 @@ body { padding-block: 24px 80px; }
   <span class="eyebrow">The interactive guide</span>
   <h1>Motion from Scratch</h1>
   <p class="lede">How to go from pixels to motion. Read a layer on the left and write its code on the right. Tests and pictures run in your browser. Prefer your own editor? Clone <a href="https://github.com/nalediym/motion-from-scratch">the repo</a>; it has the same chapters, stubs and tests.</p>
+  <details class="howto">
+    <summary>How to use this guide</summary>
+    <ol>
+      <li><strong>Read</strong> a layer on the left. Answer the <em>Predict, then run</em> questions before peeking.</li>
+      <li><strong>Write</strong> its functions in the workbench on the right. Your code saves in this browser as you type.</li>
+      <li><strong>Run tests</strong> (or press ⌘/Ctrl + Enter). Failing tests show the value they expected and what they got; pictures appear as your code works.</li>
+      <li><strong>Break it</strong> with the chapter's experiments, then move to the next layer when every test passes.</li>
+      <li><strong>Stuck?</strong> Each workbench has study-buddy links that open Claude or ChatGPT with tutor rules filled in: hints and questions, never answers.</li>
+    </ol>
+    <p>Want to keep your work outside this browser? Use <strong>Copy</strong> and paste into the matching file in <a href="https://github.com/nalediym/motion-from-scratch">the repo</a>, or work in <a href="https://colab.research.google.com/github/nalediym/motion-from-scratch/blob/main/notebooks/colab.ipynb" target="_blank" rel="noopener">Google Colab</a>. All the ways to take the course are on <a href="index.html#start">the course home</a>.</p>
+  </details>
   <nav class="tabs" aria-label="Layers"><a class="tab" href="#layer-00" data-layer="00"><span class="num">00</span>Pixels</a><a class="tab" href="#layer-01" data-layer="01"><span class="num">01</span>Shapes & blending</a><a class="tab" href="#layer-02" data-layer="02"><span class="num">02</span>Glyphs</a><span class="tab soon" title="Coming soon"><span class="num">03</span>Time</span><span class="tab soon" title="Coming soon"><span class="num">04</span>Interpolate</span><span class="tab soon" title="Coming soon"><span class="num">05</span>Easing</span><span class="tab soon" title="Coming soon"><span class="num">06</span>Springs</span><span class="tab soon" title="Coming soon"><span class="num">07</span>Hand-off to canvas</span><span class="tab soon" title="Coming soon"><span class="num">08</span>Scenes</span><span class="tab soon" title="Coming soon"><span class="num">09</span>KineticIntro</span><span class="tab soon" title="Coming soon"><span class="num">10</span>Export</span></nav>
 </div>
 
@@ -230,6 +246,7 @@ body { padding-block: 24px 80px; }
       <button class="btn ghost" type="button" data-reset>Reset to stub</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers): <a href="https://claude.ai/new?q=You're%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20(github.com%2Fnalediym%2Fmotion-from-scratch)%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I'm%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test's%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what's%20happening%20under%20the%20hood%20(bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it).%20I'm%20on%20layer%2000%20(Pixels)%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Start%20by%20asking%20what%20I'm%20working%20on.%20I'll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Claude</a> · <a href="https://chatgpt.com/?q=You're%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20(github.com%2Fnalediym%2Fmotion-from-scratch)%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I'm%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test's%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what's%20happening%20under%20the%20hood%20(bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it).%20I'm%20on%20layer%2000%20(Pixels)%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Start%20by%20asking%20what%20I'm%20working%20on.%20I'll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">ChatGPT</a></p>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
     <div class="visuals" data-visuals></div>
@@ -330,6 +347,7 @@ body { padding-block: 24px 80px; }
       <button class="btn ghost" type="button" data-reset>Reset to stub</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers): <a href="https://claude.ai/new?q=You're%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20(github.com%2Fnalediym%2Fmotion-from-scratch)%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I'm%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test's%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what's%20happening%20under%20the%20hood%20(bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it).%20I'm%20on%20layer%2001%20(Shapes%20%26%20blending)%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Start%20by%20asking%20what%20I'm%20working%20on.%20I'll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Claude</a> · <a href="https://chatgpt.com/?q=You're%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20(github.com%2Fnalediym%2Fmotion-from-scratch)%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I'm%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test's%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what's%20happening%20under%20the%20hood%20(bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it).%20I'm%20on%20layer%2001%20(Shapes%20%26%20blending)%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Start%20by%20asking%20what%20I'm%20working%20on.%20I'll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">ChatGPT</a></p>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
     <div class="visuals" data-visuals></div>
@@ -407,6 +425,7 @@ body { padding-block: 24px 80px; }
       <button class="btn ghost" type="button" data-reset>Reset to stub</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the empty stub? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
+    <p class="bench-buddy">Stuck? Ask a study buddy (hints, not answers): <a href="https://claude.ai/new?q=You're%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20(github.com%2Fnalediym%2Fmotion-from-scratch)%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I'm%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test's%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what's%20happening%20under%20the%20hood%20(bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it).%20I'm%20on%20layer%2002%20(Glyphs)%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Start%20by%20asking%20what%20I'm%20working%20on.%20I'll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Claude</a> · <a href="https://chatgpt.com/?q=You're%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20(github.com%2Fnalediym%2Fmotion-from-scratch)%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Ask%20me%20questions%20first.%20If%20I'm%20still%20stuck%2C%20give%20one%20hint%20at%20a%20time%3A%20point%20at%20the%20test's%20expected%20vs%20actual%20values%2C%20then%20ask%20a%20concept%20question%2C%20then%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%20using%20different%20numbers%2C%20then%20point%20at%20the%20line%20to%20look%20at.%20Never%20go%20further%20than%20that.%20Explain%20what's%20happening%20under%20the%20hood%20(bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it).%20I'm%20on%20layer%2002%20(Glyphs)%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Start%20by%20asking%20what%20I'm%20working%20on.%20I'll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">ChatGPT</a></p>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
     <div class="visuals" data-visuals></div>
@@ -433,6 +452,28 @@ body { padding-block: 24px 80px; }
       { id: "10", slug: "export", title: "Export", builds: "frames to MP4, then map it to Remotion", ready: false },
     ],
   };
+  MS.COURSE.repo = "https://github.com/nalediym/motion-from-scratch";
+  MS.COURSE.site = "https://nalediym.github.io/motion-from-scratch/";
+  MS.COURSE.colab = "https://colab.research.google.com/github/nalediym/motion-from-scratch/blob/main/notebooks/colab.ipynb";
+  MS.COURSE.observable = "https://nalediym.github.io/motion-from-scratch/observable/observable.html";
+  MS.COURSE.zip = "https://github.com/nalediym/motion-from-scratch/archive/refs/heads/main.zip";
+
+  // A short version of AGENTS.md that fits in a link. Chat apps get the
+  // full rules if the learner pastes AGENTS.md; this is the one-click version.
+  MS.COURSE.buddyPrompt = function (layer) {
+    const where = layer ? `I'm on layer ${layer.id} (${layer.title}): ${layer.builds}.` : "I'm just getting started.";
+    return [
+      "You're my study buddy for Motion from Scratch (github.com/nalediym/motion-from-scratch), a course where I build a video engine from single pixels up in JavaScript.",
+      "Rules: never write, finish or fix my code, even if I ask. Ask me questions first.",
+      "If I'm still stuck, give one hint at a time: point at the test's expected vs actual values, then ask a concept question, then explain with an analogy or ASCII diagram using different numbers, then point at the line to look at. Never go further than that.",
+      "Explain what's happening under the hood (bytes, rounding, math, how browsers do it).",
+      where,
+      "Start by asking what I'm working on. I'll paste my code and test output next.",
+    ].join(" ");
+  };
+  MS.COURSE.claudeLink = layer => "https://claude.ai/new?q=" + encodeURIComponent(MS.COURSE.buddyPrompt(layer));
+  MS.COURSE.chatgptLink = layer => "https://chatgpt.com/?q=" + encodeURIComponent(MS.COURSE.buddyPrompt(layer));
+
   MS.COURSE.files = function (layer) {
     const base = `${layer.id}-${layer.slug}`;
     return { src: `src/${base}.js`, test: `tests/${base}.test.js`, doc: `docs/${base}.md` };
