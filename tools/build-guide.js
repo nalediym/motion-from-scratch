@@ -126,12 +126,8 @@ const embed = (id, text) => `<script type="text/plain" id="${id}">${text.replace
 const sources = [
   embed("lib-course", read("lib/course.js")),
   embed("lib-share", read("lib/share.js")),
-  embed("lib-font", read("lib/font5x7.js")),
-  embed("lib-check", read("lib/check.js")),
-  embed("lib-present", read("lib/present.js")),
-  embed("lib-experiment", read("lib/experiment.js")),
-  embed("lib-checkpoint", read("lib/checkpoint.js")),
-  embed("lib-checkpoint-data", read("lib/checkpoint-data.js")),
+  ...[...COURSE.libs, ...COURSE.browserLibs].map(f => embed("lib:" + f, read(f))),
+  ...ready.map(l => embed(`mystery-${l.id}`, read(COURSE.files(l).mystery))),
   ...ready.map(l => embed(`stub-${l.id}`, read(COURSE.files(l).src))),
   ...ready.map(l => embed(`test-${l.id}`, read(COURSE.files(l).test))),
 ].join("\n");
@@ -315,7 +311,9 @@ ${read("tools/guide-runtime.js")}
   // Returns an error message, or null when everything loaded.
   function prepare(id) {
     globalThis.MS = {};
-    ["lib-course", "lib-font", "lib-check", "lib-present", "lib-experiment", "lib-checkpoint", "lib-checkpoint-data"].forEach(s => run($(s)));
+    run($("lib-course"));
+    [...MS.COURSE.libs, ...MS.COURSE.browserLibs].forEach(f => run($("lib:" + f)));
+    MS.COURSE.layers.filter(l => l.ready).forEach(l => run($("mystery-" + l.id)));
     for (const l of MS.COURSE.layers.filter(l => l.ready && l.id <= id)) {
       try { run(codeFor(l.id)); }
       catch (e) { return (l.id === id ? "Your code" : "Your layer " + l.id + " code") + " didn't load: " + e.name + ": " + e.message; }
@@ -338,16 +336,7 @@ ${read("tools/guide-runtime.js")}
     section.querySelector("[data-score]").textContent = passed + " / " + results.length;
     renderCheckpoint(id, results);
     list.innerHTML = MS.quietTodos(results).map(r => '<li class="' + r.status + '"><span class="mark">' + mark[r.status] + "</span><span>" + escH(r.name) + (r.message ? '<span class="msg">' + escH(r.message) + "</span>" : "") + "</span></li>").join("");
-    for (const v of MS.visuals.filter(v => v.layer === id)) {
-      const fig = document.createElement("figure"), cap = document.createElement("figcaption");
-      try {
-        const frame = v.fn();
-        const zoom = Math.max(1, Math.min(5, Math.floor(200 / frame.width)));
-        fig.appendChild(MS.present(frame, document.createElement("canvas"), zoom));
-        cap.textContent = v.name;
-      } catch (e) { cap.innerHTML = "<strong>" + escH(v.name) + "</strong><br>" + (e.todo ? "Waiting on: " : "Error: ") + escH(e.message); }
-      fig.appendChild(cap); vis.appendChild(fig);
-    }
+    for (const v of MS.visuals.filter(v => v.layer === id)) vis.appendChild(MS.figure(v));
     if (passed === results.length) list.before(vis); else vis.before(list);   // the pictures are the reward
   }
 

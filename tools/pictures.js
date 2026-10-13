@@ -13,8 +13,9 @@ const root = path.join(__dirname, "..");
 const layerArg = (process.argv[2] || "").padStart(2, "0");
 const context = vm.createContext({ console, Buffer });
 const load = rel => vm.runInContext(fs.readFileSync(path.join(root, rel), "utf8"), context, { filename: rel });
-["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/png.js"].forEach(load);
+load("lib/course.js");
 const MS = context.MS;
+[...MS.COURSE.libs, "lib/png.js"].forEach(load);
 const layer = MS.COURSE.layers.find(l => l.id === layerArg && l.ready);
 if (!layer) { console.log(`Usage: node tools/pictures.js <layer>, e.g. 01`); process.exit(1); }
 
@@ -30,7 +31,7 @@ for (const f of fs.readdirSync(outDir)) if (f.startsWith(layer.id + "-")) fs.unl
 MS.visuals.filter(v => v.layer === layer.id).forEach((v, i) => {
   const file = `out/${layer.id}-${i + 1}.png`;
   try {
-    const frame = v.fn();
+    const frame = v.kind === "animation" ? MS.filmstrip(v.fn()) : v.fn();
     const k = Math.max(1, Math.min(6, Math.floor(240 / frame.width)));
     fs.writeFileSync(path.join(root, file), MS.encodePNG(MS.zoomFrame(frame, k)));
     console.log(`${file}  ${v.name}`);

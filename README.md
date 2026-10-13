@@ -77,7 +77,7 @@ tests.html  results and pictures
 showcase.html  the page Share my engine opens
 ```
 
-**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/build.js` and commit the results. When a mystery or a checkpoint question changes, regenerate the fingerprints with `node tools/checkpoint-data.js --solution <your solution> --answers <answer key>`, then run `node tools/build.js` again; keep both of those files out of the repo. CI checks they're up to date, then publishes the site to GitHub Pages.
+**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/build.js` and commit the results; CI checks they're up to date, then publishes the site. To add or revise a layer, see [AUTHORING.md](AUTHORING.md): `tools/new-layer.js` sets one up from templates and `tools/check-layer.js` checks it. Solutions and checkpoint answers stay in a private kit outside the repo.
 
 ## Credits
 

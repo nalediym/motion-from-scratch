@@ -16,8 +16,9 @@ const vm = require("vm");
 const root = path.join(__dirname, "..");
 const context = vm.createContext({ console });
 const load = rel => vm.runInContext(fs.readFileSync(path.join(root, rel), "utf8"), context, { filename: rel });
-["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/experiment.js"].forEach(load);
+load("lib/course.js");
 const MS = context.MS;
+MS.COURSE.libs.forEach(load);
 const ready = MS.COURSE.layers.filter(l => l.ready);
 const loadSources = upto => {
   for (const l of ready.filter(l => !upto || l.id <= upto)) {

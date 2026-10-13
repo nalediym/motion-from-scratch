@@ -34,6 +34,12 @@
           { id: "10", slug: "export", title: "Export", builds: "frames to MP4, then map it to Remotion", ready: false },
         ],
       };
+      // Provided libraries every surface loads after this file, in this order.
+      // Each ready layer's lib/mysteries file comes next, then the learner's code.
+      MS.COURSE.libs = ["lib/font5x7.js", "lib/check.js", "lib/experiment.js", "lib/checkpoint.js", "lib/checkpoint-data.js"];
+      // Browser pages also load these.
+      MS.COURSE.browserLibs = ["lib/present.js"];
+
       MS.COURSE.repo = "https://github.com/nalediym/motion-from-scratch";
       MS.COURSE.site = "https://nalediym.github.io/motion-from-scratch/";
       MS.COURSE.colab = "https://colab.research.google.com/github/nalediym/motion-from-scratch/blob/main/notebooks/colab.ipynb";
@@ -84,7 +90,7 @@
       MS.COURSE.chatgptLink = (layer, ask) => "https://chatgpt.com/?q=" + enc(MS.COURSE.buddyPrompt(layer, ask));
       MS.COURSE.files = function (layer) {
         const base = `${layer.id}-${layer.slug}`;
-        return { src: `src/${base}.js`, test: `tests/${base}.test.js`, doc: `docs/${base}.md`, checkpoint: `checkpoints/${base}.js` };
+        return { src: `src/${base}.js`, test: `tests/${base}.test.js`, doc: `docs/${base}.md`, checkpoint: `checkpoints/${base}.js`, mystery: `lib/mysteries/${base}.js` };
       };
     })(globalThis.MS = globalThis.MS || {});
 
@@ -179,6 +185,26 @@
       // A visual is a picture the browser test page shows next to the results.
       // fn returns a frame ({ width, height, data }).
       MS.visual = function (layer, name, fn) { MS.visuals.push({ layer, name, fn }); };
+      // An animation is a picture that moves (from layer 03 on). fn returns a
+      // composition; pages play it, and notebooks and terminals show a filmstrip.
+      MS.animation = function (layer, name, fn) { MS.visuals.push({ layer, name, fn, kind: "animation" }); };
+
+      // A strip of `count` frames, evenly spaced from first to last, side by side.
+      // Uses your renderFrame (layer 03); copies bytes directly so it can't go wrong itself.
+      MS.filmstrip = function (comp, count = 6, gap = 2) {
+        const n = Math.min(count, comp.durationInFrames), W = comp.width, H = comp.height;
+        const strip = { width: n * W + (n - 1) * gap, height: H, data: new Uint8ClampedArray((n * W + (n - 1) * gap) * H * 4) };
+        for (let k = 0; k < n; k++) {
+          const f = MS.renderFrame(comp, n === 1 ? 0 : Math.round(k * (comp.durationInFrames - 1) / (n - 1)));
+          for (let y = 0; y < H; y++) strip.data.set(f.data.subarray(y * W * 4, (y + 1) * W * 4), (y * strip.width + k * (W + gap)) * 4);
+        }
+        return strip;
+      };
+
+      // A canvas for the browser's 2D drawing API (layer 07 uses it for real
+      // fonts), or null where there isn't one, like Node.
+      MS.createCanvas = (w, h) => typeof OffscreenCanvas === "function" ? new OffscreenCanvas(w, h)
+        : typeof document !== "undefined" ? Object.assign(document.createElement("canvas"), { width: w, height: h }) : null;
 
       class CheckError extends Error {}
       const show = v => {
@@ -233,141 +259,6 @@
             return { layer: x.layer, name: x.name, status: "fail", message: msg };
           }
         });
-      };
-    })(globalThis.MS = globalThis.MS || {});
-
-    // lib/png.js — turn a frame into PNG file bytes, from scratch. PROVIDED.
-    // Used by the notebooks and `node tools/pictures.js` to show your pictures
-    // where there's no <canvas>.
-    //
-    // A PNG file is a signature followed by "chunks". Each chunk is:
-    //   [length: 4 bytes][type: 4 letters][data][CRC-32 checksum: 4 bytes]
-    //
-    //   89 50 4E 47 0D 0A 1A 0A   signature ("\x89PNG\r\n\x1a\n")
-    //   IHDR   width, height, bit depth 8, color type 6 (RGBA)
-    //   IDAT   the pixels, wrapped in zlib format
-    //   IEND   end of file
-    //
-    // The pixels are your frame.data, one row at a time, each row starting with
-    // a "filter" byte (0 = none). Real encoders then compress with DEFLATE; we
-    // use DEFLATE's "stored" mode, which wraps the bytes without compressing
-    // them. Files are bigger, but every byte is easy to follow.
-    (function (MS) {
-      const CRC_TABLE = (() => {
-        const t = new Uint32Array(256);
-        for (let n = 0; n < 256; n++) {
-          let c = n;
-          for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-          t[n] = c >>> 0;
-        }
-        return t;
-      })();
-      function crc32(bytes, start, end) {
-        let c = 0xffffffff;
-        for (let i = start; i < end; i++) c = CRC_TABLE[(c ^ bytes[i]) & 255] ^ (c >>> 8);
-        return (c ^ 0xffffffff) >>> 0;
-      }
-      function adler32(bytes) {
-        let a = 1, b = 0;
-        for (let i = 0; i < bytes.length; i++) { a = (a + bytes[i]) % 65521; b = (b + a) % 65521; }
-        return ((b << 16) | a) >>> 0;
-      }
-
-      MS.encodePNG = function (frame) {
-        const { width: w, height: h, data } = frame;
-        // 1. raw scanlines: filter byte 0, then the row's RGBA bytes
-        const raw = new Uint8Array(h * (1 + w * 4));
-        for (let y = 0; y < h; y++) {
-          raw[y * (1 + w * 4)] = 0;
-          raw.set(data.subarray(y * w * 4, (y + 1) * w * 4), y * (1 + w * 4) + 1);
-        }
-        // 2. zlib stream: 2-byte header, stored DEFLATE blocks (max 65535 bytes each), Adler-32
-        const blocks = Math.max(1, Math.ceil(raw.length / 65535));
-        const z = new Uint8Array(2 + raw.length + blocks * 5 + 4);
-        let p = 0;
-        z[p++] = 0x78; z[p++] = 0x01;
-        for (let i = 0; i < blocks; i++) {
-          const start = i * 65535, len = Math.min(65535, raw.length - start);
-          z[p++] = i === blocks - 1 ? 1 : 0;            // BFINAL bit, BTYPE 00 = stored
-          z[p++] = len & 255; z[p++] = len >>> 8;       // LEN, little-endian
-          z[p++] = ~len & 255; z[p++] = (~len >>> 8) & 255; // NLEN = one's complement
-          z.set(raw.subarray(start, start + len), p); p += len;
-        }
-        const ad = adler32(raw);
-        z[p++] = ad >>> 24; z[p++] = (ad >>> 16) & 255; z[p++] = (ad >>> 8) & 255; z[p++] = ad & 255;
-        // 3. chunks
-        const chunk = (type, body) => {
-          const out = new Uint8Array(12 + body.length);
-          const v = new DataView(out.buffer);
-          v.setUint32(0, body.length);
-          for (let i = 0; i < 4; i++) out[4 + i] = type.charCodeAt(i);
-          out.set(body, 8);
-          v.setUint32(8 + body.length, crc32(out, 4, 8 + body.length));
-          return out;
-        };
-        const ihdr = new Uint8Array(13);
-        const iv = new DataView(ihdr.buffer);
-        iv.setUint32(0, w); iv.setUint32(4, h);
-        ihdr[8] = 8; ihdr[9] = 6; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
-        const parts = [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", z), chunk("IEND", new Uint8Array(0))];
-        const file = new Uint8Array(parts.reduce((n, a) => n + a.length, 0));
-        let o = 0;
-        for (const a of parts) { file.set(a, o); o += a.length; }
-        return file;
-      };
-
-      // Scale a frame up by a whole number, nearest-neighbor, so small test
-      // pictures stay crisp when shown as an image.
-      MS.zoomFrame = function (frame, k) {
-        const out = { width: frame.width * k, height: frame.height * k, data: new Uint8ClampedArray(frame.width * k * frame.height * k * 4) };
-        for (let y = 0; y < out.height; y++) for (let x = 0; x < out.width; x++) {
-          const s = ((Math.floor(y / k) * frame.width) + Math.floor(x / k)) * 4, d = (y * out.width + x) * 4;
-          out.data[d] = frame.data[s]; out.data[d + 1] = frame.data[s + 1]; out.data[d + 2] = frame.data[s + 2]; out.data[d + 3] = frame.data[s + 3];
-        }
-        return out;
-      };
-
-      MS.toBase64 = function (bytes) {
-        // globalThis.Buffer, not bare Buffer: notebooks treat unknown bare names as cell references.
-        if (globalThis.Buffer) return globalThis.Buffer.from(bytes).toString("base64");
-        let s = "";
-        for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-        return btoa(s);
-      };
-    })(globalThis.MS = globalThis.MS || {});
-
-    // lib/notebook.js — run one layer's tests inside a notebook. PROVIDED.
-    // Used by the Jupyter (Deno) and Observable notebooks, where your code runs
-    // in the same JavaScript session as the tests.
-    (function (MS) {
-      // Load a layer's test file text, replacing any earlier copy of that
-      // layer's tests (so re-running a cell doesn't duplicate them).
-      MS.loadTests = function (layerId, testSource) {
-        MS.tests = MS.tests.filter(t => t.layer !== layerId);
-        MS.visuals = MS.visuals.filter(v => v.layer !== layerId);
-        (0, eval)(testSource);
-      };
-
-      // Run a layer and return { results, passed, total, pictures, html }.
-      // pictures: [{ name, png (base64) | null, error }]
-      MS.runLayerReport = function (layerId) {
-        const results = MS.runTests(layerId);
-        const passed = results.filter(r => r.status === "pass").length;
-        const pictures = MS.visuals.filter(v => v.layer === layerId).map(v => {
-          try {
-            const frame = v.fn();
-            const k = Math.max(1, Math.min(6, Math.floor(240 / frame.width)));
-            return { name: v.name, png: MS.toBase64(MS.encodePNG(MS.zoomFrame(frame, k))) };
-          } catch (e) { return { name: v.name, png: null, error: (e.todo ? "Waiting on: " : "Error: ") + e.message }; }
-        });
-        const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-        const color = { pass: "#1d8a5b", fail: "#c93636", todo: "#7d889b" };
-        const mark = { pass: "✓", fail: "✗", todo: "·" };
-        const html = `<div style="font-family:system-ui,sans-serif;font-size:14px;line-height:1.5">
-    <p style="margin:0 0 6px"><strong>Layer ${layerId}: ${passed} / ${results.length} passing</strong></p>
-    <ul style="list-style:none;padding:0;margin:0 0 10px">${MS.quietTodos(results).map(r => `<li><span style="color:${color[r.status]};font-weight:700;display:inline-block;width:1.2em">${mark[r.status]}</span>${esc(r.name)}${r.message ? `<br><code style="color:${color[r.status]};margin-left:1.2em">${esc(r.message)}</code>` : ""}</li>`).join("")}</ul>
-    <div style="display:flex;flex-wrap:wrap;gap:14px">${pictures.map(p => `<figure style="margin:0;max-width:260px">${p.png ? `<img alt="${esc(p.name)}" src="data:image/png;base64,${p.png}" style="max-width:100%;image-rendering:pixelated;border:1px solid #c7d5e3">` : ""}<figcaption style="font-size:12px;color:#556275">${esc(p.name)}${p.error ? `<br>${esc(p.error)}` : ""}</figcaption></figure>`).join("")}</div></div>`;
-        return { results, passed, total: results.length, pictures, html };
       };
     })(globalThis.MS = globalThis.MS || {});
 
@@ -480,122 +371,12 @@
       const near = (a, b, tol) => a && b && a.every((v, i) => Math.abs(v - b[i]) <= tol);
 
       // ------------------------------------------------------------ the mysteries
-      // Each mystery has draw() (runs YOUR functions) and check() (explains what
-      // went wrong, comparing against the expected fingerprint).
-      const MYSTERIES = {
-        // Layer 00: a word, drawn pixel by pixel with setPixel, through three traps.
-        "00": {
-          draw() {
-            const word = "PIXELS", S = 2, M = 3;
-            const W = M * 2 + (word.length * 6 - 1) * S, H = M * 2 + 7 * S;
-            const f = MS.createFrame(W, H);
-            MS.clearFrame(f, [11, 13, 18]);
-            const ink = new Set(), cmds = [];
-            [...word].forEach((ch, i) => MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
-              if (cell !== "#") return;
-              for (let dy = 0; dy < S; dy++) for (let dx = 0; dx < S; dx++) {
-                const x = M + (i * 6 + c) * S + dx, y = M + r * S + dy;
-                ink.add(x + "," + y);
-                cmds.push([x + 0.7, y + 0.2, [300, 300, 300]]);   // traps: fractional coords, out-of-range color
-              }
-            })));
-            for (let y = 0; y < H - 1; y++) cmds.push([W, y, [255, 92, 138]]);  // trap: one pixel past the right edge
-            shuffle(cmds, 2026).forEach(([x, y, c]) => MS.setPixel(f, x, y, c));
-            return { frame: f, ink };
-          },
-          check({ frame: f, ink }) {
-            const BG = [11, 13, 18, 255], WHITE = [255, 255, 255, 255];
-            let wrong = 0, decoys = 0, missing = 0, dark = 0, extra = 0;
-            for (let y = 0; y < f.height; y++) for (let x = 0; x < f.width; x++) {
-              const p = MS.getPixel(f, x, y), isInk = ink.has(x + "," + y);
-              if (same(p, isInk ? WHITE : BG)) continue;
-              wrong++;
-              if (p && p[0] === 255 && p[1] === 92) decoys++;
-              else if (isInk && same(p, BG)) missing++;
-              else if (isInk) dark++;
-              else extra++;
-            }
-            const hints = [];
-            if (decoys) hints.push(`${decoys} pink speck(s) appeared near the left edge. A pixel drawn one step past the right edge wrapped onto the next row. Look at how setPixel decides whether (x, y) is inside the frame.`);
-            if (missing && !extra) hints.push(`${missing} letter pixel(s) never got drawn. The commands use fractional coordinates like 3.7, and a write to a fractional index is silently ignored. Look at what setPixel does with x and y before using them.`);
-            if (extra && !decoys) hints.push(`${extra} pixel(s) landed next to where they belong. Fractional coordinates should round DOWN (3.7 → 3), not to the nearest whole number.`);
-            if (dark) hints.push(`${dark} letter pixel(s) came out the wrong color. The commands use the color [300, 300, 300], which should clamp to white. Look at the kind of array createFrame makes.`);
-            return { wrong, hints };
-          },
-        },
-
-        // Layer 01: a word made of touching half-transparent squares, painted on
-        // nothing, then composited over a gradient card.
-        "01": {
-          draw() {
-            const word = "BLEND", C = 3, M = 4;
-            const W = M * 2 + (word.length * 6 - 1) * C, H = M * 2 + 7 * C;
-            const layer = MS.createFrame(W, H);              // transparent: trap for the divide-by-alpha rule
-            let cells = 0;
-            [...word].forEach((ch, i) => MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
-              if (cell !== "#") return;
-              cells++;
-              MS.fillRect(layer, M + (i * 6 + c) * C, M + r * C, C, C, [0, 140, 255, 128]);   // neighbors share edges
-            })));
-            const card = MS.createFrame(W, H);
-            MS.fillVerticalGradient(card, MS.hex("#1A2740"), MS.hex("#0B0D12"));
-            for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-              const p = MS.getPixel(layer, x, y);
-              if (p[3]) MS.blendPixel(card, x, y, p);
-            }
-            return { frame: card, layer, cells, C };
-          },
-          check({ frame, layer, cells, C }, data) {
-            let inked = 0, seams = 0, darkened = 0;
-            for (let y = 0; y < layer.height; y++) for (let x = 0; x < layer.width; x++) {
-              const p = MS.getPixel(layer, x, y);
-              if (!p[3]) continue;
-              inked++;
-              if (p[3] > 130) seams++;
-              else if (!near(p.slice(0, 3), [0, 140, 255], 2)) darkened++;
-            }
-            const matches = MS.hashFrame(frame) === data.mystery;
-            const hints = [];
-            if (seams) hints.push(`${seams} pixel(s) were painted twice where two squares touch, leaving darker seams. A rectangle's right and bottom edges should be exclusive.`);
-            if (inked < cells * C * C && !seams) hints.push(`The squares came out smaller than ${C} × ${C}. Check how fillRect rounds its edges.`);
-            if (darkened) hints.push(`${darkened} pixel(s) of ink came out darker than the color painted. See-through color painted onto an empty pixel should keep its color; look at the divide-by-outAlpha step in blendPixel.`);
-            if (!matches && !hints.length) hints.push("The letters are right but the background card isn't. Check fillVerticalGradient: each row samples t = (y + 0.5) / height.");
-            return { wrong: matches ? 0 : 1, hints };
-          },
-        },
-
-        // Layer 02: three centered lines with lowercase, an emoji and middle dots.
-        "02": {
-          draw() {
-            const lines = ["hello, pixels!", "MADE BY ME \u{1F44B}", "· CENTER ·"];
-            const S = 2, W = 190, M = 6, LINE = 7 * S + 6;
-            const f = MS.createFrame(W, M * 2 + lines.length * LINE - 6);
-            MS.clearFrame(f, [11, 13, 18]);
-            lines.forEach((text, i) => MS.drawText(f, text, W / 2, M + i * LINE, S, [255, 255, 255], { align: "center" }));
-            const stats = lines.map((_, i) => {
-              let ink = 0, left = W, right = -1;
-              for (let y = M + i * LINE; y < M + i * LINE + 7 * S; y++) for (let x = 0; x < W; x++) {
-                const p = MS.getPixel(f, x, y);
-                if (p && p[0] > 128) { ink++; left = Math.min(left, x); right = Math.max(right, x); }
-              }
-              return { ink, left, right };
-            });
-            return { frame: f, stats, S };
-          },
-          check({ frame, stats, S }, data) {
-            const want = data.lines;
-            const matches = MS.hashFrame(frame) === data.mystery;
-            const hints = [];
-            if (stats[0].ink !== want[0].ink) hints.push(`Line 1 ("hello, pixels!") came out wrong. It's all lowercase, and the font only has uppercase: look for tofu boxes.`);
-            if (stats[1].ink === want[1].ink + 20 * S * S) hints.push("Line 2 drew two tofu boxes for one emoji. Walk the text by characters (for...of), not by string index.");
-            else if (stats[1].ink !== want[1].ink) hints.push(`Line 2 ("MADE BY ME 👋") came out wrong. Expect one tofu box for the emoji, and check how spaces are handled.`);
-            const shifted = stats.some((s, i) => s.ink === want[i].ink && (s.left !== want[i].left || s.right !== want[i].right));
-            if (shifted) hints.push("A line is shifted sideways. Centering uses measureText: tracking belongs only BETWEEN glyphs, and the left edge is x − width / 2.");
-            if (!matches && !hints.length) hints.push("Something small differs. Compare your drawText with the spec comment line by line.");
-            return { wrong: matches ? 0 : 1, hints };
-          },
-        },
-      };
+      // Each layer's mystery lives in lib/mysteries/NN-name.js and registers
+      // itself here: draw() runs the learner's functions, check(drawn, data)
+      // explains what went wrong against the expected fingerprint.
+      const MYSTERIES = {};
+      MS.mystery = (layerId, def) => { MYSTERIES[layerId] = def; };
+      MS.mysteryKit = { shuffle, same, near };
       MS.CHECKPOINT_MYSTERIES = MYSTERIES;   // used by tools/checkpoint-data.js
 
       // ------------------------------------------------------------ running one
@@ -718,6 +499,271 @@
           ]
         }
       };
+    })(globalThis.MS = globalThis.MS || {});
+
+    // lib/png.js — turn a frame into PNG file bytes, from scratch. PROVIDED.
+    // Used by the notebooks and `node tools/pictures.js` to show your pictures
+    // where there's no <canvas>.
+    //
+    // A PNG file is a signature followed by "chunks". Each chunk is:
+    //   [length: 4 bytes][type: 4 letters][data][CRC-32 checksum: 4 bytes]
+    //
+    //   89 50 4E 47 0D 0A 1A 0A   signature ("\x89PNG\r\n\x1a\n")
+    //   IHDR   width, height, bit depth 8, color type 6 (RGBA)
+    //   IDAT   the pixels, wrapped in zlib format
+    //   IEND   end of file
+    //
+    // The pixels are your frame.data, one row at a time, each row starting with
+    // a "filter" byte (0 = none). Real encoders then compress with DEFLATE; we
+    // use DEFLATE's "stored" mode, which wraps the bytes without compressing
+    // them. Files are bigger, but every byte is easy to follow.
+    (function (MS) {
+      const CRC_TABLE = (() => {
+        const t = new Uint32Array(256);
+        for (let n = 0; n < 256; n++) {
+          let c = n;
+          for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+          t[n] = c >>> 0;
+        }
+        return t;
+      })();
+      function crc32(bytes, start, end) {
+        let c = 0xffffffff;
+        for (let i = start; i < end; i++) c = CRC_TABLE[(c ^ bytes[i]) & 255] ^ (c >>> 8);
+        return (c ^ 0xffffffff) >>> 0;
+      }
+      function adler32(bytes) {
+        let a = 1, b = 0;
+        for (let i = 0; i < bytes.length; i++) { a = (a + bytes[i]) % 65521; b = (b + a) % 65521; }
+        return ((b << 16) | a) >>> 0;
+      }
+
+      MS.encodePNG = function (frame) {
+        const { width: w, height: h, data } = frame;
+        // 1. raw scanlines: filter byte 0, then the row's RGBA bytes
+        const raw = new Uint8Array(h * (1 + w * 4));
+        for (let y = 0; y < h; y++) {
+          raw[y * (1 + w * 4)] = 0;
+          raw.set(data.subarray(y * w * 4, (y + 1) * w * 4), y * (1 + w * 4) + 1);
+        }
+        // 2. zlib stream: 2-byte header, stored DEFLATE blocks (max 65535 bytes each), Adler-32
+        const blocks = Math.max(1, Math.ceil(raw.length / 65535));
+        const z = new Uint8Array(2 + raw.length + blocks * 5 + 4);
+        let p = 0;
+        z[p++] = 0x78; z[p++] = 0x01;
+        for (let i = 0; i < blocks; i++) {
+          const start = i * 65535, len = Math.min(65535, raw.length - start);
+          z[p++] = i === blocks - 1 ? 1 : 0;            // BFINAL bit, BTYPE 00 = stored
+          z[p++] = len & 255; z[p++] = len >>> 8;       // LEN, little-endian
+          z[p++] = ~len & 255; z[p++] = (~len >>> 8) & 255; // NLEN = one's complement
+          z.set(raw.subarray(start, start + len), p); p += len;
+        }
+        const ad = adler32(raw);
+        z[p++] = ad >>> 24; z[p++] = (ad >>> 16) & 255; z[p++] = (ad >>> 8) & 255; z[p++] = ad & 255;
+        // 3. chunks
+        const chunk = (type, body) => {
+          const out = new Uint8Array(12 + body.length);
+          const v = new DataView(out.buffer);
+          v.setUint32(0, body.length);
+          for (let i = 0; i < 4; i++) out[4 + i] = type.charCodeAt(i);
+          out.set(body, 8);
+          v.setUint32(8 + body.length, crc32(out, 4, 8 + body.length));
+          return out;
+        };
+        const ihdr = new Uint8Array(13);
+        const iv = new DataView(ihdr.buffer);
+        iv.setUint32(0, w); iv.setUint32(4, h);
+        ihdr[8] = 8; ihdr[9] = 6; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
+        const parts = [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", z), chunk("IEND", new Uint8Array(0))];
+        const file = new Uint8Array(parts.reduce((n, a) => n + a.length, 0));
+        let o = 0;
+        for (const a of parts) { file.set(a, o); o += a.length; }
+        return file;
+      };
+
+      // Scale a frame up by a whole number, nearest-neighbor, so small test
+      // pictures stay crisp when shown as an image.
+      MS.zoomFrame = function (frame, k) {
+        const out = { width: frame.width * k, height: frame.height * k, data: new Uint8ClampedArray(frame.width * k * frame.height * k * 4) };
+        for (let y = 0; y < out.height; y++) for (let x = 0; x < out.width; x++) {
+          const s = ((Math.floor(y / k) * frame.width) + Math.floor(x / k)) * 4, d = (y * out.width + x) * 4;
+          out.data[d] = frame.data[s]; out.data[d + 1] = frame.data[s + 1]; out.data[d + 2] = frame.data[s + 2]; out.data[d + 3] = frame.data[s + 3];
+        }
+        return out;
+      };
+
+      MS.toBase64 = function (bytes) {
+        // globalThis.Buffer, not bare Buffer: notebooks treat unknown bare names as cell references.
+        if (globalThis.Buffer) return globalThis.Buffer.from(bytes).toString("base64");
+        let s = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        return btoa(s);
+      };
+    })(globalThis.MS = globalThis.MS || {});
+
+    // lib/notebook.js — run one layer's tests inside a notebook. PROVIDED.
+    // Used by the Jupyter (Deno) and Observable notebooks, where your code runs
+    // in the same JavaScript session as the tests.
+    (function (MS) {
+      // Load a layer's test file text, replacing any earlier copy of that
+      // layer's tests (so re-running a cell doesn't duplicate them).
+      MS.loadTests = function (layerId, testSource) {
+        MS.tests = MS.tests.filter(t => t.layer !== layerId);
+        MS.visuals = MS.visuals.filter(v => v.layer !== layerId);
+        (0, eval)(testSource);
+      };
+
+      // Run a layer and return { results, passed, total, pictures, html }.
+      // pictures: [{ name, png (base64) | null, error }]
+      MS.runLayerReport = function (layerId) {
+        const results = MS.runTests(layerId);
+        const passed = results.filter(r => r.status === "pass").length;
+        const pictures = MS.visuals.filter(v => v.layer === layerId).map(v => {
+          try {
+            const frame = v.kind === "animation" ? MS.filmstrip(v.fn()) : v.fn();
+            const k = Math.max(1, Math.min(6, Math.floor(240 / frame.width)));
+            return { name: v.name, png: MS.toBase64(MS.encodePNG(MS.zoomFrame(frame, k))) };
+          } catch (e) { return { name: v.name, png: null, error: (e.todo ? "Waiting on: " : "Error: ") + e.message }; }
+        });
+        const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+        const color = { pass: "#1d8a5b", fail: "#c93636", todo: "#7d889b" };
+        const mark = { pass: "✓", fail: "✗", todo: "·" };
+        const html = `<div style="font-family:system-ui,sans-serif;font-size:14px;line-height:1.5">
+    <p style="margin:0 0 6px"><strong>Layer ${layerId}: ${passed} / ${results.length} passing</strong></p>
+    <ul style="list-style:none;padding:0;margin:0 0 10px">${MS.quietTodos(results).map(r => `<li><span style="color:${color[r.status]};font-weight:700;display:inline-block;width:1.2em">${mark[r.status]}</span>${esc(r.name)}${r.message ? `<br><code style="color:${color[r.status]};margin-left:1.2em">${esc(r.message)}</code>` : ""}</li>`).join("")}</ul>
+    <div style="display:flex;flex-wrap:wrap;gap:14px">${pictures.map(p => `<figure style="margin:0;max-width:260px">${p.png ? `<img alt="${esc(p.name)}" src="data:image/png;base64,${p.png}" style="max-width:100%;image-rendering:pixelated;border:1px solid #c7d5e3">` : ""}<figcaption style="font-size:12px;color:#556275">${esc(p.name)}${p.error ? `<br>${esc(p.error)}` : ""}</figcaption></figure>`).join("")}</div></div>`;
+        return { results, passed, total: results.length, pictures, html };
+      };
+    })(globalThis.MS = globalThis.MS || {});
+
+    // lib/mysteries/00-pixels.js — layer 00's checkpoint picture. PROVIDED.
+    // Layer 00: a word, drawn pixel by pixel with setPixel, through three traps.
+    // draw() runs the learner's functions; check() says which rule went wrong,
+    // never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+    (function (MS) {
+      const { shuffle, same, near } = MS.mysteryKit;
+      MS.mystery("00", {
+        draw() {
+          const word = "PIXELS", S = 2, M = 3;
+          const W = M * 2 + (word.length * 6 - 1) * S, H = M * 2 + 7 * S;
+          const f = MS.createFrame(W, H);
+          MS.clearFrame(f, [11, 13, 18]);
+          const ink = new Set(), cmds = [];
+          [...word].forEach((ch, i) => MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
+            if (cell !== "#") return;
+            for (let dy = 0; dy < S; dy++) for (let dx = 0; dx < S; dx++) {
+              const x = M + (i * 6 + c) * S + dx, y = M + r * S + dy;
+              ink.add(x + "," + y);
+              cmds.push([x + 0.7, y + 0.2, [300, 300, 300]]);   // traps: fractional coords, out-of-range color
+            }
+          })));
+          for (let y = 0; y < H - 1; y++) cmds.push([W, y, [255, 92, 138]]);  // trap: one pixel past the right edge
+          shuffle(cmds, 2026).forEach(([x, y, c]) => MS.setPixel(f, x, y, c));
+          return { frame: f, ink };
+        },
+        check({ frame: f, ink }) {
+          const BG = [11, 13, 18, 255], WHITE = [255, 255, 255, 255];
+          let wrong = 0, decoys = 0, missing = 0, dark = 0, extra = 0;
+          for (let y = 0; y < f.height; y++) for (let x = 0; x < f.width; x++) {
+            const p = MS.getPixel(f, x, y), isInk = ink.has(x + "," + y);
+            if (same(p, isInk ? WHITE : BG)) continue;
+            wrong++;
+            if (p && p[0] === 255 && p[1] === 92) decoys++;
+            else if (isInk && same(p, BG)) missing++;
+            else if (isInk) dark++;
+            else extra++;
+          }
+          const hints = [];
+          if (decoys) hints.push(`${decoys} pink speck(s) appeared near the left edge. A pixel drawn one step past the right edge wrapped onto the next row. Look at how setPixel decides whether (x, y) is inside the frame.`);
+          if (missing && !extra) hints.push(`${missing} letter pixel(s) never got drawn. The commands use fractional coordinates like 3.7, and a write to a fractional index is silently ignored. Look at what setPixel does with x and y before using them.`);
+          if (extra && !decoys) hints.push(`${extra} pixel(s) landed next to where they belong. Fractional coordinates should round DOWN (3.7 → 3), not to the nearest whole number.`);
+          if (dark) hints.push(`${dark} letter pixel(s) came out the wrong color. The commands use the color [300, 300, 300], which should clamp to white. Look at the kind of array createFrame makes.`);
+          return { wrong, hints };
+        },
+      });
+    })(globalThis.MS = globalThis.MS || {});
+
+    // lib/mysteries/01-shapes.js — layer 01's checkpoint picture. PROVIDED.
+    // Layer 01: a word made of touching half-transparent squares, painted on
+    // draw() runs the learner's functions; check() says which rule went wrong,
+    // never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+    (function (MS) {
+      const { shuffle, same, near } = MS.mysteryKit;
+      MS.mystery("01", {
+        draw() {
+          const word = "BLEND", C = 3, M = 4;
+          const W = M * 2 + (word.length * 6 - 1) * C, H = M * 2 + 7 * C;
+          const layer = MS.createFrame(W, H);              // transparent: trap for the divide-by-alpha rule
+          let cells = 0;
+          [...word].forEach((ch, i) => MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
+            if (cell !== "#") return;
+            cells++;
+            MS.fillRect(layer, M + (i * 6 + c) * C, M + r * C, C, C, [0, 140, 255, 128]);   // neighbors share edges
+          })));
+          const card = MS.createFrame(W, H);
+          MS.fillVerticalGradient(card, MS.hex("#1A2740"), MS.hex("#0B0D12"));
+          for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+            const p = MS.getPixel(layer, x, y);
+            if (p[3]) MS.blendPixel(card, x, y, p);
+          }
+          return { frame: card, layer, cells, C };
+        },
+        check({ frame, layer, cells, C }, data) {
+          let inked = 0, seams = 0, darkened = 0;
+          for (let y = 0; y < layer.height; y++) for (let x = 0; x < layer.width; x++) {
+            const p = MS.getPixel(layer, x, y);
+            if (!p[3]) continue;
+            inked++;
+            if (p[3] > 130) seams++;
+            else if (!near(p.slice(0, 3), [0, 140, 255], 2)) darkened++;
+          }
+          const matches = MS.hashFrame(frame) === data.mystery;
+          const hints = [];
+          if (seams) hints.push(`${seams} pixel(s) were painted twice where two squares touch, leaving darker seams. A rectangle's right and bottom edges should be exclusive.`);
+          if (inked < cells * C * C && !seams) hints.push(`The squares came out smaller than ${C} × ${C}. Check how fillRect rounds its edges.`);
+          if (darkened) hints.push(`${darkened} pixel(s) of ink came out darker than the color painted. See-through color painted onto an empty pixel should keep its color; look at the divide-by-outAlpha step in blendPixel.`);
+          if (!matches && !hints.length) hints.push("The letters are right but the background card isn't. Check fillVerticalGradient: each row samples t = (y + 0.5) / height.");
+          return { wrong: matches ? 0 : 1, hints };
+        },
+      });
+    })(globalThis.MS = globalThis.MS || {});
+
+    // lib/mysteries/02-glyphs.js — layer 02's checkpoint picture. PROVIDED.
+    // Layer 02: three centered lines with lowercase, an emoji and middle dots.
+    // draw() runs the learner's functions; check() says which rule went wrong,
+    // never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+    (function (MS) {
+      const { shuffle, same, near } = MS.mysteryKit;
+      MS.mystery("02", {
+        draw() {
+          const lines = ["hello, pixels!", "MADE BY ME \u{1F44B}", "· CENTER ·"];
+          const S = 2, W = 190, M = 6, LINE = 7 * S + 6;
+          const f = MS.createFrame(W, M * 2 + lines.length * LINE - 6);
+          MS.clearFrame(f, [11, 13, 18]);
+          lines.forEach((text, i) => MS.drawText(f, text, W / 2, M + i * LINE, S, [255, 255, 255], { align: "center" }));
+          const stats = lines.map((_, i) => {
+            let ink = 0, left = W, right = -1;
+            for (let y = M + i * LINE; y < M + i * LINE + 7 * S; y++) for (let x = 0; x < W; x++) {
+              const p = MS.getPixel(f, x, y);
+              if (p && p[0] > 128) { ink++; left = Math.min(left, x); right = Math.max(right, x); }
+            }
+            return { ink, left, right };
+          });
+          return { frame: f, stats, S, record: { lines: stats } };   // checkpoint-data.js stores record
+        },
+        check({ frame, stats, S }, data) {
+          const want = data.lines;
+          const matches = MS.hashFrame(frame) === data.mystery;
+          const hints = [];
+          if (stats[0].ink !== want[0].ink) hints.push(`Line 1 ("hello, pixels!") came out wrong. It's all lowercase, and the font only has uppercase: look for tofu boxes.`);
+          if (stats[1].ink === want[1].ink + 20 * S * S) hints.push("Line 2 drew two tofu boxes for one emoji. Walk the text by characters (for...of), not by string index.");
+          else if (stats[1].ink !== want[1].ink) hints.push(`Line 2 ("MADE BY ME 👋") came out wrong. Expect one tofu box for the emoji, and check how spaces are handled.`);
+          const shifted = stats.some((s, i) => s.ink === want[i].ink && (s.left !== want[i].left || s.right !== want[i].right));
+          if (shifted) hints.push("A line is shifted sideways. Centering uses measureText: tracking belongs only BETWEEN glyphs, and the left edge is x − width / 2.");
+          if (!matches && !hints.length) hints.push("Something small differs. Compare your drawText with the spec comment line by line.");
+          return { wrong: matches ? 0 : 1, hints };
+        },
+      });
     })(globalThis.MS = globalThis.MS || {});
 
     const base = globalThis.MS;

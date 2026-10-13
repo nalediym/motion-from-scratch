@@ -20,8 +20,10 @@ const load = rel => {
   return true;
 };
 
-for (const f of ["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/experiment.js", "lib/checkpoint.js", "lib/checkpoint-data.js"]) load(f);
+load("lib/course.js");
 const MS = context.MS;
+MS.COURSE.libs.forEach(load);
+for (const l of MS.COURSE.layers.filter(l => l.ready)) load(MS.COURSE.files(l).mystery);
 const wanted = process.argv[2];
 const layers = MS.COURSE.layers.filter(l => l.ready && (!wanted || l.id === wanted.padStart(2, "0")));
 if (!layers.length) { console.log(`No ready layer matches "${wanted}".`); process.exit(1); }

@@ -74,8 +74,15 @@ function renderer(P) {
       cap.textContent = caption;
       fig.appendChild(cap);
       pics.appendChild(fig);
+      return fig;
     };
-    for (const v of MS.visuals.filter(v => v.layer === id)) { try { add(v.fn(), v.name); } catch (e) { /* not working yet: skip */ } }
+    for (const v of MS.visuals.filter(v => v.layer === id)) {
+      try {
+        if (v.kind !== "animation") { add(v.fn(), v.name); continue; }
+        const comp = v.fn(), fig = add(MS.renderFrame(comp, 0), v.name);   // moving pictures play, using the learner's own player code
+        MS.play(comp, fig.querySelector("canvas"), Math.max(1, Math.min(5, Math.floor(260 / comp.width))));
+      } catch (e) { /* not working yet: skip */ }
+    }
     try {
       const cp = MS.runCheckpoint(id, results);
       if (!cp.locked && cp.mystery.ok && cp.mystery.frame) add(cp.mystery.frame, "Checkpoint mystery picture, drawn correctly", "mystery");
@@ -138,7 +145,7 @@ function owner(data, packed, setTitle) {
   try {
     const files = id => MS.COURSE.files(ready.find(l => l.id === id));
     [libs, tests, stubs, css] = await Promise.all([
-      Promise.all(["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/present.js", "lib/checkpoint.js", "lib/checkpoint-data.js"].map(get)),
+      Promise.all(["lib/course.js", ...MS.COURSE.libs, ...MS.COURSE.browserLibs, ...shown.map(id => files(id).mystery)].map(get)),
       Promise.all(shown.map(id => get(files(id).test))),
       Promise.all(order.map(id => typeof data.src[id] === "string" ? data.src[id] : get(files(id).src))),
       get("lib/style.css"),

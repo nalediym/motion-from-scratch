@@ -781,6 +781,12 @@ MS.answers("02", {
       { id: "10", slug: "export", title: "Export", builds: "frames to MP4, then map it to Remotion", ready: false },
     ],
   };
+  // Provided libraries every surface loads after this file, in this order.
+  // Each ready layer's lib/mysteries file comes next, then the learner's code.
+  MS.COURSE.libs = ["lib/font5x7.js", "lib/check.js", "lib/experiment.js", "lib/checkpoint.js", "lib/checkpoint-data.js"];
+  // Browser pages also load these.
+  MS.COURSE.browserLibs = ["lib/present.js"];
+
   MS.COURSE.repo = "https://github.com/nalediym/motion-from-scratch";
   MS.COURSE.site = "https://nalediym.github.io/motion-from-scratch/";
   MS.COURSE.colab = "https://colab.research.google.com/github/nalediym/motion-from-scratch/blob/main/notebooks/colab.ipynb";
@@ -831,7 +837,7 @@ MS.answers("02", {
   MS.COURSE.chatgptLink = (layer, ask) => "https://chatgpt.com/?q=" + enc(MS.COURSE.buddyPrompt(layer, ask));
   MS.COURSE.files = function (layer) {
     const base = `${layer.id}-${layer.slug}`;
-    return { src: `src/${base}.js`, test: `tests/${base}.test.js`, doc: `docs/${base}.md`, checkpoint: `checkpoints/${base}.js` };
+    return { src: `src/${base}.js`, test: `tests/${base}.test.js`, doc: `docs/${base}.md`, checkpoint: `checkpoints/${base}.js`, mystery: `lib/mysteries/${base}.js` };
   };
 })(globalThis.MS = globalThis.MS || {});
 </script>
@@ -875,7 +881,7 @@ MS.answers("02", {
   };
 })(globalThis.MS = globalThis.MS || {});
 </script>
-<script type="text/plain" id="lib-font">// lib/font5x7.js — a 5×7 bitmap font. PROVIDED: you don't edit this file.
+<script type="text/plain" id="lib:lib/font5x7.js">// lib/font5x7.js — a 5×7 bitmap font. PROVIDED: you don't edit this file.
 //
 // Every glyph is 7 rows of 5 characters. "#" = ink, "." = empty.
 // This is the same idea early computers and arcade machines used: a font is
@@ -946,7 +952,7 @@ MS.answers("02", {
   };
 })(globalThis.MS = globalThis.MS || {});
 </script>
-<script type="text/plain" id="lib-check">// lib/check.js — a tiny test library. PROVIDED.
+<script type="text/plain" id="lib:lib/check.js">// lib/check.js — a tiny test library. PROVIDED.
 // The same tests run in Node (`node tests/run.js`) and in the browser
 // (open tests.html). Everything you build draws into plain arrays, so no
 // screen is needed to check it.
@@ -966,6 +972,26 @@ MS.answers("02", {
   // A visual is a picture the browser test page shows next to the results.
   // fn returns a frame ({ width, height, data }).
   MS.visual = function (layer, name, fn) { MS.visuals.push({ layer, name, fn }); };
+  // An animation is a picture that moves (from layer 03 on). fn returns a
+  // composition; pages play it, and notebooks and terminals show a filmstrip.
+  MS.animation = function (layer, name, fn) { MS.visuals.push({ layer, name, fn, kind: "animation" }); };
+
+  // A strip of `count` frames, evenly spaced from first to last, side by side.
+  // Uses your renderFrame (layer 03); copies bytes directly so it can't go wrong itself.
+  MS.filmstrip = function (comp, count = 6, gap = 2) {
+    const n = Math.min(count, comp.durationInFrames), W = comp.width, H = comp.height;
+    const strip = { width: n * W + (n - 1) * gap, height: H, data: new Uint8ClampedArray((n * W + (n - 1) * gap) * H * 4) };
+    for (let k = 0; k < n; k++) {
+      const f = MS.renderFrame(comp, n === 1 ? 0 : Math.round(k * (comp.durationInFrames - 1) / (n - 1)));
+      for (let y = 0; y < H; y++) strip.data.set(f.data.subarray(y * W * 4, (y + 1) * W * 4), (y * strip.width + k * (W + gap)) * 4);
+    }
+    return strip;
+  };
+
+  // A canvas for the browser's 2D drawing API (layer 07 uses it for real
+  // fonts), or null where there isn't one, like Node.
+  MS.createCanvas = (w, h) => typeof OffscreenCanvas === "function" ? new OffscreenCanvas(w, h)
+    : typeof document !== "undefined" ? Object.assign(document.createElement("canvas"), { width: w, height: h }) : null;
 
   class CheckError extends Error {}
   const show = v => {
@@ -1023,27 +1049,7 @@ MS.answers("02", {
   };
 })(globalThis.MS = globalThis.MS || {});
 </script>
-<script type="text/plain" id="lib-present">// lib/present.js — put a frame on the screen. PROVIDED (browser only).
-//
-//   frame.data ──► ImageData ──► canvas ──► compositor ──► GPU ──► display
-//
-// putImageData copies your bytes straight into the canvas. No blending, no
-// scaling: what's in memory is exactly what you get. We make the canvas the
-// same size as the frame and let CSS zoom it up with `image-rendering:
-// pixelated`, so small frames show their pixels as crisp squares.
-(function (MS) {
-  MS.present = function (frame, canvas, zoom = 1) {
-    canvas.width = frame.width;
-    canvas.height = frame.height;
-    const image = new ImageData(new Uint8ClampedArray(frame.data), frame.width, frame.height);
-    canvas.getContext("2d").putImageData(image, 0, 0);
-    canvas.style.width = frame.width * zoom + "px";
-    canvas.style.imageRendering = "pixelated";
-    return canvas;
-  };
-})(globalThis.MS = globalThis.MS || {});
-</script>
-<script type="text/plain" id="lib-experiment">// lib/experiment.js — runs the "Predict, then run" and "Break it" blocks
+<script type="text/plain" id="lib:lib/experiment.js">// lib/experiment.js — runs the "Predict, then run" and "Break it" blocks
 // from the chapters. PROVIDED.
 //
 // Blocks are plain JavaScript that call your MS functions and console.log.
@@ -1120,7 +1126,7 @@ MS.answers("02", {
   };
 })(globalThis.MS = globalThis.MS || {});
 </script>
-<script type="text/plain" id="lib-checkpoint">// lib/checkpoint.js — each layer's checkpoint. PROVIDED.
+<script type="text/plain" id="lib:lib/checkpoint.js">// lib/checkpoint.js — each layer's checkpoint. PROVIDED.
 // Draws the mystery picture with the learner's code (a wrong rule shows up in
 // the picture, with a hint about which rule, never the fix) and checks the
 // answers in checkpoints/NN-*.js against fingerprints.
@@ -1152,122 +1158,12 @@ MS.answers("02", {
   const near = (a, b, tol) => a && b && a.every((v, i) => Math.abs(v - b[i]) <= tol);
 
   // ------------------------------------------------------------ the mysteries
-  // Each mystery has draw() (runs YOUR functions) and check() (explains what
-  // went wrong, comparing against the expected fingerprint).
-  const MYSTERIES = {
-    // Layer 00: a word, drawn pixel by pixel with setPixel, through three traps.
-    "00": {
-      draw() {
-        const word = "PIXELS", S = 2, M = 3;
-        const W = M * 2 + (word.length * 6 - 1) * S, H = M * 2 + 7 * S;
-        const f = MS.createFrame(W, H);
-        MS.clearFrame(f, [11, 13, 18]);
-        const ink = new Set(), cmds = [];
-        [...word].forEach((ch, i) => MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
-          if (cell !== "#") return;
-          for (let dy = 0; dy < S; dy++) for (let dx = 0; dx < S; dx++) {
-            const x = M + (i * 6 + c) * S + dx, y = M + r * S + dy;
-            ink.add(x + "," + y);
-            cmds.push([x + 0.7, y + 0.2, [300, 300, 300]]);   // traps: fractional coords, out-of-range color
-          }
-        })));
-        for (let y = 0; y < H - 1; y++) cmds.push([W, y, [255, 92, 138]]);  // trap: one pixel past the right edge
-        shuffle(cmds, 2026).forEach(([x, y, c]) => MS.setPixel(f, x, y, c));
-        return { frame: f, ink };
-      },
-      check({ frame: f, ink }) {
-        const BG = [11, 13, 18, 255], WHITE = [255, 255, 255, 255];
-        let wrong = 0, decoys = 0, missing = 0, dark = 0, extra = 0;
-        for (let y = 0; y < f.height; y++) for (let x = 0; x < f.width; x++) {
-          const p = MS.getPixel(f, x, y), isInk = ink.has(x + "," + y);
-          if (same(p, isInk ? WHITE : BG)) continue;
-          wrong++;
-          if (p && p[0] === 255 && p[1] === 92) decoys++;
-          else if (isInk && same(p, BG)) missing++;
-          else if (isInk) dark++;
-          else extra++;
-        }
-        const hints = [];
-        if (decoys) hints.push(`${decoys} pink speck(s) appeared near the left edge. A pixel drawn one step past the right edge wrapped onto the next row. Look at how setPixel decides whether (x, y) is inside the frame.`);
-        if (missing && !extra) hints.push(`${missing} letter pixel(s) never got drawn. The commands use fractional coordinates like 3.7, and a write to a fractional index is silently ignored. Look at what setPixel does with x and y before using them.`);
-        if (extra && !decoys) hints.push(`${extra} pixel(s) landed next to where they belong. Fractional coordinates should round DOWN (3.7 → 3), not to the nearest whole number.`);
-        if (dark) hints.push(`${dark} letter pixel(s) came out the wrong color. The commands use the color [300, 300, 300], which should clamp to white. Look at the kind of array createFrame makes.`);
-        return { wrong, hints };
-      },
-    },
-
-    // Layer 01: a word made of touching half-transparent squares, painted on
-    // nothing, then composited over a gradient card.
-    "01": {
-      draw() {
-        const word = "BLEND", C = 3, M = 4;
-        const W = M * 2 + (word.length * 6 - 1) * C, H = M * 2 + 7 * C;
-        const layer = MS.createFrame(W, H);              // transparent: trap for the divide-by-alpha rule
-        let cells = 0;
-        [...word].forEach((ch, i) => MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
-          if (cell !== "#") return;
-          cells++;
-          MS.fillRect(layer, M + (i * 6 + c) * C, M + r * C, C, C, [0, 140, 255, 128]);   // neighbors share edges
-        })));
-        const card = MS.createFrame(W, H);
-        MS.fillVerticalGradient(card, MS.hex("#1A2740"), MS.hex("#0B0D12"));
-        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-          const p = MS.getPixel(layer, x, y);
-          if (p[3]) MS.blendPixel(card, x, y, p);
-        }
-        return { frame: card, layer, cells, C };
-      },
-      check({ frame, layer, cells, C }, data) {
-        let inked = 0, seams = 0, darkened = 0;
-        for (let y = 0; y < layer.height; y++) for (let x = 0; x < layer.width; x++) {
-          const p = MS.getPixel(layer, x, y);
-          if (!p[3]) continue;
-          inked++;
-          if (p[3] > 130) seams++;
-          else if (!near(p.slice(0, 3), [0, 140, 255], 2)) darkened++;
-        }
-        const matches = MS.hashFrame(frame) === data.mystery;
-        const hints = [];
-        if (seams) hints.push(`${seams} pixel(s) were painted twice where two squares touch, leaving darker seams. A rectangle's right and bottom edges should be exclusive.`);
-        if (inked < cells * C * C && !seams) hints.push(`The squares came out smaller than ${C} × ${C}. Check how fillRect rounds its edges.`);
-        if (darkened) hints.push(`${darkened} pixel(s) of ink came out darker than the color painted. See-through color painted onto an empty pixel should keep its color; look at the divide-by-outAlpha step in blendPixel.`);
-        if (!matches && !hints.length) hints.push("The letters are right but the background card isn't. Check fillVerticalGradient: each row samples t = (y + 0.5) / height.");
-        return { wrong: matches ? 0 : 1, hints };
-      },
-    },
-
-    // Layer 02: three centered lines with lowercase, an emoji and middle dots.
-    "02": {
-      draw() {
-        const lines = ["hello, pixels!", "MADE BY ME \u{1F44B}", "· CENTER ·"];
-        const S = 2, W = 190, M = 6, LINE = 7 * S + 6;
-        const f = MS.createFrame(W, M * 2 + lines.length * LINE - 6);
-        MS.clearFrame(f, [11, 13, 18]);
-        lines.forEach((text, i) => MS.drawText(f, text, W / 2, M + i * LINE, S, [255, 255, 255], { align: "center" }));
-        const stats = lines.map((_, i) => {
-          let ink = 0, left = W, right = -1;
-          for (let y = M + i * LINE; y < M + i * LINE + 7 * S; y++) for (let x = 0; x < W; x++) {
-            const p = MS.getPixel(f, x, y);
-            if (p && p[0] > 128) { ink++; left = Math.min(left, x); right = Math.max(right, x); }
-          }
-          return { ink, left, right };
-        });
-        return { frame: f, stats, S };
-      },
-      check({ frame, stats, S }, data) {
-        const want = data.lines;
-        const matches = MS.hashFrame(frame) === data.mystery;
-        const hints = [];
-        if (stats[0].ink !== want[0].ink) hints.push(`Line 1 ("hello, pixels!") came out wrong. It's all lowercase, and the font only has uppercase: look for tofu boxes.`);
-        if (stats[1].ink === want[1].ink + 20 * S * S) hints.push("Line 2 drew two tofu boxes for one emoji. Walk the text by characters (for...of), not by string index.");
-        else if (stats[1].ink !== want[1].ink) hints.push(`Line 2 ("MADE BY ME 👋") came out wrong. Expect one tofu box for the emoji, and check how spaces are handled.`);
-        const shifted = stats.some((s, i) => s.ink === want[i].ink && (s.left !== want[i].left || s.right !== want[i].right));
-        if (shifted) hints.push("A line is shifted sideways. Centering uses measureText: tracking belongs only BETWEEN glyphs, and the left edge is x − width / 2.");
-        if (!matches && !hints.length) hints.push("Something small differs. Compare your drawText with the spec comment line by line.");
-        return { wrong: matches ? 0 : 1, hints };
-      },
-    },
-  };
+  // Each layer's mystery lives in lib/mysteries/NN-name.js and registers
+  // itself here: draw() runs the learner's functions, check(drawn, data)
+  // explains what went wrong against the expected fingerprint.
+  const MYSTERIES = {};
+  MS.mystery = (layerId, def) => { MYSTERIES[layerId] = def; };
+  MS.mysteryKit = { shuffle, same, near };
   MS.CHECKPOINT_MYSTERIES = MYSTERIES;   // used by tools/checkpoint-data.js
 
   // ------------------------------------------------------------ running one
@@ -1343,7 +1239,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   };
 })(globalThis.MS = globalThis.MS || {});
 </script>
-<script type="text/plain" id="lib-checkpoint-data">// lib/checkpoint-data.js — GENERATED by tools/checkpoint-data.js. Don't edit by hand.
+<script type="text/plain" id="lib:lib/checkpoint-data.js">// lib/checkpoint-data.js — GENERATED by tools/checkpoint-data.js. Don't edit by hand.
 // Fingerprints of the expected mystery pictures and checkpoint answers.
 // The answers themselves are not in this repo.
 (function (MS) {
@@ -1390,6 +1286,204 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
       ]
     }
   };
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="lib:lib/present.js">// lib/present.js — put frames on the screen, still or playing. PROVIDED (browser only).
+//
+//   frame.data ──► ImageData ──► canvas ──► compositor ──► GPU ──► display
+//
+// putImageData copies your bytes straight into the canvas. No blending, no
+// scaling: what's in memory is exactly what you get. We make the canvas the
+// same size as the frame and let CSS zoom it up with `image-rendering:
+// pixelated`, so small frames show their pixels as crisp squares.
+(function (MS) {
+  MS.present = function (frame, canvas, zoom = 1) {
+    canvas.width = frame.width;
+    canvas.height = frame.height;
+    const image = new ImageData(new Uint8ClampedArray(frame.data), frame.width, frame.height);
+    canvas.getContext("2d").putImageData(image, 0, 0);
+    canvas.style.width = frame.width * zoom + "px";
+    canvas.style.imageRendering = "pixelated";
+    return canvas;
+  };
+
+  // Play a composition on a canvas, looping. Your frameAt (layer 03) picks
+  // the frame for the time that has passed and your renderFrame draws it.
+  // Draws only while the canvas is on screen; stops once it leaves the page.
+  MS.play = function (comp, canvas, zoom = 1, onError) {
+    let start = null, last = -1, visible = true, stopped = false;
+    if (typeof IntersectionObserver === "function") {
+      visible = false;
+      new IntersectionObserver(es => { visible = es[es.length - 1].isIntersecting; }).observe(canvas);
+    }
+    const tick = now => {
+      if (stopped || (last >= 0 && !canvas.isConnected)) return;
+      if (start === null) start = now;
+      if (visible || last < 0) {
+        try {
+          const n = MS.frameAt(now - start, comp.fps, comp.durationInFrames);
+          if (n !== last) { MS.present(MS.renderFrame(comp, n), canvas, zoom); last = n; }
+        } catch (e) { stopped = true; if (onError) onError(e); return; }
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    return { stop() { stopped = true; } };
+  };
+
+  // A <figure> for one test picture, still or moving, zoomed up to about `fit` CSS pixels wide.
+  MS.figure = function (pic, fit = 200) {
+    const fig = document.createElement("figure"), cap = document.createElement("figcaption");
+    const zoomFor = w => Math.max(1, Math.min(5, Math.floor(fit / w)));
+    try {
+      if (pic.kind === "animation") {
+        const comp = pic.fn(), canvas = document.createElement("canvas"), zoom = zoomFor(comp.width);
+        MS.present(MS.renderFrame(comp, 0), canvas, zoom);   // the first frame now; throws if not written yet
+        fig.appendChild(canvas);
+        MS.play(comp, canvas, zoom, e => { cap.textContent = pic.name + " (stopped: " + e.message + ")"; });
+      } else {
+        const frame = pic.fn();
+        fig.appendChild(MS.present(frame, document.createElement("canvas"), zoomFor(frame.width)));
+      }
+      cap.textContent = pic.name;
+    } catch (e) {
+      const strong = document.createElement("strong");
+      strong.textContent = pic.name;
+      cap.append(strong, document.createElement("br"), (e.todo ? "Waiting on: " : "Error: ") + e.message);
+    }
+    fig.appendChild(cap);
+    return fig;
+  };
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="mystery-00">// lib/mysteries/00-pixels.js — layer 00's checkpoint picture. PROVIDED.
+// Layer 00: a word, drawn pixel by pixel with setPixel, through three traps.
+// draw() runs the learner's functions; check() says which rule went wrong,
+// never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+(function (MS) {
+  const { shuffle, same, near } = MS.mysteryKit;
+  MS.mystery("00", {
+    draw() {
+      const word = "PIXELS", S = 2, M = 3;
+      const W = M * 2 + (word.length * 6 - 1) * S, H = M * 2 + 7 * S;
+      const f = MS.createFrame(W, H);
+      MS.clearFrame(f, [11, 13, 18]);
+      const ink = new Set(), cmds = [];
+      [...word].forEach((ch, i) => MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
+        if (cell !== "#") return;
+        for (let dy = 0; dy < S; dy++) for (let dx = 0; dx < S; dx++) {
+          const x = M + (i * 6 + c) * S + dx, y = M + r * S + dy;
+          ink.add(x + "," + y);
+          cmds.push([x + 0.7, y + 0.2, [300, 300, 300]]);   // traps: fractional coords, out-of-range color
+        }
+      })));
+      for (let y = 0; y < H - 1; y++) cmds.push([W, y, [255, 92, 138]]);  // trap: one pixel past the right edge
+      shuffle(cmds, 2026).forEach(([x, y, c]) => MS.setPixel(f, x, y, c));
+      return { frame: f, ink };
+    },
+    check({ frame: f, ink }) {
+      const BG = [11, 13, 18, 255], WHITE = [255, 255, 255, 255];
+      let wrong = 0, decoys = 0, missing = 0, dark = 0, extra = 0;
+      for (let y = 0; y < f.height; y++) for (let x = 0; x < f.width; x++) {
+        const p = MS.getPixel(f, x, y), isInk = ink.has(x + "," + y);
+        if (same(p, isInk ? WHITE : BG)) continue;
+        wrong++;
+        if (p && p[0] === 255 && p[1] === 92) decoys++;
+        else if (isInk && same(p, BG)) missing++;
+        else if (isInk) dark++;
+        else extra++;
+      }
+      const hints = [];
+      if (decoys) hints.push(`${decoys} pink speck(s) appeared near the left edge. A pixel drawn one step past the right edge wrapped onto the next row. Look at how setPixel decides whether (x, y) is inside the frame.`);
+      if (missing && !extra) hints.push(`${missing} letter pixel(s) never got drawn. The commands use fractional coordinates like 3.7, and a write to a fractional index is silently ignored. Look at what setPixel does with x and y before using them.`);
+      if (extra && !decoys) hints.push(`${extra} pixel(s) landed next to where they belong. Fractional coordinates should round DOWN (3.7 → 3), not to the nearest whole number.`);
+      if (dark) hints.push(`${dark} letter pixel(s) came out the wrong color. The commands use the color [300, 300, 300], which should clamp to white. Look at the kind of array createFrame makes.`);
+      return { wrong, hints };
+    },
+  });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="mystery-01">// lib/mysteries/01-shapes.js — layer 01's checkpoint picture. PROVIDED.
+// Layer 01: a word made of touching half-transparent squares, painted on
+// draw() runs the learner's functions; check() says which rule went wrong,
+// never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+(function (MS) {
+  const { shuffle, same, near } = MS.mysteryKit;
+  MS.mystery("01", {
+    draw() {
+      const word = "BLEND", C = 3, M = 4;
+      const W = M * 2 + (word.length * 6 - 1) * C, H = M * 2 + 7 * C;
+      const layer = MS.createFrame(W, H);              // transparent: trap for the divide-by-alpha rule
+      let cells = 0;
+      [...word].forEach((ch, i) => MS.FONT_5x7[ch].forEach((row, r) => [...row].forEach((cell, c) => {
+        if (cell !== "#") return;
+        cells++;
+        MS.fillRect(layer, M + (i * 6 + c) * C, M + r * C, C, C, [0, 140, 255, 128]);   // neighbors share edges
+      })));
+      const card = MS.createFrame(W, H);
+      MS.fillVerticalGradient(card, MS.hex("#1A2740"), MS.hex("#0B0D12"));
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const p = MS.getPixel(layer, x, y);
+        if (p[3]) MS.blendPixel(card, x, y, p);
+      }
+      return { frame: card, layer, cells, C };
+    },
+    check({ frame, layer, cells, C }, data) {
+      let inked = 0, seams = 0, darkened = 0;
+      for (let y = 0; y < layer.height; y++) for (let x = 0; x < layer.width; x++) {
+        const p = MS.getPixel(layer, x, y);
+        if (!p[3]) continue;
+        inked++;
+        if (p[3] > 130) seams++;
+        else if (!near(p.slice(0, 3), [0, 140, 255], 2)) darkened++;
+      }
+      const matches = MS.hashFrame(frame) === data.mystery;
+      const hints = [];
+      if (seams) hints.push(`${seams} pixel(s) were painted twice where two squares touch, leaving darker seams. A rectangle's right and bottom edges should be exclusive.`);
+      if (inked < cells * C * C && !seams) hints.push(`The squares came out smaller than ${C} × ${C}. Check how fillRect rounds its edges.`);
+      if (darkened) hints.push(`${darkened} pixel(s) of ink came out darker than the color painted. See-through color painted onto an empty pixel should keep its color; look at the divide-by-outAlpha step in blendPixel.`);
+      if (!matches && !hints.length) hints.push("The letters are right but the background card isn't. Check fillVerticalGradient: each row samples t = (y + 0.5) / height.");
+      return { wrong: matches ? 0 : 1, hints };
+    },
+  });
+})(globalThis.MS = globalThis.MS || {});
+</script>
+<script type="text/plain" id="mystery-02">// lib/mysteries/02-glyphs.js — layer 02's checkpoint picture. PROVIDED.
+// Layer 02: three centered lines with lowercase, an emoji and middle dots.
+// draw() runs the learner's functions; check() says which rule went wrong,
+// never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
+(function (MS) {
+  const { shuffle, same, near } = MS.mysteryKit;
+  MS.mystery("02", {
+    draw() {
+      const lines = ["hello, pixels!", "MADE BY ME \u{1F44B}", "· CENTER ·"];
+      const S = 2, W = 190, M = 6, LINE = 7 * S + 6;
+      const f = MS.createFrame(W, M * 2 + lines.length * LINE - 6);
+      MS.clearFrame(f, [11, 13, 18]);
+      lines.forEach((text, i) => MS.drawText(f, text, W / 2, M + i * LINE, S, [255, 255, 255], { align: "center" }));
+      const stats = lines.map((_, i) => {
+        let ink = 0, left = W, right = -1;
+        for (let y = M + i * LINE; y < M + i * LINE + 7 * S; y++) for (let x = 0; x < W; x++) {
+          const p = MS.getPixel(f, x, y);
+          if (p && p[0] > 128) { ink++; left = Math.min(left, x); right = Math.max(right, x); }
+        }
+        return { ink, left, right };
+      });
+      return { frame: f, stats, S, record: { lines: stats } };   // checkpoint-data.js stores record
+    },
+    check({ frame, stats, S }, data) {
+      const want = data.lines;
+      const matches = MS.hashFrame(frame) === data.mystery;
+      const hints = [];
+      if (stats[0].ink !== want[0].ink) hints.push(`Line 1 ("hello, pixels!") came out wrong. It's all lowercase, and the font only has uppercase: look for tofu boxes.`);
+      if (stats[1].ink === want[1].ink + 20 * S * S) hints.push("Line 2 drew two tofu boxes for one emoji. Walk the text by characters (for...of), not by string index.");
+      else if (stats[1].ink !== want[1].ink) hints.push(`Line 2 ("MADE BY ME 👋") came out wrong. Expect one tofu box for the emoji, and check how spaces are handled.`);
+      const shifted = stats.some((s, i) => s.ink === want[i].ink && (s.left !== want[i].left || s.right !== want[i].right));
+      if (shifted) hints.push("A line is shifted sideways. Centering uses measureText: tracking belongs only BETWEEN glyphs, and the left edge is x − width / 2.");
+      if (!matches && !hints.length) hints.push("Something small differs. Compare your drawText with the spec comment line by line.");
+      return { wrong: matches ? 0 : 1, hints };
+    },
+  });
 })(globalThis.MS = globalThis.MS || {});
 </script>
 <script type="text/plain" id="stub-00">// Layer 00 · Pixels — a framebuffer: memory you can see.
@@ -2079,7 +2173,9 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   // Returns an error message, or null when everything loaded.
   function prepare(id) {
     globalThis.MS = {};
-    ["lib-course", "lib-font", "lib-check", "lib-present", "lib-experiment", "lib-checkpoint", "lib-checkpoint-data"].forEach(s => run($(s)));
+    run($("lib-course"));
+    [...MS.COURSE.libs, ...MS.COURSE.browserLibs].forEach(f => run($("lib:" + f)));
+    MS.COURSE.layers.filter(l => l.ready).forEach(l => run($("mystery-" + l.id)));
     for (const l of MS.COURSE.layers.filter(l => l.ready && l.id <= id)) {
       try { run(codeFor(l.id)); }
       catch (e) { return (l.id === id ? "Your code" : "Your layer " + l.id + " code") + " didn't load: " + e.name + ": " + e.message; }
@@ -2102,16 +2198,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     section.querySelector("[data-score]").textContent = passed + " / " + results.length;
     renderCheckpoint(id, results);
     list.innerHTML = MS.quietTodos(results).map(r => '<li class="' + r.status + '"><span class="mark">' + mark[r.status] + "</span><span>" + escH(r.name) + (r.message ? '<span class="msg">' + escH(r.message) + "</span>" : "") + "</span></li>").join("");
-    for (const v of MS.visuals.filter(v => v.layer === id)) {
-      const fig = document.createElement("figure"), cap = document.createElement("figcaption");
-      try {
-        const frame = v.fn();
-        const zoom = Math.max(1, Math.min(5, Math.floor(200 / frame.width)));
-        fig.appendChild(MS.present(frame, document.createElement("canvas"), zoom));
-        cap.textContent = v.name;
-      } catch (e) { cap.innerHTML = "<strong>" + escH(v.name) + "</strong><br>" + (e.todo ? "Waiting on: " : "Error: ") + escH(e.message); }
-      fig.appendChild(cap); vis.appendChild(fig);
-    }
+    for (const v of MS.visuals.filter(v => v.layer === id)) vis.appendChild(MS.figure(v));
     if (passed === results.length) list.before(vis); else vis.before(list);   // the pictures are the reward
   }
 

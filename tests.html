@@ -27,12 +27,6 @@
 </div>
 
 <script src="lib/course.js"></script>
-<script src="lib/font5x7.js"></script>
-<script src="lib/check.js"></script>
-<script src="lib/experiment.js"></script>
-<script src="lib/checkpoint.js"></script>
-<script src="lib/checkpoint-data.js"></script>
-<script src="lib/present.js"></script>
 <script src="lib/loader.js"></script>
 <script>
 (async function () {
@@ -59,19 +53,7 @@
       <div class="visuals"></div>
       <div class="checkpoint"></div>`;
     const vis = sec.querySelector(".visuals");
-    for (const v of MS.visuals.filter(v => v.layer === l.id)) {
-      const fig = document.createElement("figure");
-      const cap = document.createElement("figcaption");
-      try {
-        const frame = v.fn();
-        const zoom = Math.max(1, Math.min(6, Math.floor(260 / frame.width)));
-        fig.appendChild(MS.present(frame, document.createElement("canvas"), zoom));
-        cap.textContent = v.name;
-      } catch (e) {
-        cap.innerHTML = `<strong>${esc(v.name)}</strong><br>${e.todo ? "Waiting on: " : "Error: "}${esc(e.message)}`;
-      }
-      fig.appendChild(cap); vis.appendChild(fig);
-    }
+    for (const v of MS.visuals.filter(v => v.layer === l.id)) vis.appendChild(MS.figure(v, 260));
     const cp = MS.runCheckpoint(l.id, results);
     MS.showCheckpoint(sec.querySelector(".checkpoint"), cp, fromGuide.includes(l.id) ? "the guide" : MS.COURSE.files(l).checkpoint);
     if (cp.complete) sec.classList.add("complete");

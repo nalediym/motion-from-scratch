@@ -1,42 +1,41 @@
 #!/usr/bin/env node
-// tools/checkpoint-data.js — regenerate lib/checkpoint-data.js. For maintainers.
+// tools/checkpoint-data.js — regenerates lib/checkpoint-data.js. For maintainers.
 //
-//   node tools/checkpoint-data.js --solution path/to/solution.js --answers path/to/answers.json
+//   node tools/checkpoint-data.js --kit path/to/kit
 //
-// Both inputs stay OUTSIDE the repo (they're the answer key):
-//   solution.js   a working implementation of every ready layer, written in
-//                 the same style as the src/ files
-//   answers.json  { "00": { "q1": 172, ... }, "01": { ... }, ... }
+// The kit is the private answer key, kept OUTSIDE the repo:
+//   kit/solutions/NN-name.js   a working solution for each layer
+//   kit/answers.json           { "00": { "q1": 172, ... }, "01": { ... } }
 //
-// The tool draws each layer's mystery picture with the solution and writes
-// only fingerprints (hashes) to lib/checkpoint-data.js, so the repo never
-// contains answers. Re-run it whenever a mystery or a question changes.
+// For every ready layer, it draws the mystery picture with the solutions and
+// writes only fingerprints to lib/checkpoint-data.js, so the repo never holds
+// an answer. Run it whenever a mystery or a question changes, then run
+// node tools/build.js (the guide and notebooks embed the fingerprints).
 const fs = require("fs");
 const path = require("path");
-const vm = require("vm");
+const { root, sandbox, readKit, arg } = require("./course-vm");
 
-const arg = name => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : null; };
-const solution = arg("--solution"), answersFile = arg("--answers");
-if (!solution || !answersFile) { console.log("Usage: node tools/checkpoint-data.js --solution <file> --answers <file>"); process.exit(1); }
+const kit = readKit(arg("--kit"));
+if (!kit) { console.log("Usage: node tools/checkpoint-data.js --kit <folder with solutions/ and answers.json>"); process.exit(1); }
 
-const root = path.join(__dirname, "..");
-const context = vm.createContext({ console });
-const load = file => vm.runInContext(fs.readFileSync(file, "utf8"), context, { filename: file });
-["lib/course.js", "lib/font5x7.js", "lib/check.js", "lib/experiment.js", "lib/checkpoint.js"].forEach(f => load(path.join(root, f)));
-load(path.resolve(solution));
-const MS = context.MS;
-const answers = JSON.parse(fs.readFileSync(answersFile, "utf8"));
+const { load, MS } = sandbox();
+const ready = MS.COURSE.layers.filter(l => l.ready);
+for (const l of ready) {
+  const file = kit.solution(`${l.id}-${l.slug}`);
+  if (!fs.existsSync(file)) { console.log(`No solution for layer ${l.id}: expected ${file}`); process.exit(1); }
+  load(file);
+}
 
 const data = {};
-for (const layer of MS.COURSE.layers.filter(l => l.ready)) {
+for (const layer of ready) {
   const mystery = MS.CHECKPOINT_MYSTERIES[layer.id];
-  const qs = answers[layer.id];
+  const qs = kit.answers[layer.id];
   if (!mystery || !qs) { console.log(`layer ${layer.id}: no mystery or answers yet, skipped`); continue; }
   const drawn = mystery.draw();
   data[layer.id] = { mystery: MS.hashFrame(drawn.frame), questions: {} };
   for (const [qid, value] of Object.entries(qs)) data[layer.id].questions[qid] = MS.hashAnswer(layer.id, qid, value);
-  if (drawn.stats) data[layer.id].lines = drawn.stats;
-  // sanity check: the solution must pass its own checkpoint
+  if (drawn.record) Object.assign(data[layer.id], drawn.record);   // extra facts a mystery's check() needs
+  // The solution must pass its own checkpoint.
   MS.CHECKPOINT_DATA = data;
   const check = mystery.check(drawn, data[layer.id]);
   if (check.wrong) { console.log(`layer ${layer.id}: the solution doesn't pass its own mystery check: ${check.hints.join(" ")}`); process.exit(1); }
