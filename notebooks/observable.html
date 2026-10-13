@@ -555,7 +555,7 @@
           "mystery": "1cdc1c74",
           "questions": {
             "q1": "8e3830da",
-            "q2": "ccd5513c",
+            "q2": "0427b7cf",
             "q3": "10a256cf"
           }
         },
@@ -1444,7 +1444,7 @@
           rule: "random(seed) should give exactly Remotion's number (and random(null) a really random one): strings are hashed with 32-bit integer math at every step, numbers are multiplied by 10000000000, and mulberry32 does all its multiplying 32 bits at a time",
           probes: [
             () => MS.random("a") === 0.5655837582889944, () => MS.random("seed-42") === 0.013173656072467566, () => MS.random("é") === 0.29089684784412384,
-            () => MS.random(7) === 0.21941731218248606, () => MS.random(-0.25) === 0.1771750277839601, () => MS.mulberry32(0) === 0.26642920868471265,
+            () => MS.random(7) === 0.21941731218248606, () => MS.random(-0.25) === 0.1771750277839601, () => MS.mulberry32(7) === 0.011704753153026104,
             () => MS.mulberry32(2 ** 31) === 0.8205775609239936, () => MS.mulberry32(123456789) === 0.2577907438389957,
             () => MS.random("a") === MS.random("a"), () => MS.random("a-very-long-seed-string-for-stars") === 0.920754294609651,
             () => new Set([1, 2, 3, 4].map(() => MS.random(null))).size > 1,
@@ -1573,8 +1573,8 @@
           probes: [
             () => scene(3, W0, [true, 0.911684015, 0.547052442, 6.34126581]), () => scene(20, W0, [true, 1.016305208, 0.998222335, 0]),
             () => scene(40, W0, [true, 1.492072185, 0.112118352, 14.206106368]), () => scene(-2, W0, [true, 0.8, 0, 14]),
-            () => scene(125, LOCK, [true, 0.966568982, 0.738269926, 3.664221036]), () => scene(179, LOCK, [true, 1.039333333, 0.29531467, 0]),
-            () => scene(182, LOCK, [true, 1.04, 0, 0]), () => scene(150, LOCK, [true, 1.02, 1, 0]),
+            () => scene(125, LOCK, [true, 0.966568982, 0.738269926, 3.664221036]), () => scene(179, LOCK, [true, 1.039333333, 0.29531467, 8.456223962]),
+            () => scene(182, LOCK, [true, 1.04, 0, 12]), () => scene(150, LOCK, [true, 1.02, 1, 0]),
             () => scene(7, ODD, [true, 0.890080044, 0.752126072, 0.991495713]), () => scene(27, ODD, [true, 1.66421663, 0.584849804, 2.490901175]),
             () => MS.sceneState(183, LOCK).visible === false && MS.sceneState(-3, W0).visible === false,
             () => scene(10, { a: 0, b: 20, enterFrom: 0.5, exitTo: 2, blurIn: 4, blurOut: 6 }, [true, 1.759664865, 0.214712778, 4.981150411]),
@@ -1629,7 +1629,7 @@
               return l.sprite.width === t.width + 2 * pad && l.sprite.height === t.height + 2 * pad && sum(l.sprite) === 0; }),
             () => bitmapOnly(() => sum(MS.wordLayer(100, 2, 108).sprite) > 0),
             () => bitmapOnly(() => { const a = MS.lockupLayer(149, 108).sprite, b = MS.lockupLayer(160, 108).sprite; return sum(a) < sum(b); }),
-            () => bitmapOnly(() => samePixel(MS.getPixel(MS.lockupLayer(155, 216).sprite, 83, 19), [130, 189, 255, 255])),
+            () => bitmapOnly(() => samePixel(MS.getPixel(MS.lockupLayer(154, 216).sprite, 86, 19), [125, 183, 255, 255])),
           ],
         },
         { // C: the composition
@@ -5216,7 +5216,7 @@
     **You'll write:** `translate`, `scale`, `rotate`, `multiply`, `transformPoint`, `invert`, `drawTransformed`, `boxBlur`, `blur` in `src/07-transforms.js`
     **Builds on:** layers 00–06
 
-    Each word in KineticIntro arrives the same way: it grows from 80% to full size while it sharpens out of a 14-pixel blur, then keeps pushing slowly toward the camera before it blurs away again. In CSS that's two lines, `transform: scale(…)` and `filter: blur(…)`, and the browser does the work. In this layer you do the work: matrices that move, scale and turn anything, a way to draw a picture through a matrix without holes or dark edges, and a blur whose cost doesn't depend on how wide it is.
+    Each word in KineticIntro arrives the same way: it grows from 80% to full size while it sharpens out of a `blur(14px)`, then keeps pushing slowly toward the camera before it blurs away again. In CSS that's two lines, `transform: scale(…)` and `filter: blur(…)`, and the browser does the work. In this layer you do the work: matrices that move, scale and turn anything, a way to draw a picture through a matrix without holes or dark edges, and a blur whose cost doesn't depend on how wide it is.
 
     ### Under the hood
 
@@ -5271,16 +5271,16 @@
                        holes
     ```
 
-    So renderers work **backwards**: for each pixel of the destination, find the point in the source that lands on it, and take the color from there. That needs the matrix that undoes `m`, its **inverse**. Not every matrix has one. The number `a·d − b·c` (the **determinant**) says how much the matrix scales areas. When it's 0, the matrix squashes everything onto a line or a point, and there's no way back: many source points land on the same spot.
+    So renderers work **backwards**: for each pixel of the destination, find the point in the source that lands on it, and take the color from there. That needs the matrix that undoes `m`, its **inverse**. Not every matrix has one. The number `a·d − b·c` (the **determinant**) says how much the matrix scales areas. (A negative one means it also mirrors; only 0 can't be undone.) When it's 0, the matrix squashes everything onto a line or a point, and there's no way back: many source points land on the same spot.
 
     #### Between the pixels
 
     The point you find in the source is almost never exactly on a pixel. Pixel `(x, y)` is a little square from `(x, y)` to `(x + 1, y + 1)`, so its center is `(x + 0.5, y + 0.5)`. A point between centers takes a little of each of the four nearest pixels, more from the nearer ones. That's **bilinear sampling**: blend along x, then along y.
 
     ```text
-         center (3.5, 0.5)       center (4.5, 0.5)
-                ●─────────●──────────────────●
-                          ↑ the sample, 30% of the way from left to right
+         center (3.5, 0.5)                  center (4.5, 0.5)
+                ●──────────×──────────────────────●
+                           ↑ the sample (×), 30% of the way from left to right,
                              gets 70% of the left pixel and 30% of the right
     ```
 
@@ -5290,17 +5290,19 @@
 
     #### Edges without dark fringes
 
-    Bilinear sampling at the edge of a picture mixes a pixel of the picture with a transparent pixel outside it. Here's the trap from layer 01. A transparent pixel is stored as `[0, 0, 0, 0]`: "black, invisible". Average a white pixel with it channel by channel, and you get `[128, 128, 128, 128]`, a half-transparent **grey**. The black that was never visible has leaked in, and every edge gets a dark fringe.
+    Bilinear sampling at the edge of a picture mixes a pixel of the picture with a transparent pixel outside it. Layer 01 showed that a transparent pixel is stored as `[0, 0, 0, 0]`: "black, invisible". Average a white pixel with it channel by channel, and you get `[128, 128, 128, 128]`, a half-transparent **grey**. The black that was never visible has leaked in, and every edge gets a dark fringe.
 
     ```text
       straight average                 premultiplied average
       [255,255,255,255]                color × alpha:  255·255 and 0·0
       [  0,  0,  0,  0]                alpha:          255 and 0
-      ────────────────── ÷ 2           ─────────────────────────────
-      [128,128,128,128]  grey          alpha 128, color (255·255) ÷ 255 = 255: still white
+      ────────────────── ÷ 2           ─────────────────────────────────────────────
+      [128,128,128,128]  grey          alpha: (255 + 0) ÷ 2 = 128
+                                       color: total color ÷ total alpha
+                                              = (255·255 + 0) ÷ (255 + 0) = 255: still white
     ```
 
-    The fix is to average **premultiplied** colors: weight each pixel's color by its alpha, so a transparent pixel adds nothing to the color, only to the alpha. Divide by the total alpha at the end to get a plain color back. Browsers keep pixels premultiplied for exactly this reason.
+    The fix is to average **premultiplied** colors: weight each pixel's color by its alpha, so a transparent pixel adds nothing to the color, only to the alpha. Divide by the total alpha at the end to get a plain color back. Browsers keep pixels premultiplied inside, partly for this reason.
 
     #### A blur that doesn't care how big it is
 
@@ -5322,14 +5324,14 @@
 
     #### Three boxes make a bell
 
-    A box blur looks boxy: a single bright dot becomes a flat square. Box-blur that square again and the profile becomes a triangle; a third time and it's a smooth bell, very close to a **Gaussian**. That's the [central limit theorem](https://en.wikipedia.org/wiki/Central_limit_theorem) at work: adding up a few random amounts quickly gives a bell curve.
+    A box blur looks boxy: a single bright dot becomes a flat square. Box-blur that square again and the profile becomes a triangle; a third time and it's a smooth bell, very close to a **Gaussian**. That's the [central limit theorem](https://en.wikipedia.org/wiki/Central_limit_theorem) at work: adding up a few independent random amounts quickly gives a bell curve.
 
     ```text
       one box        two boxes        three boxes
-      ▁▁████▁▁       ▁▂▄██▄▂▁        ▁▂▅██▅▂▁
+      ▁▁███▁▁        ▁▃▆█▆▃▁          ▁▂▅█▅▂▁
     ```
 
-    A Gaussian blur's size is its **standard deviation**, σ (sigma), in pixels, and that's what CSS's [`blur()`](https://www.w3.org/TR/filter-effects-1/#funcdef-filter-blur) takes: `blur(14px)` means σ = 14. To pick `r` for three boxes, match the spread. A box of radius `r` has a variance (σ²) of `r(r + 1) ÷ 3`, and variances add up when blurs are stacked, so three boxes give `r(r + 1)`. Setting that equal to σ² and solving gives the radius in `blur`'s spec. For σ = 5 it's `round((√101 − 1) ÷ 2)` = round(4.52) = 5.
+    A Gaussian blur's size is its **standard deviation**, σ (sigma), in pixels, and that's what CSS's [`blur()`](https://www.w3.org/TR/filter-effects-1/#funcdef-filter-blur) takes: `blur(14px)` means σ = 14. To pick `r` for three boxes, match the spread. A box of radius `r` has a variance (σ²) of `r(r + 1) ÷ 3`, and variances add up when blurs are stacked, so three boxes give `r(r + 1)`. Setting that equal to σ² and solving gives the radius in the comment above `blur` in `src/07-transforms.js`. For σ = 5 it's `round((√101 − 1) ÷ 2)` = round(4.525) = 5.
 
     ### Your turn
 
@@ -5338,7 +5340,7 @@
     1. **translate and scale.** Using the three arrows, where do `(0, 0)`, `(1, 0)` and `(0, 1)` land for each? What should `scale(3)` do when there's no second number?
     2. **rotate.** After a quarter turn, where should `(1, 0)` land? And `(0, 1)`? What about a turn by any angle: what are the coordinates of a point one step from the origin at that angle?
     3. **transformPoint.** Which of the six numbers multiply x, which multiply y, and which are just added?
-    4. **multiply.** If `n` sends the origin to some point, where does `multiply(m, n)` send it? Answer the same question for `(1, 0)` and `(0, 1)`, and you have all six numbers.
+    4. **multiply.** If `n` sends the origin to some point, where does `multiply(m, n)` send it? Answer the same question for one step along x and one along y, measured from where the origin went, and you have all six numbers.
     5. **invert.** What undoes `scale(4)`? What undoes `translate(3, −1)`? For any matrix, you have two equations, `x' = …` and `y' = …`: can you solve them for x and y? Where does `a·d − b·c` turn up?
     6. **drawTransformed.** Which point of `src` lands on the center of dest pixel `(2, 5)`? Which four src pixels surround that point, and how far is it from each of their centers? Do you need to visit every pixel of dest, or only the ones `src` can reach?
     7. **boxBlur.** What do you keep in your running sums so a transparent pixel doesn't pull the color toward black? When the box slides by one pixel, which pixel leaves and which arrives?
@@ -5742,7 +5744,7 @@
     <details><summary>Answers</summary>
 
     1. [0, 10]. The move happens first, so the origin goes to (10, 0); then the quarter turn swings it from "right" to "down". In the other order the origin would turn first (staying put, because it's the center of the turn) and then move to (10, 0).
-    2. 39, about 15% of what it was. A blur doesn't remove any ink, it spreads it: the same total alpha now covers a band about 13 pixels wide, so each pixel gets much less. That's why KineticIntro's blurred words look faint as well as soft.
+    2. 39, about 15% of what it was. A blur doesn't remove any ink, it spreads it: the same total alpha now covers a band 13 pixels wide, so each pixel gets much less. That's why KineticIntro's blurred words look faint as well as soft.
     3. 255. The pixel is half transparent (alpha 128), but still pure white. Averaged straight, the transparent pixel outside the square would have pulled it to 128, a grey fringe.
 
     </details>
@@ -5825,7 +5827,7 @@
 
     ### Checkpoint
 
-    When all 18 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, leaning in italics through your own `transformPoint`. Every dot asks one small question about a rule, and a dot that gets a wrong answer flies off its letter. Its traps: matrices that use all six numbers, rotations past a quarter turn, `multiply` in both orders, matrices that can't be undone, pictures turned upside down and scaled up, sprites that only half cover a pixel, opacity over a background, blur radii that only just round up or down, and the edges of the frame. The three questions are below.
+    When all 18 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, leaning in italics through your own `transformPoint`. Every dot asks one small question about a rule, and a dot that gets a wrong answer flies off its letter. Its traps: matrices that use all six numbers, rotations past a quarter turn, `multiply` in both orders, matrices that can't be undone, pictures turned upside down and scaled up, sprites that only half cover a pixel, opacity over a background, blur sizes whose radius has to be rounded, and the edges of the frame. The three questions are below.
 
 
   </script>
@@ -5861,15 +5863,15 @@
     ### In the real world
 
     - Canvas keeps one of these matrices as its "current transform": [`translate()`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/translate), [`rotate()`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/rotate) and [`scale()`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/scale) each multiply it by a new matrix on the right, which is why the last one you call happens to your shapes first. [`DOMMatrix`](https://developer.mozilla.org/en-US/docs/Web/API/DOMMatrix) has the same six numbers as its `a` to `f`.
-    - CSS's [`transform-origin`](https://developer.mozilla.org/en-US/docs/Web/CSS/transform-origin) is the "move to the origin, scale, move back" trick, done for you. Its default is the element's center, which is why KineticIntro's `scale()` grows words from their middle.
+    - CSS's [`transform-origin`](https://developer.mozilla.org/en-US/docs/Web/CSS/transform-origin) is the "move to the origin, scale, move back" trick, done for you. Its default is the element's center; KineticIntro's Scene fills the frame, so its words grow from the middle of the screen.
     - [`imageSmoothingEnabled`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled) switches canvas between smooth sampling and nearest-neighbor, and CSS's [`image-rendering: pixelated`](https://developer.mozilla.org/en-US/docs/Web/CSS/image-rendering) does the same for images, which is how this course's pages show your frames with crisp pixels.
     - Browsers hand `filter: blur()` to their graphics library (Chrome's is [Skia](https://skia.org/)), which picks its own fast way to approximate a Gaussian, often on the GPU.
 
     ### Going further (optional)
 
-    - **Read the original.** The Filter Effects spec's [`feGaussianBlur`](https://www.w3.org/TR/filter-effects-1/#feGaussianBlurElement) section gives its own recipe for three box blurs, with a box size chosen a different way, and a special case for even sizes. Work out its box size for σ = 14 and compare the spread with yours.
+    - **Read the original.** The Filter Effects spec's [`feGaussianBlur`](https://www.w3.org/TR/filter-effects-1/#feGaussianBlurElement) section gives its own recipe for three box blurs, with a box size chosen a different way, and a special case for even sizes. Work out its box size for σ = 10 and compare the spread with yours.
     - Add `skew(ax, ay)` (CSS has [`skew()`](https://developer.mozilla.org/en-US/docs/Web/CSS/transform-function/skew)) and draw a word leaning by 15°.
-    - Make `drawTransformed` faster: when m is only a translation by whole pixels, no sampling is needed at all. How much faster is the third test picture?
+    - Make `drawTransformed` faster: when m is only a translation by whole pixels, no sampling is needed at all. How much faster is the second test picture, the blurred words?
 
   </script>
   <script type="text/markdown">
@@ -5902,7 +5904,7 @@
        ◄────────── width ───────────►
     ```
 
-    The font's ascent and descent are the same for every word in that font and size, so "DESIGN." and "ANIMATE." get boxes of the same height with their baselines at the same place, and they line up. The pixels come back from [`getImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/getImageData) as straight (not premultiplied) RGBA bytes, row by row: exactly the layout your frames have used since layer 00.
+    `measureText` also reports `actualBoundingBoxAscent` and `actualBoundingBoxDescent`: the ink of this particular word. "ace" has less ink above its baseline than "Hid", so boxes cut to the ink would put their baselines at different heights. The font's ascent and descent are the same for every word in that font and size, so "DESIGN." and "ANIMATE." get boxes of the same height with their baselines at the same place, and they line up. The pixels come back from [`getImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/getImageData) as straight (not premultiplied) RGBA bytes, row by row: exactly the layout your frames have used since layer 00.
 
     > **Study buddy:** "Ask me questions until I can explain what a font's ascent, descent and baseline are, and why sprites for two different words should use the font's ascent rather than each word's own ink. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code.)
 
@@ -5919,7 +5921,7 @@
 
     #### A camera is the world moving the other way
 
-    Pan a camera to the right and everything on screen slides left. Turn it clockwise and the world turns counterclockwise. A camera is the inverse of where it stands: to film from a camera at `(x, y)`, move the world by `(−x, −y)`, so the point the camera looks at is at the origin, turn it the opposite way to the camera, zoom, and then move the origin to the middle of the screen. Every layer's own matrix gets multiplied by the camera's, so one camera move moves the whole scene.
+    Pan a camera to the right and everything on screen slides left. Turn it clockwise and the world turns counterclockwise. A camera is the opposite of an object: an object's matrix moves it into the world, and a camera's matrix moves the world into the camera's view. Whatever the camera does, the world does the reverse, and the point it looks at has to end up in the middle of the screen. Every layer's own matrix gets multiplied by the camera's, so one camera move moves the whole scene.
 
     #### Layers, masks, and the order of effects
 
@@ -5937,9 +5939,13 @@
 
     #### Randomness you can replay
 
-    `Math.random()` gives a new number every time it's called. A video can't use it: Remotion renders frames in parallel, in several browser tabs at once, and [the docs warn](https://www.remotion.dev/docs/using-randomness) that each tab would get different random numbers, so a star could jump from frame to frame. frame = f(n) needs randomness that's a function too.
+    `Math.random()` gives a new number every time it's called. A video can't use it: Remotion renders frames in parallel, on several copies of the page at once, and [the docs warn](https://www.remotion.dev/docs/using-randomness) that each tab would get different random numbers, so a star could jump from frame to frame. frame = f(n) needs randomness that's a function too.
 
-    Remotion's [`random(seed)`](https://www.remotion.dev/docs/random) is one: the same seed always gives the same number. It turns a string into a 32-bit number with a hash, then scrambles that number with [mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c), a tiny generator by Tommy Ettinger. Both work on 32-bit integers, and JavaScript doesn't really have those. Its numbers are 64-bit floats, which hold whole numbers exactly only up to 2⁵³. The bit operators (`^`, `|`, `>>>`) first convert to 32-bit integers, and [`Math.imul`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul) multiplies two 32-bit integers the way a CPU does, keeping the low 32 bits of the answer. Plain `*` works out the full product first, and once that passes 2⁵³ the low bits are already gone.
+    Remotion's [`random(seed)`](https://www.remotion.dev/docs/random) is one: the same seed always gives the same number. It turns a string into a 32-bit number with a hash, then scrambles that number with [mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c), a tiny generator by Tommy Ettinger.
+
+    #### 32-bit math in a 64-bit language
+
+    The hash and mulberry32 both work on 32-bit integers, and JavaScript doesn't really have those. Its numbers are 64-bit floats, which hold whole numbers exactly only up to 2⁵³. The bit operators (`^`, `|`, `>>>`) first convert to 32-bit integers, and [`Math.imul`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul) multiplies two 32-bit integers the way a CPU does, keeping the low 32 bits of the answer. Plain `*` works out the full product first, and once that passes 2⁵³ the low bits are already gone.
 
     ```text
       0x7FFFFFFF × 0x7FFFFFFF = 4611686014132420609   (needs 62 bits)
@@ -5960,7 +5966,7 @@
 
     Run the tests after each function. A failing test tells you exactly what it expected.
 
-    Once it works, the test pictures show text sprites with their boxes and baselines (real fonts in a browser, your bitmap font elsewhere), 300 dots scattered by seeded randomness, and three words playing in a series under a drifting camera.
+    Once it works, the test pictures show text sprites with their boxes and baselines (real fonts in a browser, your bitmap font elsewhere), 300 dots scattered by seeded randomness, and three words playing in a series over stars filmed by a drifting camera.
 
     > **Study buddy:** "Give me a timeline with three sequences and some offsets, and ask me which sequences are on at a few frames, and what each one's own frame number is. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20timeline%20with%20three%20sequences%20and%20some%20offsets%2C%20and%20ask%20me%20which%20sequences%20are%20on%20at%20a%20few%20frames%2C%20and%20what%20each%20one%27s%20own%20frame%20number%20is.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20timeline%20with%20three%20sequences%20and%20some%20offsets%2C%20and%20ask%20me%20which%20sequences%20are%20on%20at%20a%20few%20frames%2C%20and%20what%20each%20one%27s%20own%20frame%20number%20is.%20No%20code.)
 
@@ -6001,7 +6007,7 @@
        * With a canvas (MS.createCanvas(w, h) returns one in browsers, null elsewhere):
        * - measure the text with ctx.measureText, using the same font and spacing
        *   you'll draw with;
-       * - width = Math.ceil(metrics.width) + 2 × pad,
+       * - width = Math.ceil(metrics.width) + 2 × pad (at least 1),
        *   height = Math.ceil(metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) + 2 × pad;
        * - draw it with drawTextCanvas on a canvas that size, at x = pad and
        *   y = pad + fontBoundingBoxAscent (that's also the baseline);
@@ -6304,7 +6310,7 @@
 
       MS.test(L, "random gives Remotion's numbers for string and number seeds", t => {
         t.eq(MS.random("hello"), 0.41293257870711386, "random(\"hello\")");
-        t.eq(MS.random(""), 0.26642920868471265, "random(\"\")");
+        t.eq(MS.random("xy"), 0.02979057002812624, "random(\"xy\")");
         t.eq(MS.random(1), 0.07301638228818774, "random(1)");
         t.eq(MS.random(0.5), 0.030728988582268357, "random(0.5)");
         t.eq(MS.random("motion-from-scratch"), 0.9684063496533781, "a long seed: the hash has to stay a 32-bit integer all the way");
@@ -6502,11 +6508,11 @@
         // TODO(break-it), in src/08-scenes.js → renderLayers:
         //   move the sprite first (into a frame the size of the output), then blur that.
         const word = MS.textSprite("HI", { size: 20, pad: 6 });
-        const frame = MS.createFrame(70, 40);
+        const layer = { sprite: word, matrix: MS.multiply(MS.translate(10, 4), MS.scale(2)), blur: 2 };
         const t0 = Date.now();
-        MS.renderLayers(frame, [{ sprite: word, matrix: MS.multiply(MS.translate(10, 4), MS.scale(2)), blur: 2 }]);
-        console.log("took " + (Date.now() - t0) + " ms");
-        console.log(MS.asciiFrame(frame));
+        for (let i = 0; i < 200; i++) MS.renderLayers(MS.createFrame(70, 40), [layer]);
+        console.log("200 renders took " + (Date.now() - t0) + " ms");
+        console.log(MS.asciiFrame(MS.renderLayers(MS.createFrame(70, 40), [layer])));
         // TODO: is the blur as soft as before? How did the time change, and why (think of how many pixels get blurred)?
       });
       display(out);
@@ -6527,7 +6533,8 @@
       // 1. KineticIntro's three words each last 48 frames, and each starts 40 frames after
       //    the one before. As a series, what offset do the second and third words need?
       q1: null,
-      // 2. What is random(0)? Three decimals.
+      // 2. random() turns a string seed into a whole number before mulberry32 sees it.
+      //    Which number does the string "ab" become?
       q2: null,
       // 3. A 1080 × 1920 screen. The camera looks at (100, 0) and is turned a quarter turn
       //    clockwise (rotation Math.PI / 2), zoom 1. Where does the world point (0, 0)
@@ -6549,7 +6556,7 @@
 
     ### In the real world
 
-    - Remotion loads web fonts with [`@remotion/google-fonts`](https://www.remotion.dev/docs/google-fonts/load-font), and its [`delayRender()`](https://www.remotion.dev/docs/delay-render) makes a render wait until something asynchronous, like a font, is ready. Without it, the first frames could be drawn in a fallback font.
+    - Remotion loads web fonts with `loadFont()` from [`@remotion/google-fonts`](https://www.remotion.dev/docs/google-fonts/load-font), which holds the render until the font is ready. Under the hood that's [`delayRender()`](https://www.remotion.dev/docs/delay-render), the general way to make a render wait for anything asynchronous.
     - [`useCurrentFrame()`](https://www.remotion.dev/docs/use-current-frame) inside a `<Sequence>` returns the sequence's own frame, exactly like `sequence()`. Remotion also has [`<Freeze>`](https://www.remotion.dev/docs/freeze) and [`<Loop>`](https://www.remotion.dev/docs/loop), which change the frame number in other ways.
     - 2D engines like [PixiJS](https://pixijs.com/) and game engines keep a scene graph: every object has a matrix relative to its parent, and the camera is one more matrix at the top.
     - CSS has many masks: `overflow: hidden` and [`clip-path`](https://developer.mozilla.org/en-US/docs/Web/CSS/clip-path) cut shapes, and [`mask-image`](https://developer.mozilla.org/en-US/docs/Web/CSS/mask-image) uses a picture's alpha.
@@ -6578,12 +6585,12 @@
     KineticIntro wraps each word in a `Scene` component. Stripped of React, a Scene is a handful of `interpolate` calls on the frame number, and three numbers that come out of them: how big, how see-through and how blurred.
 
     ```text
-      word 2, "ANIMATE.": a = 40, b = 88
+      word 2, "ANIMATE.": a = 40, b = 88       (not to scale)
       frame:     38  40                        66                      88  90
-      enter:          0 ─── APPLE, 26 frames ──► 1
-      exit:                                    0 ─── SMOOTH, 22 frames ──► 1
-      push:           1 ──────────────────────────────────────────────────► 1.04
-      visible:   ◄─────────────────────────────────────────────────────────────►
+      enter:         0 ── APPLE, 26 frames ───►1
+      exit:                                    0 ─ SMOOTH, 22 frames ─►1
+      push:          1 ───────────────────────────────────────────────►1.04
+      visible:   ◄──────────────────────────────────────────────────────────►
     ```
 
     `scale` multiplies three things: growing from `enterFrom` while it enters, the slow push, and growing toward `exitTo` while it leaves. `opacity` is the smaller of "how far in" and "how far from out". The blur is the leftover of the entrance plus the start of the exit. A blur below 0.15 px is invisible, so KineticIntro turns it off, and that saves Chrome a filter pass on most frames.
@@ -6595,7 +6602,7 @@
     Inside each Scene, a `MaskUp` holds the word in a box with `overflow: hidden`, and slides the word up from 110% of its own height below the box to its place. The box is a window: you only see the part of the word that's inside it.
 
     ```text
-       frame 42 (start)         frame 50               frame 64 (home)
+       frame 42 (start)         frame 44               frame 64 (home)
        ┌────────────────┐       ┌────────────────┐      ┌────────────────┐
        │                │       │ ▄▄  ▄  ▄ ▄ ▄▄▄ │      │ █▀█ █▄ █ █ █▀▄ │
        └────────────────┘       └────────────────┘      └────────────────┘
@@ -6607,22 +6614,22 @@
 
     #### Where CSS puts a gradient
 
-    The light sweep is a `linear-gradient(100deg, …)`. [CSS Images](https://www.w3.org/TR/css-images-3/#linear-gradients) defines exactly where such a gradient runs. `0deg` points up and angles turn clockwise, so `90deg` points right and `100deg` points right and a little down. The **gradient line** goes through the middle of the box in that direction, and its length is chosen so that the corners land exactly on 0% and 100%:
+    The light sweep is a `linear-gradient(100deg, …)`. [CSS Images](https://www.w3.org/TR/css-images-3/#linear-gradients) defines exactly where such a gradient runs. `0deg` points up and angles turn clockwise, so `90deg` points right and `100deg` points right and a little down. The **gradient line** goes through the middle of the box in that direction, and its length is chosen so that the lines of equal color through two opposite corners land exactly on 0% and 100%:
 
     ```text
-         0% ●─────────────────────────┐
-            │ ╲                        │      the gradient line points along the angle
-            │   ╲                      │      (here 100deg: right, a little down) and
-            │     ●  the box's middle  │      passes through the middle; lines of
-            │       ╲                  │      equal color cross it at right angles
-            └─────────╲────────────────● 100%
-                       ▼
-          length = |W·sin A| + |H·cos A|: just enough to reach both corners
+       0%  ┊                          ┊  100%      ┊ lines of equal color, at right
+           ┊┌────────────────────────┐┊               angles to the gradient line
+           ┊│                        │┊
+       ────●┼────────── ● ───────────┼●────►       the line runs through the middle;
+           ┊│        middle          │┊           its ends are where the color lines
+           ┊└────────────────────────┘┊           through two opposite corners cross it
+           drawn at 90deg. At 100deg everything tilts 10° clockwise, and the
+           line grows to |W·sin A| + |H·cos A| so its ends still meet the corners' lines
     ```
 
-    A point's position along the gradient is how far along that line its shadow falls. The background's `radial-gradient(70% 60% at 50% 38%, …)` is simpler: an ellipse with radii of 70% of the width and 60% of the height, centered half way across and 38% down, which is exactly what your `fillRadialGradient` takes. A stop like `transparent 60%` ends the gradient early: past 60% of the way out, it's transparent. CSS mixes gradient colors premultiplied, so fading to `transparent` (which is black at alpha 0) never darkens anything, as you saw in layer 07.
+    A point's position along the gradient is how far along that line its shadow falls. The background's `radial-gradient(70% 60% at 50% 38%, …)` is simpler: an ellipse with radii of 70% of the width and 60% of the height, centered half way across and 38% down, which your `fillRadialGradient` can draw once you turn the percentages into pixels. A stop like `transparent 60%` ends the gradient early: past 60% of the way out, it's transparent. CSS mixes gradient colors premultiplied, so fading to `transparent` (which is black at alpha 0) never darkens anything, as you saw in layer 07.
 
-    > **Study buddy:** "Give me a box, a gradient angle and a point, and ask me to sketch where the gradient line goes and roughly what percentage the point is at. Then ask me why the line is longer at 45deg than at 90deg. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20why%20the%20line%20is%20longer%20at%2045deg%20than%20at%2090deg.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20why%20the%20line%20is%20longer%20at%2045deg%20than%20at%2090deg.%20No%20code.)
+    > **Study buddy:** "Give me a box, a gradient angle and a point, and ask me to sketch where the gradient line goes and roughly what percentage the point is at. Then ask me whether the line is longer at 45deg or at 90deg, for a square box, and whether that's always so. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20whether%20the%20line%20is%20longer%20at%2045deg%20or%20at%2090deg%2C%20for%20a%20square%20box%2C%20and%20whether%20that%27s%20always%20so.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20whether%20the%20line%20is%20longer%20at%2045deg%20or%20at%2090deg%2C%20for%20a%20square%20box%2C%20and%20whether%20that%27s%20always%20so.%20No%20code.)
 
     #### Blend modes: changing what "over" means
 
@@ -6634,13 +6641,13 @@
       only the backdrop shows:   (1 − αs) × αb × Cb
     ```
 
-    With `B(Cb, Cs) = Cs` that's exactly your `blendPixel`. KineticIntro's sweep uses [overlay](https://www.w3.org/TR/compositing-1/#blendingoverlay): where the backdrop is dark it multiplies, which makes dark darker; where it's light it "screens", which makes light lighter. So a white sweep brightens the light letters a lot and the dark background hardly at all.
+    With `B(Cb, Cs) = Cs` that's exactly your `blendPixel`. KineticIntro's sweep uses [overlay](https://www.w3.org/TR/compositing-1/#blendingoverlay): where the backdrop is dark it multiplies, which makes dark darker; where it's light it "screens", which makes light lighter. So white pushes every channel toward white, by how much depending on the backdrop: a dark channel at most doubles, a light one goes all the way. KineticIntro's letters are already nearly white, so the sweep shows most on the blue dot, and on the empty space around the letters (next paragraph).
 
-    Which backdrop, though? A blend mode only blends with the content of its own **stacking context**, and the Scene's `transform` makes it one. So the sweep never touches the page's background: it blends with the lockup's own pixels, and where those are transparent, it's an ordinary half-white blend. That's why `lockupLayer` blends the sweep into its sprite, not into the frame.
+    Which backdrop, though? A blend mode only blends with the content of its own **stacking context**, and the Scene's `transform` (and its `will-change`) make it one. So the sweep never touches the page's background: it blends with the lockup's own pixels, and where those are transparent, it's an ordinary half-white blend. That's why `lockupLayer` blends the sweep into its sprite, not into the frame.
 
     #### A shadow is a blur
 
-    The vignette is `box-shadow: inset 0 0 280px rgba(0, 0, 0, 0.7)`. An inset shadow is the shadow of everything *outside* the box, falling inward. [CSS Backgrounds](https://www.w3.org/TR/css-backgrounds-3/#shadow-blur) says a blur radius of 280px means a Gaussian blur with σ = 140, half the radius. So: make a frame that's black everywhere except a hole the size of the screen, blur it with your three box blurs, and keep the middle. The margin around the hole must be wider than the blur reaches, or the far edge of the black would fade in too. Three boxes of radius r reach 3r pixels, which is why the spec asks for a little more than 3σ.
+    The vignette is `box-shadow: inset 0 0 280px rgba(0, 0, 0, 0.7)`. An inset shadow is the shadow of everything *outside* the box, falling inward. [CSS Backgrounds](https://www.w3.org/TR/css-backgrounds-3/#shadow-blur) says a blur radius of 280px means a Gaussian blur with σ = 140, half the radius. So: make a frame that's black everywhere except a hole the size of the screen, blur it with your three box blurs, and keep the middle. The margin around the hole must be wider than the blur reaches, or the far edge of the black would fade in too, and a blur reaches a few σ, which is why the spec asks for a little more than 3σ. Watch the units: `filter: blur(16px)` means σ = 16, but a box-shadow blur radius of 280px means σ = 140.
 
     #### Make it once
 
@@ -6690,8 +6697,8 @@
 
       /**
        * Where a KineticIntro Scene is at frame n. The scene runs from frame a to b.
-       * Options (defaults): a, b, enterFrom (1), exitTo (1), blurIn (0), blurOut (0),
-       * enterDur (26), exitDur (22), pushTo (1.04).
+       * Options (defaults, the same as KineticIntro's Scene): a, b, enterFrom (0.92),
+       * exitTo (1.14), blurIn (10), blurOut (12), enterDur (26), exitDur (22), pushTo (1.04).
        *   enter   = interpolate(n, [a, a + enterDur], [0, 1]), clamped, eased with APPLE
        *   exit    = interpolate(n, [b − exitDur, b], [0, 1]), clamped, eased with SMOOTH
        *   push    = interpolate(n, [a, b], [1, pushTo]), clamped
@@ -6792,18 +6799,21 @@
       /**
        * The lockup's layer at frame n (null when its scene isn't visible). Its scene:
        * a = 120, b = 180, enterFrom 0.86, exitTo 1, blurIn 14, exitDur 2.
-       * - Title: textSprites "MOTION", "·", "STUDIO" side by side (96 px, weight 900,
-       *   "Inter", letterSpacing −3 px); the "·" is primary, the rest ink.
+       * - Title: textSprites "MOTION", "·", "STUDIO" in a row, Math.round(14 × k) px
+       *   apart (96 px, weight 900, "Inter", letterSpacing −3 px); the "·" is primary,
+       *   the rest ink.
        * - Subtitle: textSprite "built in code" (36 px, weight 500, "Inter", muted,
        *   letterSpacing 2 px), Math.round(22 × k) below the title, faded by
        *   interpolate(n, [150, 168], [0, 1]), clamped.
        * - The sprite: the title above the subtitle, each centered (round positions
        *   to whole pixels), with pad = Math.ceil(3 × 14 × k) + 2 empty pixels around.
        * - The light sweep, after the title and before the subtitle: over the title's
-       *   box grown by Math.round(16 × k) on every side, for each pixel, with p its
-       *   center's linearGradientT(…, 100deg) × 100 and s = interpolate(n, [140, 172],
-       *   [−20, 130]) clamped, blendOverlay white with alpha 0.5 × max(0, 1 − |p − s| ÷ 12),
-       *   in 0–255 (skip pixels where that's 0).
+       *   box grown by Math.round(16 × k) on every side: for each pixel in it, let
+       *   p = 100 × linearGradientT of the pixel's center (x + 0.5, y + 0.5), measured
+       *   from the grown box's top-left corner, in a box the grown box's size, at
+       *   100deg; and s = interpolate(n, [140, 172], [−20, 130]), clamped. blendOverlay
+       *   white with alpha 0.5 × max(0, 1 − |p − s| ÷ 12), in 0–255 (skip pixels where
+       *   that's 0).
        * - The layer: as for the words, from the lockup's scene.
        */
       function lockupLayer(n, width) {
@@ -6881,10 +6891,10 @@
         near(t, MS.sceneState(81, s).blur, 0.3481, 1e-4, "frame 81");
       });
 
-      MS.test(L, "sceneState: the defaults are KineticIntro's (enterDur 26, exitDur 22, pushTo 1.04)", t => {
-        state(t, MS.sceneState(13, { a: 0, b: 60 }), [true, 1.008666667, 0.971779105, 0], "frame 13");
+      MS.test(L, "sceneState: the defaults are those of KineticIntro's Scene", t => {
+        state(t, MS.sceneState(13, { a: 0, b: 60 }), [true, 1.006389429, 0.971779105, 0.282208947], "frame 13");
         state(t, MS.sceneState(26, { a: 0, b: 60 }), [true, 1.017333333, 1, 0], "frame 26: fully in");
-        state(t, MS.sceneState(49, { a: 0, b: 60 }), [true, 1.032666667, 0.29531467, 0], "frame 49: 11 frames into the exit");
+        state(t, MS.sceneState(49, { a: 0, b: 60 }), [true, 1.134545374, 0.29531467, 8.456223962], "frame 49: 11 frames into the exit");
       });
 
       MS.test(L, "sceneState: a short scene can enter and exit at once; opacity is the smaller of the two", t => {
@@ -6991,8 +7001,8 @@
           t.eq(bottom(early), 0, "at 146 the subtitle (the lower part of the sprite) is invisible");
           t.ok(bottom(late) > 0, "at 170 it's there");
           // The "·" is primary blue. Overlay lifts a mid-dark color less than an ordinary blend would.
-          const dot = MS.getPixel(MS.lockupLayer(155, 216).sprite, 83, 19);
-          t.ok(dot && Math.abs(dot[0] - 130) <= 1 && Math.abs(dot[1] - 189) <= 1, "at 155 the sweep crosses the blue dot and overlays it to about [130, 189, 255], got " + dot);
+          const dot = MS.getPixel(MS.lockupLayer(154, 216).sprite, 86, 19);
+          t.ok(dot && Math.abs(dot[0] - 125) <= 1 && Math.abs(dot[1] - 183) <= 1, "at 154 the sweep overlays a pixel of the blue dot to about [125, 183, 255], got " + dot);
         });
       });
 
@@ -7088,7 +7098,7 @@
 
     <details><summary>Answers</summary>
 
-    1. 1.02. It finished entering a few frames ago (26 frames of APPLE get very close to 1 early), and the push has been growing it the whole time: 4% over 48 frames is 2% by half way. The push is so slow you never see it as motion, only as the word feeling alive.
+    1. 1.02. It has all but finished entering: APPLE gets within a hair of 1 several frames before frame 26, though it only reaches 1 exactly at the end. And the push has been growing it the whole time: 4% over 48 frames is 2% by half way. The push is so slow you never see it as motion, only as the word feeling alive.
     2. 134, about 0.7 × ¾ of 255. A corner pixel is close to two edges, so the blurred black reaches it from two sides: only about a quarter of the area around it is the transparent hole. Halfway down an edge it's about half, so the alpha there is about 0.7 × ½ of 255.
     3. 145. Over a light backdrop, overlay screens, so even black only pulls 200 down to 145: overlay keeps the light parts light. Over a dark grey, the same black would give pure black.
 
@@ -7111,11 +7121,11 @@
         // TODO(break-it), in src/09-kinetic-intro.js → wordLayer:
         //   skip the window: draw the text straight into the padded sprite, moved down by maskUp, and
         //   leave out the frame that cuts it off.
-        const layer = MS.wordLayer(50, 1, 216);
+        const layer = MS.wordLayer(44, 1, 216);
+        const s = layer.sprite, pad = Math.ceil(3 * 16 * 0.2) + 2;   // the empty border around the window
         let below = 0;
-        const s = layer.sprite, bottom = Math.floor(s.height * 0.75);
-        for (let y = bottom; y < s.height; y++) for (let x = 0; x < s.width; x++) below += s.data[(y * s.width + x) * 4 + 3];
-        console.log("ink in the bottom quarter of the sprite at frame 50: " + below);
+        for (let y = s.height - pad; y < s.height; y++) for (let x = 0; x < s.width; x++) below += s.data[(y * s.width + x) * 4 + 3];
+        console.log("ink below the window at frame 44: " + below);
         // TODO: before the change, how much ink is below the window? After it, what would the viewer see under the word?
       });
       display(out);
@@ -7141,7 +7151,7 @@
           MS.blendOverlay(f, 0, 0, [255, 255, 255, 128]);
           console.log("half-white over grey " + grey + " → " + MS.getPixel(f, 0, 0)[0]);
         }
-        // TODO: before the change, the white lifts light greys more than dark ones. After it? (That other blend mode has a name: hard-light.)
+        // TODO: before the change, the white barely lifts the darkest grey and lifts the middle one most. After it? (That other blend mode has a name: hard-light.)
       });
       display(out);
     }
@@ -7225,7 +7235,7 @@
     **You'll write:** `u16`, `u32`, `box`, `fullBox`, `stts`, `stsz`, `stco`, `stss`, `mp4` in `src/10-export.js`
     **Builds on:** layers 00–09
 
-    Your KineticIntro plays in a browser tab. To post it, send it or drop it into an editor, it has to become a file: an MP4. Two very different jobs hide in that word. **Encoding** squeezes each frame from megabytes down to kilobytes; that's a field of its own, and the browser's [WebCodecs](https://www.w3.org/TR/webcodecs/) API does it for you, often on the computer's video hardware. **Packaging** puts the squeezed frames in a file that every player understands, with an index saying where each frame is and when it plays. That part is a few hundred bytes of careful bookkeeping, and you'll write all of it. Then you'll press a button and watch your own file play.
+    Your KineticIntro plays in a browser tab. To post it, send it or drop it into an editor, it has to become a file: an MP4. Two very different jobs hide in that word. **Encoding** squeezes each frame from hundreds of kilobytes down to a few; that's a field of its own, and the browser's [WebCodecs](https://www.w3.org/TR/webcodecs/) API does it for you, often on the computer's video hardware. **Packaging** puts the squeezed frames in a file that every player understands, with an index saying where each frame is and when it plays. That part is a few hundred bytes of careful bookkeeping, and you'll write all of it. Then you'll press a button and watch your own file play.
 
     ### Under the hood
 
@@ -7240,21 +7250,29 @@
        at 216 × 384)                                      a few KB    can find and time it
     ```
 
+    H.264 frames can be laid out two ways. Live streams use "Annex B", with a start code between the pieces of each frame. MP4 wants each piece prefixed with its length instead, and the encoder's setup (its SPS and PPS) stored once, in an `avcC` record. The provided encoder asks WebCodecs for exactly that layout; Annex B bytes in an MP4 won't play.
+
     #### Boxes all the way down
 
     The format comes from Apple's QuickTime and is standardized as the [ISO base media file format](https://www.iso.org/standard/83102.html) (ISO/IEC 14496-12). It's built from one idea: a **box** (QuickTime calls it an atom) is 4 bytes of size, 4 letters of type, and then its contents, which can be more boxes.
 
     ```text
       ┌──────────────┬────────────────┬──────────────────────────────┐
-      │ size (u32)   │ type (4 ASCII) │ contents: data, or more boxes│
-      │ 00 00 00 18  │ s  t  t  s     │ ...                          │
+      │ size (u32)   │ type (4 ASCII) │ contents: data or more boxes │
+      │ 00 00 00 08  │ f  r  e  e     │ (none: an empty box)         │
       └──────────────┴────────────────┴──────────────────────────────┘
          the size counts the whole box, these 8 header bytes included
     ```
 
     A program that doesn't know a box type can still skip it: read the size, jump ahead. It's one reason the format has lasted since QuickTime's first release in 1991. Many boxes are **full boxes**, whose contents start with a version byte and 3 bytes of flags, so the format can change without breaking old readers.
 
+    #### Biggest byte first
+
     Every number is **big-endian**: the most significant byte comes first, the way you write digits. 300 as a u32 is `00 00 01 2C`. Your computer's processor is almost certainly little-endian and would store it backwards, which is why `u32` builds the bytes by hand with shifts and masks instead of copying memory. Network protocols use big-endian too; it's often called "network byte order".
+
+    #### The tree
+
+    Here's the whole file, with the header boxes (`mvhd`, `tkhd`, `mdhd`, `hdlr`, `vmhd`, `dinf`) left out:
 
     ```text
       ftyp                      which specs the file follows
@@ -7281,7 +7299,7 @@
     To show frame 90, a player needs its bytes. `stsz` gives every frame's size and `stco` gives where each **chunk** starts in the file (a chunk is a run of samples stored together; here every frame is its own chunk, which keeps `stsc` a one-liner). The offsets count from the very first byte of the file, so they have to skip the `ftyp`, then the `mdat`'s own 8-byte header, then every chunk before it.
 
     ```text
-      byte 0                 ftyp.length   + 8
+      byte 0     end of ftyp + 8
       ┌──────────┬───────────┬─────────────┬────────┬────────┬─ ─ ─┬──────────┐
       │ ftyp     │ mdat hdr  │ chunk 1     │ chunk 2│ chunk 3│     │ moov     │
       └──────────┴───────────┴─────────────┴────────┴────────┴─ ─ ─┴──────────┘
@@ -7292,11 +7310,11 @@
 
     MP4 counts time in whole ticks of a **timescale**: ticks per second. This file's media uses 90000, a habit from MPEG broadcasting, because it divides evenly by 24, 25, 30, 50 and 60, so common frame rates get whole-number frame durations. At 30 fps, every frame lasts 3000 ticks. `stts` stores durations as runs, "180 samples of 3000", so a constant frame rate costs 8 bytes no matter how long the video is. That's [run-length encoding](https://en.wikipedia.org/wiki/Run-length_encoding), the same trick as "A × 3" instead of "AAA".
 
-    The movie header (`mvhd`) and track header (`tkhd`) keep their own, coarser clock in milliseconds, for showing the length to people.
+    The movie header (`mvhd`) has its own clock too. This file sets it to milliseconds (timescale 1000), and the track header (`tkhd`) gives the track's length on that clock.
 
     #### Which: key frames
 
-    H.264 saves most of its space by storing most frames as differences from earlier ones. A **key frame** stands alone; the frames after it are built from it. A player can only start decoding at a key frame, so jumping to 0:04 means finding the key frame at or before it. `stss` lists them, by sample number, counting from 1. The provided encoder makes one every two seconds: fewer key frames make a smaller file, and more make seeking quicker.
+    H.264 saves most of its space by storing most frames as differences from earlier ones. A **key frame** stands alone; the frames after it are built from it. A player can only start decoding at a key frame, so jumping to 0:04 means finding the key frame at or before it. `stss` lists them, by sample number, counting from 1 (a file with no `stss` at all says every frame is a key frame). The provided encoder makes one every two seconds: fewer key frames make a smaller file, and more make seeking quicker.
 
     #### The order of the boxes
 
@@ -7306,7 +7324,7 @@
 
     Work through `src/10-export.js` top to bottom. Each function's comment is its spec. Some questions to guide you, in order:
 
-    1. **u16 and u32.** How do you get the top byte of a 32-bit number? Which operator moves bits right without bringing the sign along?
+    1. **u16 and u32.** How do you get the top byte of a 32-bit number? What should `u32(2³¹)` give, and does your way of finding the top byte get it right?
     2. **box.** What's the size of a box with no contents? How do you know the total size before you copy the parts in?
     3. **fullBox.** Can you build it out of `box`?
     4. **stts.** Walking through the durations, when do you start a new run?
@@ -7315,7 +7333,7 @@
 
     Run the tests after each function. A failing test tells you exactly what it expected. `MS.parseMP4(file)` (provided) reads your file back as a tree of boxes, and `MS.findBox(tree, "moov/trak/mdia/minf/stbl")` finds one: use them to look at what you made.
 
-    Once it works, the test pictures show every byte of a small MP4 as a pixel, colored by its box, and your KineticIntro with an **Export MP4** button. In a browser, press it: the frames are rendered by your code, encoded by the browser, packaged by your `mp4()`, and played back on the page. That's your video file.
+    Once it works, the test pictures show every byte of a small MP4 as a pixel, colored by its box, and your KineticIntro with an **Export MP4** button. In a browser, press it (WebCodecs only runs on https or on localhost, so open the course from a server like `node tools/serve.js`, not from a `file://` path): the frames are rendered by your code, encoded by the browser, packaged by your `mp4()`, and played back on the page. That's your video file.
 
     > **Study buddy:** "Hand me the first 64 bytes of an MP4 as hex and let me find the box boundaries, sizes and types myself. Check my reading, but don't read it for me. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2010%20%28Export%29%3A%20frames%20to%20MP4%2C%20then%20map%20it%20to%20Remotion.%20Here%27s%20what%20I%20want%20help%20with%3A%20Hand%20me%20the%20first%2064%20bytes%20of%20an%20MP4%20as%20hex%20and%20let%20me%20find%20the%20box%20boundaries%2C%20sizes%20and%20types%20myself.%20Check%20my%20reading%2C%20but%20don%27t%20read%20it%20for%20me.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2010%20%28Export%29%3A%20frames%20to%20MP4%2C%20then%20map%20it%20to%20Remotion.%20Here%27s%20what%20I%20want%20help%20with%3A%20Hand%20me%20the%20first%2064%20bytes%20of%20an%20MP4%20as%20hex%20and%20let%20me%20find%20the%20box%20boundaries%2C%20sizes%20and%20types%20myself.%20Check%20my%20reading%2C%20but%20don%27t%20read%20it%20for%20me.%20No%20code.)
 
@@ -7707,8 +7725,9 @@
         //   number the samples from 0 instead of 1.
         const b = MS.stss([true, false, false, true]);
         const v = new DataView(b.buffer, b.byteOffset);
-        console.log("stss lists: " + [1, 2].map(i => v.getUint32(12 + 4 * i)).join(", "));
-        // TODO: which frames does a player now think are key frames? What happens when someone seeks to 0:02 and it starts decoding at a frame that isn't one?
+        // After the 8-byte header, version and flags (4) and the count (4) come the sample numbers.
+        console.log("stss lists: " + [0, 1].map(i => v.getUint32(16 + 4 * i)).join(", "));
+        // TODO: which frames does a player now think are key frames? What does it do when told to start decoding at sample 0, or at a frame that isn't a key frame?
       });
       display(out);
     }
@@ -7717,7 +7736,7 @@
 
     ### Checkpoint
 
-    When all 15 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, and every dot asks one small question about the bytes of an MP4: a dot that gets a wrong answer flies off its letter. Its traps: numbers whose bytes are all different, numbers past 2¹⁶ and up to 2³² − 1, boxes inside boxes inside boxes, a part that's empty, durations that alternate or run out at the end, empty tables, a single chunk, frames at 24 fps whose durations round, and key frames that aren't the first. The three questions are below.
+    When all 15 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, and every dot asks one small question about the bytes of an MP4: a dot that gets a wrong answer flies off its letter. Its traps: numbers whose bytes are all different, numbers past 2¹⁶ and up to 2³² − 1, boxes inside boxes inside boxes, a part that's empty, durations that alternate, a run that ends with the last sample, empty tables, a single chunk, frames at 24 fps whose durations round, and key frames that aren't the first. The three questions are below.
 
 
   </script>
@@ -7761,10 +7780,10 @@
     | matrices, `drawTransformed`, `blur` | 07 | CSS `transform` and `filter: blur()`, drawn by Chrome |
     | `sequence`, `series`, `random`, `textSprite` | 08 | [`<Sequence>`](https://www.remotion.dev/docs/sequence), [`<Series>`](https://www.remotion.dev/docs/series), [`random()`](https://www.remotion.dev/docs/random), web fonts |
     | `kineticIntro` | 09 | the KineticIntro component itself |
-    | `mp4` | 10 | [`renderMedia()`](https://www.remotion.dev/docs/renderer/render-media), which hands the frames to FFmpeg to encode and package |
+    | `mp4` | 10 | [`renderMedia()`](https://www.remotion.dev/docs/renderer/render-media), which hands the frames to FFmpeg to encode and package; or, in the browser, [`renderMediaOnWeb()`](https://www.remotion.dev/docs/web-renderer/render-media-on-web), which encodes with WebCodecs like you did |
 
     - FFmpeg's `-movflags +faststart` moves the `moov` box to the front after writing, the "fast start" from the chapter.
-    - Files over 4 GB need offsets bigger than a u32 can hold: the `co64` box is `stco` with u64 offsets.
+    - Files over 4 GB outgrow u32 twice: the `mdat`'s size no longer fits, so its size field says 1 and a 64-bit size follows the type; and the `co64` box is `stco` with 64-bit offsets.
     - Streaming video (YouTube, Netflix) uses **fragmented MP4**: many small `moof` + `mdat` pairs, each with its own little sample table, so a player can start before the file ends.
 
     ### Going further (optional)

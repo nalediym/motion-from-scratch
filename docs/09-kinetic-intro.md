@@ -15,12 +15,12 @@ This is the layer the whole course has been heading for. KineticIntro, from [Cla
 KineticIntro wraps each word in a `Scene` component. Stripped of React, a Scene is a handful of `interpolate` calls on the frame number, and three numbers that come out of them: how big, how see-through and how blurred.
 
 ```text
-  word 2, "ANIMATE.": a = 40, b = 88
+  word 2, "ANIMATE.": a = 40, b = 88       (not to scale)
   frame:     38  40                        66                      88  90
-  enter:          0 ─── APPLE, 26 frames ──► 1
-  exit:                                    0 ─── SMOOTH, 22 frames ──► 1
-  push:           1 ──────────────────────────────────────────────────► 1.04
-  visible:   ◄─────────────────────────────────────────────────────────────►
+  enter:         0 ── APPLE, 26 frames ───►1
+  exit:                                    0 ─ SMOOTH, 22 frames ─►1
+  push:          1 ───────────────────────────────────────────────►1.04
+  visible:   ◄──────────────────────────────────────────────────────────►
 ```
 
 `scale` multiplies three things: growing from `enterFrom` while it enters, the slow push, and growing toward `exitTo` while it leaves. `opacity` is the smaller of "how far in" and "how far from out". The blur is the leftover of the entrance plus the start of the exit. A blur below 0.15 px is invisible, so KineticIntro turns it off, and that saves Chrome a filter pass on most frames.
@@ -32,7 +32,7 @@ Notice what isn't there: no state, no "previous frame". Each number is a functio
 Inside each Scene, a `MaskUp` holds the word in a box with `overflow: hidden`, and slides the word up from 110% of its own height below the box to its place. The box is a window: you only see the part of the word that's inside it.
 
 ```text
-   frame 42 (start)         frame 50               frame 64 (home)
+   frame 42 (start)         frame 44               frame 64 (home)
    ┌────────────────┐       ┌────────────────┐      ┌────────────────┐
    │                │       │ ▄▄  ▄  ▄ ▄ ▄▄▄ │      │ █▀█ █▄ █ █ █▀▄ │
    └────────────────┘       └────────────────┘      └────────────────┘
@@ -44,22 +44,22 @@ The order of effects matters again. The window is inside the Scene, and the Scen
 
 ### Where CSS puts a gradient
 
-The light sweep is a `linear-gradient(100deg, …)`. [CSS Images](https://www.w3.org/TR/css-images-3/#linear-gradients) defines exactly where such a gradient runs. `0deg` points up and angles turn clockwise, so `90deg` points right and `100deg` points right and a little down. The **gradient line** goes through the middle of the box in that direction, and its length is chosen so that the corners land exactly on 0% and 100%:
+The light sweep is a `linear-gradient(100deg, …)`. [CSS Images](https://www.w3.org/TR/css-images-3/#linear-gradients) defines exactly where such a gradient runs. `0deg` points up and angles turn clockwise, so `90deg` points right and `100deg` points right and a little down. The **gradient line** goes through the middle of the box in that direction, and its length is chosen so that the lines of equal color through two opposite corners land exactly on 0% and 100%:
 
 ```text
-     0% ●─────────────────────────┐
-        │ ╲                        │      the gradient line points along the angle
-        │   ╲                      │      (here 100deg: right, a little down) and
-        │     ●  the box's middle  │      passes through the middle; lines of
-        │       ╲                  │      equal color cross it at right angles
-        └─────────╲────────────────● 100%
-                   ▼
-      length = |W·sin A| + |H·cos A|: just enough to reach both corners
+   0%  ┊                          ┊  100%      ┊ lines of equal color, at right
+       ┊┌────────────────────────┐┊               angles to the gradient line
+       ┊│                        │┊
+   ────●┼────────── ● ───────────┼●────►       the line runs through the middle;
+       ┊│        middle          │┊           its ends are where the color lines
+       ┊└────────────────────────┘┊           through two opposite corners cross it
+       drawn at 90deg. At 100deg everything tilts 10° clockwise, and the
+       line grows to |W·sin A| + |H·cos A| so its ends still meet the corners' lines
 ```
 
-A point's position along the gradient is how far along that line its shadow falls. The background's `radial-gradient(70% 60% at 50% 38%, …)` is simpler: an ellipse with radii of 70% of the width and 60% of the height, centered half way across and 38% down, which is exactly what your `fillRadialGradient` takes. A stop like `transparent 60%` ends the gradient early: past 60% of the way out, it's transparent. CSS mixes gradient colors premultiplied, so fading to `transparent` (which is black at alpha 0) never darkens anything, as you saw in layer 07.
+A point's position along the gradient is how far along that line its shadow falls. The background's `radial-gradient(70% 60% at 50% 38%, …)` is simpler: an ellipse with radii of 70% of the width and 60% of the height, centered half way across and 38% down, which your `fillRadialGradient` can draw once you turn the percentages into pixels. A stop like `transparent 60%` ends the gradient early: past 60% of the way out, it's transparent. CSS mixes gradient colors premultiplied, so fading to `transparent` (which is black at alpha 0) never darkens anything, as you saw in layer 07.
 
-> **Study buddy:** "Give me a box, a gradient angle and a point, and ask me to sketch where the gradient line goes and roughly what percentage the point is at. Then ask me why the line is longer at 45deg than at 90deg. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20why%20the%20line%20is%20longer%20at%2045deg%20than%20at%2090deg.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20why%20the%20line%20is%20longer%20at%2045deg%20than%20at%2090deg.%20No%20code.)
+> **Study buddy:** "Give me a box, a gradient angle and a point, and ask me to sketch where the gradient line goes and roughly what percentage the point is at. Then ask me whether the line is longer at 45deg or at 90deg, for a square box, and whether that's always so. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20whether%20the%20line%20is%20longer%20at%2045deg%20or%20at%2090deg%2C%20for%20a%20square%20box%2C%20and%20whether%20that%27s%20always%20so.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20whether%20the%20line%20is%20longer%20at%2045deg%20or%20at%2090deg%2C%20for%20a%20square%20box%2C%20and%20whether%20that%27s%20always%20so.%20No%20code.)
 
 ### Blend modes: changing what "over" means
 
@@ -71,13 +71,13 @@ Layer 01's blend put the new color over the old one. CSS's [`mix-blend-mode`](ht
   only the backdrop shows:   (1 − αs) × αb × Cb
 ```
 
-With `B(Cb, Cs) = Cs` that's exactly your `blendPixel`. KineticIntro's sweep uses [overlay](https://www.w3.org/TR/compositing-1/#blendingoverlay): where the backdrop is dark it multiplies, which makes dark darker; where it's light it "screens", which makes light lighter. So a white sweep brightens the light letters a lot and the dark background hardly at all.
+With `B(Cb, Cs) = Cs` that's exactly your `blendPixel`. KineticIntro's sweep uses [overlay](https://www.w3.org/TR/compositing-1/#blendingoverlay): where the backdrop is dark it multiplies, which makes dark darker; where it's light it "screens", which makes light lighter. So white pushes every channel toward white, by how much depending on the backdrop: a dark channel at most doubles, a light one goes all the way. KineticIntro's letters are already nearly white, so the sweep shows most on the blue dot, and on the empty space around the letters (next paragraph).
 
-Which backdrop, though? A blend mode only blends with the content of its own **stacking context**, and the Scene's `transform` makes it one. So the sweep never touches the page's background: it blends with the lockup's own pixels, and where those are transparent, it's an ordinary half-white blend. That's why `lockupLayer` blends the sweep into its sprite, not into the frame.
+Which backdrop, though? A blend mode only blends with the content of its own **stacking context**, and the Scene's `transform` (and its `will-change`) make it one. So the sweep never touches the page's background: it blends with the lockup's own pixels, and where those are transparent, it's an ordinary half-white blend. That's why `lockupLayer` blends the sweep into its sprite, not into the frame.
 
 ### A shadow is a blur
 
-The vignette is `box-shadow: inset 0 0 280px rgba(0, 0, 0, 0.7)`. An inset shadow is the shadow of everything *outside* the box, falling inward. [CSS Backgrounds](https://www.w3.org/TR/css-backgrounds-3/#shadow-blur) says a blur radius of 280px means a Gaussian blur with σ = 140, half the radius. So: make a frame that's black everywhere except a hole the size of the screen, blur it with your three box blurs, and keep the middle. The margin around the hole must be wider than the blur reaches, or the far edge of the black would fade in too. Three boxes of radius r reach 3r pixels, which is why the spec asks for a little more than 3σ.
+The vignette is `box-shadow: inset 0 0 280px rgba(0, 0, 0, 0.7)`. An inset shadow is the shadow of everything *outside* the box, falling inward. [CSS Backgrounds](https://www.w3.org/TR/css-backgrounds-3/#shadow-blur) says a blur radius of 280px means a Gaussian blur with σ = 140, half the radius. So: make a frame that's black everywhere except a hole the size of the screen, blur it with your three box blurs, and keep the middle. The margin around the hole must be wider than the blur reaches, or the far edge of the black would fade in too, and a blur reaches a few σ, which is why the spec asks for a little more than 3σ. Watch the units: `filter: blur(16px)` means σ = 16, but a box-shadow blur radius of 280px means σ = 140.
 
 ### Make it once
 
@@ -133,7 +133,7 @@ MS.reveal("red after overlaying black", myGuess, MS.getPixel(f, 0, 0)[0]);
 
 <details><summary>Answers</summary>
 
-1. 1.02. It finished entering a few frames ago (26 frames of APPLE get very close to 1 early), and the push has been growing it the whole time: 4% over 48 frames is 2% by half way. The push is so slow you never see it as motion, only as the word feeling alive.
+1. 1.02. It has all but finished entering: APPLE gets within a hair of 1 several frames before frame 26, though it only reaches 1 exactly at the end. And the push has been growing it the whole time: 4% over 48 frames is 2% by half way. The push is so slow you never see it as motion, only as the word feeling alive.
 2. 134, about 0.7 × ¾ of 255. A corner pixel is close to two edges, so the blurred black reaches it from two sides: only about a quarter of the area around it is the transparent hole. Halfway down an edge it's about half, so the alpha there is about 0.7 × ½ of 255.
 3. 145. Over a light backdrop, overlay screens, so even black only pulls 200 down to 145: overlay keeps the light parts light. Over a dark grey, the same black would give pure black.
 
@@ -150,11 +150,11 @@ Once your tests pass: make each TODO change, run the experiment before and after
 // TODO(break-it), in src/09-kinetic-intro.js → wordLayer:
 //   skip the window: draw the text straight into the padded sprite, moved down by maskUp, and
 //   leave out the frame that cuts it off.
-const layer = MS.wordLayer(50, 1, 216);
+const layer = MS.wordLayer(44, 1, 216);
+const s = layer.sprite, pad = Math.ceil(3 * 16 * 0.2) + 2;   // the empty border around the window
 let below = 0;
-const s = layer.sprite, bottom = Math.floor(s.height * 0.75);
-for (let y = bottom; y < s.height; y++) for (let x = 0; x < s.width; x++) below += s.data[(y * s.width + x) * 4 + 3];
-console.log("ink in the bottom quarter of the sprite at frame 50: " + below);
+for (let y = s.height - pad; y < s.height; y++) for (let x = 0; x < s.width; x++) below += s.data[(y * s.width + x) * 4 + 3];
+console.log("ink below the window at frame 44: " + below);
 // TODO: before the change, how much ink is below the window? After it, what would the viewer see under the word?
 ```
 
@@ -170,7 +170,7 @@ for (const grey of [30, 100, 200]) {
   MS.blendOverlay(f, 0, 0, [255, 255, 255, 128]);
   console.log("half-white over grey " + grey + " → " + MS.getPixel(f, 0, 0)[0]);
 }
-// TODO: before the change, the white lifts light greys more than dark ones. After it? (That other blend mode has a name: hard-light.)
+// TODO: before the change, the white barely lifts the darkest grey and lifts the middle one most. After it? (That other blend mode has a name: hard-light.)
 ```
 
 ### 3. Make it every frame

@@ -11,8 +11,8 @@
 
   /**
    * Where a KineticIntro Scene is at frame n. The scene runs from frame a to b.
-   * Options (defaults): a, b, enterFrom (1), exitTo (1), blurIn (0), blurOut (0),
-   * enterDur (26), exitDur (22), pushTo (1.04).
+   * Options (defaults, the same as KineticIntro's Scene): a, b, enterFrom (0.92),
+   * exitTo (1.14), blurIn (10), blurOut (12), enterDur (26), exitDur (22), pushTo (1.04).
    *   enter   = interpolate(n, [a, a + enterDur], [0, 1]), clamped, eased with APPLE
    *   exit    = interpolate(n, [b − exitDur, b], [0, 1]), clamped, eased with SMOOTH
    *   push    = interpolate(n, [a, b], [1, pushTo]), clamped
@@ -113,18 +113,21 @@
   /**
    * The lockup's layer at frame n (null when its scene isn't visible). Its scene:
    * a = 120, b = 180, enterFrom 0.86, exitTo 1, blurIn 14, exitDur 2.
-   * - Title: textSprites "MOTION", "·", "STUDIO" side by side (96 px, weight 900,
-   *   "Inter", letterSpacing −3 px); the "·" is primary, the rest ink.
+   * - Title: textSprites "MOTION", "·", "STUDIO" in a row, Math.round(14 × k) px
+   *   apart (96 px, weight 900, "Inter", letterSpacing −3 px); the "·" is primary,
+   *   the rest ink.
    * - Subtitle: textSprite "built in code" (36 px, weight 500, "Inter", muted,
    *   letterSpacing 2 px), Math.round(22 × k) below the title, faded by
    *   interpolate(n, [150, 168], [0, 1]), clamped.
    * - The sprite: the title above the subtitle, each centered (round positions
    *   to whole pixels), with pad = Math.ceil(3 × 14 × k) + 2 empty pixels around.
    * - The light sweep, after the title and before the subtitle: over the title's
-   *   box grown by Math.round(16 × k) on every side, for each pixel, with p its
-   *   center's linearGradientT(…, 100deg) × 100 and s = interpolate(n, [140, 172],
-   *   [−20, 130]) clamped, blendOverlay white with alpha 0.5 × max(0, 1 − |p − s| ÷ 12),
-   *   in 0–255 (skip pixels where that's 0).
+   *   box grown by Math.round(16 × k) on every side: for each pixel in it, let
+   *   p = 100 × linearGradientT of the pixel's center (x + 0.5, y + 0.5), measured
+   *   from the grown box's top-left corner, in a box the grown box's size, at
+   *   100deg; and s = interpolate(n, [140, 172], [−20, 130]), clamped. blendOverlay
+   *   white with alpha 0.5 × max(0, 1 − |p − s| ÷ 12), in 0–255 (skip pixels where
+   *   that's 0).
    * - The layer: as for the words, from the lockup's scene.
    */
   function lockupLayer(n, width) {

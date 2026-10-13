@@ -203,7 +203,7 @@
 
   MS.test(L, "random gives Remotion's numbers for string and number seeds", t => {
     t.eq(MS.random("hello"), 0.41293257870711386, "random(\"hello\")");
-    t.eq(MS.random(""), 0.26642920868471265, "random(\"\")");
+    t.eq(MS.random("xy"), 0.02979057002812624, "random(\"xy\")");
     t.eq(MS.random(1), 0.07301638228818774, "random(1)");
     t.eq(MS.random(0.5), 0.030728988582268357, "random(0.5)");
     t.eq(MS.random("motion-from-scratch"), 0.9684063496533781, "a long seed: the hash has to stay a 32-bit integer all the way");

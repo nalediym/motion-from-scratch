@@ -24,7 +24,7 @@
    * With a canvas (MS.createCanvas(w, h) returns one in browsers, null elsewhere):
    * - measure the text with ctx.measureText, using the same font and spacing
    *   you'll draw with;
-   * - width = Math.ceil(metrics.width) + 2 × pad,
+   * - width = Math.ceil(metrics.width) + 2 × pad (at least 1),
    *   height = Math.ceil(metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) + 2 × pad;
    * - draw it with drawTextCanvas on a canvas that size, at x = pad and
    *   y = pad + fontBoundingBoxAscent (that's also the baseline);

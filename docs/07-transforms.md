@@ -6,7 +6,7 @@ _A matrix is six numbers that say where everything goes._
 **Check it:** `node tests/run.js 07`, or open `tests.html`
 **Builds on:** layers 00–06
 
-Each word in KineticIntro arrives the same way: it grows from 80% to full size while it sharpens out of a 14-pixel blur, then keeps pushing slowly toward the camera before it blurs away again. In CSS that's two lines, `transform: scale(…)` and `filter: blur(…)`, and the browser does the work. In this layer you do the work: matrices that move, scale and turn anything, a way to draw a picture through a matrix without holes or dark edges, and a blur whose cost doesn't depend on how wide it is.
+Each word in KineticIntro arrives the same way: it grows from 80% to full size while it sharpens out of a `blur(14px)`, then keeps pushing slowly toward the camera before it blurs away again. In CSS that's two lines, `transform: scale(…)` and `filter: blur(…)`, and the browser does the work. In this layer you do the work: matrices that move, scale and turn anything, a way to draw a picture through a matrix without holes or dark edges, and a blur whose cost doesn't depend on how wide it is.
 
 ## Under the hood
 
@@ -61,16 +61,16 @@ To draw a picture through a matrix, the obvious plan is to take every source pix
                    holes
 ```
 
-So renderers work **backwards**: for each pixel of the destination, find the point in the source that lands on it, and take the color from there. That needs the matrix that undoes `m`, its **inverse**. Not every matrix has one. The number `a·d − b·c` (the **determinant**) says how much the matrix scales areas. When it's 0, the matrix squashes everything onto a line or a point, and there's no way back: many source points land on the same spot.
+So renderers work **backwards**: for each pixel of the destination, find the point in the source that lands on it, and take the color from there. That needs the matrix that undoes `m`, its **inverse**. Not every matrix has one. The number `a·d − b·c` (the **determinant**) says how much the matrix scales areas. (A negative one means it also mirrors; only 0 can't be undone.) When it's 0, the matrix squashes everything onto a line or a point, and there's no way back: many source points land on the same spot.
 
 ### Between the pixels
 
 The point you find in the source is almost never exactly on a pixel. Pixel `(x, y)` is a little square from `(x, y)` to `(x + 1, y + 1)`, so its center is `(x + 0.5, y + 0.5)`. A point between centers takes a little of each of the four nearest pixels, more from the nearer ones. That's **bilinear sampling**: blend along x, then along y.
 
 ```text
-     center (3.5, 0.5)       center (4.5, 0.5)
-            ●─────────●──────────────────●
-                      ↑ the sample, 30% of the way from left to right
+     center (3.5, 0.5)                  center (4.5, 0.5)
+            ●──────────×──────────────────────●
+                       ↑ the sample (×), 30% of the way from left to right,
                          gets 70% of the left pixel and 30% of the right
 ```
 
@@ -80,17 +80,19 @@ Nearest-neighbor sampling (just take the closest pixel) is faster, but edges tur
 
 ### Edges without dark fringes
 
-Bilinear sampling at the edge of a picture mixes a pixel of the picture with a transparent pixel outside it. Here's the trap from layer 01. A transparent pixel is stored as `[0, 0, 0, 0]`: "black, invisible". Average a white pixel with it channel by channel, and you get `[128, 128, 128, 128]`, a half-transparent **grey**. The black that was never visible has leaked in, and every edge gets a dark fringe.
+Bilinear sampling at the edge of a picture mixes a pixel of the picture with a transparent pixel outside it. Layer 01 showed that a transparent pixel is stored as `[0, 0, 0, 0]`: "black, invisible". Average a white pixel with it channel by channel, and you get `[128, 128, 128, 128]`, a half-transparent **grey**. The black that was never visible has leaked in, and every edge gets a dark fringe.
 
 ```text
   straight average                 premultiplied average
   [255,255,255,255]                color × alpha:  255·255 and 0·0
   [  0,  0,  0,  0]                alpha:          255 and 0
-  ────────────────── ÷ 2           ─────────────────────────────
-  [128,128,128,128]  grey          alpha 128, color (255·255) ÷ 255 = 255: still white
+  ────────────────── ÷ 2           ─────────────────────────────────────────────
+  [128,128,128,128]  grey          alpha: (255 + 0) ÷ 2 = 128
+                                   color: total color ÷ total alpha
+                                          = (255·255 + 0) ÷ (255 + 0) = 255: still white
 ```
 
-The fix is to average **premultiplied** colors: weight each pixel's color by its alpha, so a transparent pixel adds nothing to the color, only to the alpha. Divide by the total alpha at the end to get a plain color back. Browsers keep pixels premultiplied for exactly this reason.
+The fix is to average **premultiplied** colors: weight each pixel's color by its alpha, so a transparent pixel adds nothing to the color, only to the alpha. Divide by the total alpha at the end to get a plain color back. Browsers keep pixels premultiplied inside, partly for this reason.
 
 ### A blur that doesn't care how big it is
 
@@ -112,14 +114,14 @@ Pixels outside the frame count as transparent, so a blur fades a picture out at 
 
 ### Three boxes make a bell
 
-A box blur looks boxy: a single bright dot becomes a flat square. Box-blur that square again and the profile becomes a triangle; a third time and it's a smooth bell, very close to a **Gaussian**. That's the [central limit theorem](https://en.wikipedia.org/wiki/Central_limit_theorem) at work: adding up a few random amounts quickly gives a bell curve.
+A box blur looks boxy: a single bright dot becomes a flat square. Box-blur that square again and the profile becomes a triangle; a third time and it's a smooth bell, very close to a **Gaussian**. That's the [central limit theorem](https://en.wikipedia.org/wiki/Central_limit_theorem) at work: adding up a few independent random amounts quickly gives a bell curve.
 
 ```text
   one box        two boxes        three boxes
-  ▁▁████▁▁       ▁▂▄██▄▂▁        ▁▂▅██▅▂▁
+  ▁▁███▁▁        ▁▃▆█▆▃▁          ▁▂▅█▅▂▁
 ```
 
-A Gaussian blur's size is its **standard deviation**, σ (sigma), in pixels, and that's what CSS's [`blur()`](https://www.w3.org/TR/filter-effects-1/#funcdef-filter-blur) takes: `blur(14px)` means σ = 14. To pick `r` for three boxes, match the spread. A box of radius `r` has a variance (σ²) of `r(r + 1) ÷ 3`, and variances add up when blurs are stacked, so three boxes give `r(r + 1)`. Setting that equal to σ² and solving gives the radius in `blur`'s spec. For σ = 5 it's `round((√101 − 1) ÷ 2)` = round(4.52) = 5.
+A Gaussian blur's size is its **standard deviation**, σ (sigma), in pixels, and that's what CSS's [`blur()`](https://www.w3.org/TR/filter-effects-1/#funcdef-filter-blur) takes: `blur(14px)` means σ = 14. To pick `r` for three boxes, match the spread. A box of radius `r` has a variance (σ²) of `r(r + 1) ÷ 3`, and variances add up when blurs are stacked, so three boxes give `r(r + 1)`. Setting that equal to σ² and solving gives the radius in the comment above `blur` in `src/07-transforms.js`. For σ = 5 it's `round((√101 − 1) ÷ 2)` = round(4.525) = 5.
 
 ## Your turn
 
@@ -128,7 +130,7 @@ Work through `src/07-transforms.js` top to bottom. Each function's comment is it
 1. **translate and scale.** Using the three arrows, where do `(0, 0)`, `(1, 0)` and `(0, 1)` land for each? What should `scale(3)` do when there's no second number?
 2. **rotate.** After a quarter turn, where should `(1, 0)` land? And `(0, 1)`? What about a turn by any angle: what are the coordinates of a point one step from the origin at that angle?
 3. **transformPoint.** Which of the six numbers multiply x, which multiply y, and which are just added?
-4. **multiply.** If `n` sends the origin to some point, where does `multiply(m, n)` send it? Answer the same question for `(1, 0)` and `(0, 1)`, and you have all six numbers.
+4. **multiply.** If `n` sends the origin to some point, where does `multiply(m, n)` send it? Answer the same question for one step along x and one along y, measured from where the origin went, and you have all six numbers.
 5. **invert.** What undoes `scale(4)`? What undoes `translate(3, −1)`? For any matrix, you have two equations, `x' = …` and `y' = …`: can you solve them for x and y? Where does `a·d − b·c` turn up?
 6. **drawTransformed.** Which point of `src` lands on the center of dest pixel `(2, 5)`? Which four src pixels surround that point, and how far is it from each of their centers? Do you need to visit every pixel of dest, or only the ones `src` can reach?
 7. **boxBlur.** What do you keep in your running sums so a transparent pixel doesn't pull the color toward black? When the box slides by one pixel, which pixel leaves and which arrives?
@@ -179,7 +181,7 @@ MS.reveal("the red value at the edge", myGuess, MS.getPixel(out, 2, 2)[0]);
 <details><summary>Answers</summary>
 
 1. [0, 10]. The move happens first, so the origin goes to (10, 0); then the quarter turn swings it from "right" to "down". In the other order the origin would turn first (staying put, because it's the center of the turn) and then move to (10, 0).
-2. 39, about 15% of what it was. A blur doesn't remove any ink, it spreads it: the same total alpha now covers a band about 13 pixels wide, so each pixel gets much less. That's why KineticIntro's blurred words look faint as well as soft.
+2. 39, about 15% of what it was. A blur doesn't remove any ink, it spreads it: the same total alpha now covers a band 13 pixels wide, so each pixel gets much less. That's why KineticIntro's blurred words look faint as well as soft.
 3. 255. The pixel is half transparent (alpha 128), but still pure white. Averaged straight, the transparent pixel outside the square would have pulled it to 128, a grey fringe.
 
 </details>
@@ -232,7 +234,7 @@ console.log("a pixel just outside the yellow box: " + MS.getPixel(soft, 6, 7).jo
 
 ## Checkpoint
 
-When all 18 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, leaning in italics through your own `transformPoint`. Every dot asks one small question about a rule, and a dot that gets a wrong answer flies off its letter. Its traps: matrices that use all six numbers, rotations past a quarter turn, `multiply` in both orders, matrices that can't be undone, pictures turned upside down and scaled up, sprites that only half cover a pixel, opacity over a background, blur radii that only just round up or down, and the edges of the frame. The three questions are below.
+When all 18 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, leaning in italics through your own `transformPoint`. Every dot asks one small question about a rule, and a dot that gets a wrong answer flies off its letter. Its traps: matrices that use all six numbers, rotations past a quarter turn, `multiply` in both orders, matrices that can't be undone, pictures turned upside down and scaled up, sprites that only half cover a pixel, opacity over a background, blur sizes whose radius has to be rounded, and the edges of the frame. The three questions are below.
 
 ```js checkpoint
 // Checkpoint 07 · Transforms & blur. Replace each null with your answer.
@@ -254,12 +256,12 @@ MS.answers("07", {
 ## In the real world
 
 - Canvas keeps one of these matrices as its "current transform": [`translate()`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/translate), [`rotate()`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/rotate) and [`scale()`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/scale) each multiply it by a new matrix on the right, which is why the last one you call happens to your shapes first. [`DOMMatrix`](https://developer.mozilla.org/en-US/docs/Web/API/DOMMatrix) has the same six numbers as its `a` to `f`.
-- CSS's [`transform-origin`](https://developer.mozilla.org/en-US/docs/Web/CSS/transform-origin) is the "move to the origin, scale, move back" trick, done for you. Its default is the element's center, which is why KineticIntro's `scale()` grows words from their middle.
+- CSS's [`transform-origin`](https://developer.mozilla.org/en-US/docs/Web/CSS/transform-origin) is the "move to the origin, scale, move back" trick, done for you. Its default is the element's center; KineticIntro's Scene fills the frame, so its words grow from the middle of the screen.
 - [`imageSmoothingEnabled`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled) switches canvas between smooth sampling and nearest-neighbor, and CSS's [`image-rendering: pixelated`](https://developer.mozilla.org/en-US/docs/Web/CSS/image-rendering) does the same for images, which is how this course's pages show your frames with crisp pixels.
 - Browsers hand `filter: blur()` to their graphics library (Chrome's is [Skia](https://skia.org/)), which picks its own fast way to approximate a Gaussian, often on the GPU.
 
 ## Going further (optional)
 
-- **Read the original.** The Filter Effects spec's [`feGaussianBlur`](https://www.w3.org/TR/filter-effects-1/#feGaussianBlurElement) section gives its own recipe for three box blurs, with a box size chosen a different way, and a special case for even sizes. Work out its box size for σ = 14 and compare the spread with yours.
+- **Read the original.** The Filter Effects spec's [`feGaussianBlur`](https://www.w3.org/TR/filter-effects-1/#feGaussianBlurElement) section gives its own recipe for three box blurs, with a box size chosen a different way, and a special case for even sizes. Work out its box size for σ = 10 and compare the spread with yours.
 - Add `skew(ax, ay)` (CSS has [`skew()`](https://developer.mozilla.org/en-US/docs/Web/CSS/transform-function/skew)) and draw a word leaning by 15°.
-- Make `drawTransformed` faster: when m is only a translation by whole pixels, no sampling is needed at all. How much faster is the third test picture?
+- Make `drawTransformed` faster: when m is only a translation by whole pixels, no sampling is needed at all. How much faster is the second test picture, the blurred words?

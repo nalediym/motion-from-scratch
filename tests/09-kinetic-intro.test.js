@@ -47,10 +47,10 @@
     near(t, MS.sceneState(81, s).blur, 0.3481, 1e-4, "frame 81");
   });
 
-  MS.test(L, "sceneState: the defaults are KineticIntro's (enterDur 26, exitDur 22, pushTo 1.04)", t => {
-    state(t, MS.sceneState(13, { a: 0, b: 60 }), [true, 1.008666667, 0.971779105, 0], "frame 13");
+  MS.test(L, "sceneState: the defaults are those of KineticIntro's Scene", t => {
+    state(t, MS.sceneState(13, { a: 0, b: 60 }), [true, 1.006389429, 0.971779105, 0.282208947], "frame 13");
     state(t, MS.sceneState(26, { a: 0, b: 60 }), [true, 1.017333333, 1, 0], "frame 26: fully in");
-    state(t, MS.sceneState(49, { a: 0, b: 60 }), [true, 1.032666667, 0.29531467, 0], "frame 49: 11 frames into the exit");
+    state(t, MS.sceneState(49, { a: 0, b: 60 }), [true, 1.134545374, 0.29531467, 8.456223962], "frame 49: 11 frames into the exit");
   });
 
   MS.test(L, "sceneState: a short scene can enter and exit at once; opacity is the smaller of the two", t => {
@@ -157,8 +157,8 @@
       t.eq(bottom(early), 0, "at 146 the subtitle (the lower part of the sprite) is invisible");
       t.ok(bottom(late) > 0, "at 170 it's there");
       // The "·" is primary blue. Overlay lifts a mid-dark color less than an ordinary blend would.
-      const dot = MS.getPixel(MS.lockupLayer(155, 216).sprite, 83, 19);
-      t.ok(dot && Math.abs(dot[0] - 130) <= 1 && Math.abs(dot[1] - 189) <= 1, "at 155 the sweep crosses the blue dot and overlays it to about [130, 189, 255], got " + dot);
+      const dot = MS.getPixel(MS.lockupLayer(154, 216).sprite, 86, 19);
+      t.ok(dot && Math.abs(dot[0] - 125) <= 1 && Math.abs(dot[1] - 183) <= 1, "at 154 the sweep overlays a pixel of the blue dot to about [125, 183, 255], got " + dot);
     });
   });
 
