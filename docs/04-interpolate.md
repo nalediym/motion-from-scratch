@@ -98,7 +98,7 @@ Each dot is where the value is after another eighth of the time. Because easing 
 `interpolateColors` blends colors one channel at a time: red with red, green with green, blue with blue, alpha with alpha, each its own interpolation over the same input range. Two things differ from plain numbers:
 
 - **It always clamps.** There's no color past "fully red" to extend into; the channel would leave 0–255.
-- **It rounds.** A channel is a whole byte. A `Uint8ClampedArray` would round for you, but it sends exact halves to the nearest *even* number (layer 00's bonus). Rounding with [`Math.round`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round) yourself turns 127.5 into 128 every time.
+- **It rounds.** A channel is a whole byte. A `Uint8ClampedArray` would round for you, but it sends exact halves to the nearest *even* number (layer 00's bonus). Rounding with [`Math.round`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round) yourself sends them up instead: 128.5 becomes 129, where a clamped array would give 128.
 
 Remotion's own [`interpolateColors()`](https://www.remotion.dev/docs/interpolate-colors) works the same way: channel by channel, clamped at both ends, rounded.
 
@@ -147,7 +147,7 @@ MS.reveal("first frame at or past 50", myGuess, n);
 <details><summary>Answers</summary>
 
 1. −0.33. Only the right end was clamped, so the left end still extends, backwards along the fade's line to an opacity below zero. This happens for real: KineticIntro shows each word from two frames *before* its animation starts, and those frames sit before the first keyframe. A browser treats a negative opacity as 0, so you'd never notice here, but a position or a scale has no such safety net. Clamp both ends.
-2. `[128, 128, 0, 255]`: a dim olive, not the bright yellow you might expect. Each channel is only halfway up, and sRGB numbers aren't proportional to light: a channel at 128 gives off only about a fifth of the light of 255 (see the [sRGB transfer function](https://en.wikipedia.org/wiki/SRGB#Transfer_function_(%22gamma%22))). Halfway in numbers is much darker than halfway in light. That's why CSS lets you choose where colors get mixed: [`color-mix(in oklab, red, lime)`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) blends in a space built to match how bright colors look.
+2. `[128, 128, 0, 255]`: a dim olive, not the bright yellow you might expect. Each channel is only halfway up, and sRGB numbers aren't proportional to light: a channel at 128 gives off only about a fifth of the light of 255 (see the [sRGB transfer function](https://en.wikipedia.org/wiki/SRGB#Transfer_function_%28%22gamma%22%29)). Halfway in numbers is much darker than halfway in light. That's why CSS lets you choose where colors get mixed: [`color-mix(in oklab, red, lime)`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) blends in a space built to match how bright colors look.
 3. 15. With `t × t`, the value reaches halfway when `t × t` = 0.5, so `t` ≈ 0.71: frame 14.1 of 20. Frame 15 is the first whole frame past it. An eased move can spend most of its time on the first half of the distance; layer 05 makes curves that ease in, out, or both.
 
 </details>
@@ -194,7 +194,7 @@ for (const n of [5, 15, 25]) {
   try { console.log(n + " → " + MS.interpolate(n, keys, [0, 100, 200, 300])); }
   catch (e) { console.log(n + " → " + e.message); }
 }
-// TODO: 15 lies between 0 and 20, and also between 20 and 10. Which segment did your code use?
+// TODO: 15 lies inside all three segments. Which one did your code use?
 //   Is either answer right?
 ```
 

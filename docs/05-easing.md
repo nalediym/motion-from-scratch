@@ -65,7 +65,7 @@ Newton's method has a weak spot: where the curve goes flat, the slope is near ze
           [0.25 ──── 0.5]                  … 24 halvings make the gap smaller than 1e-7
 ```
 
-It's slow but sure, so real solvers use both: a few Newton steps, and bisection when Newton stalls or wanders outside 0 to 1. That's exactly what [WebKit's `UnitBezier`](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h), the code behind Safari's CSS animations, does.
+It's slow but sure, so real solvers use both. [WebKit's `UnitBezier`](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h), the code behind Safari's CSS animations, takes a first guess from a table of 11 samples, tries up to 4 Newton steps, and bisects if they don't get close enough.
 
 ### Only x has to behave
 
@@ -122,7 +122,7 @@ MS.reveal("time to cover 90%", myGuess, x);
 <details><summary>Answers</summary>
 
 1. 0.6575. Halfway along the curve, two thirds of the time has already gone: `u` is the curve's own parameter, not time. That gap is why `solveBezierX` exists.
-2. 1.1. A control point pulls the curve toward it but never reaches it, so 1.56 only lifts the peak to about 1.1. The same is true of every Bézier control point, which is why designers drag handles further than the shape they want.
+2. 1.1. A control point pulls the curve toward it but never reaches it, so 1.56 only lifts the peak to about 1.1. The same is true of every Bézier handle, which is why designers drag handles further than the shape they want.
 3. 0.33. APPLE covers 90% of the move in a third of the time and spends the other two thirds on the last 10%. That long, gentle settle is what makes KineticIntro's words feel like they land rather than stop.
 
 </details>
@@ -166,7 +166,7 @@ for (const x of [0.05, 0.1, 0.2, 0.4]) console.log("x = " + x + " → a 1920-pix
 // TODO: how many pixels does the looser answer move things? Would you see it on a 1080 × 1920 video?
 ```
 
-A curve that's steep in x magnifies small errors in `u`. The precision you need depends on how far things move on screen, which is why the spec asks for 1e-7.
+A steep curve magnifies small errors in x: APPLE starts out more than six times steeper than a straight line. The precision you need depends on how far things move on screen, which is why the spec asks for 1e-7.
 
 ## Checkpoint
 

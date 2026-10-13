@@ -525,7 +525,7 @@
         "06": {
           "mystery": "d2c3d8d5",
           "questions": {
-            "q1": "1ff44ef7",
+            "q1": "fcf0b317",
             "q2": "1615219e",
             "q3": "bdae1b04"
           }
@@ -1027,20 +1027,14 @@
         { frames: [2, 3, 5, 7, 10], want: n => sp(n, 30, { config: QUICK }), got: n => sp(2 * n, 60, { config: QUICK }) },
         { frames: [3, 4, 7, 10, 13, 15], want: n => sp(Math.round((1000 * n) / 24), 1000), got: n => sp(n, 24) },
       ];
-      // The last letter checks settleFrame against spring() itself.
-      const SETTLE = { fps: 25, from: 3, to: -2, config: { stiffness: 300, damping: 18 }, threshold: 0.01 };
+      // The last letter checks settleFrame on a spring with every option set.
+      const SETTLE = { fps: 25, from: 3, to: -2, config: { stiffness: 300, damping: 18 }, threshold: 0.01 }, SETTLES_AT = 13;
       const OFFSETS = [];
       for (let dy = -12; dy <= 12; dy++) for (let dx = -12; dx <= 12; dx++) if (Math.abs(dx) + Math.abs(dy) >= 8) OFFSETS.push([dx, dy]);
       shuffle(OFFSETS, 6);
       const px = v => Math.floor(v + 0.5 + 1e-7);
       const STOPS = [[255, 92, 138], [91, 140, 255], [234, 240, 250]];
 
-      function settlesWhere(s) {   // the first frame from which spring() stays close, up to 10 s
-        const limit = s.threshold * Math.abs(s.to - s.from), last = 10 * s.fps;
-        let first = 0;
-        for (let n = 0; n <= last; n++) if (Math.abs(MS.spring({ frame: n, fps: s.fps, from: s.from, to: s.to, config: s.config }) - s.to) > limit) first = n + 1;
-        return first > last ? Infinity : first;
-      }
 
       MS.mystery("06", {
         draw() {
@@ -1049,7 +1043,7 @@
           MS.clearFrame(frame, [11, 13, 18]);
           const scattered = WORD.split("").map(() => 0), failed = [];
           let settled = false;
-          try { settled = MS.settleFrame(SETTLE) === settlesWhere(SETTLE); } catch (e) { failed.push(`settleFrame threw "${e.message}"`); }
+          try { settled = MS.settleFrame(SETTLE) === SETTLES_AT; } catch (e) { failed.push(`settleFrame threw "${e.message}"`); }
           let dot = 0;
           [...WORD].forEach((ch, j) => {
             const color = MS.interpolateColors(j, [0, 2.5, 5], STOPS);
@@ -1082,7 +1076,7 @@
             "The R is scattered: a spring falling from 40 to 10 should move exactly like one rising from 0 to 1, flipped and stretched. Check how from and to are used.",
             "The I is scattered: frame 2n at 60 fps is the same moment as frame n at 30 fps, so it should give the same value.",
             "The N is scattered: at 24 fps, frame n is Math.round(1000 × n ÷ 24) milliseconds in, exactly like that many frames at 1000 fps.",
-            "The G is scattered: settleFrame disagrees with your spring(). It should be the first frame from which spring() stays within threshold × |to − from| of `to`, using the fps, from, to, config and threshold it's given.",
+            "The G is scattered: settleFrame gave the wrong frame for a spring with every option set. It should be the first frame from which spring() stays within threshold × |to − from| of `to`, using the fps, from, to, config and threshold it's given.",
           ];
           scattered.forEach((n, j) => { if (n) hints.push(why[j]); });
           const ok = MS.hashFrame(frame) === data.mystery;
@@ -3120,7 +3114,7 @@
     `interpolateColors` blends colors one channel at a time: red with red, green with green, blue with blue, alpha with alpha, each its own interpolation over the same input range. Two things differ from plain numbers:
 
     - **It always clamps.** There's no color past "fully red" to extend into; the channel would leave 0–255.
-    - **It rounds.** A channel is a whole byte. A `Uint8ClampedArray` would round for you, but it sends exact halves to the nearest *even* number (layer 00's bonus). Rounding with [`Math.round`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round) yourself turns 127.5 into 128 every time.
+    - **It rounds.** A channel is a whole byte. A `Uint8ClampedArray` would round for you, but it sends exact halves to the nearest *even* number (layer 00's bonus). Rounding with [`Math.round`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round) yourself sends them up instead: 128.5 becomes 129, where a clamped array would give 128.
 
     Remotion's own [`interpolateColors()`](https://www.remotion.dev/docs/interpolate-colors) works the same way: channel by channel, clamped at both ends, rounded.
 
@@ -3394,7 +3388,7 @@
     <details><summary>Answers</summary>
 
     1. −0.33. Only the right end was clamped, so the left end still extends, backwards along the fade's line to an opacity below zero. This happens for real: KineticIntro shows each word from two frames *before* its animation starts, and those frames sit before the first keyframe. A browser treats a negative opacity as 0, so you'd never notice here, but a position or a scale has no such safety net. Clamp both ends.
-    2. `[128, 128, 0, 255]`: a dim olive, not the bright yellow you might expect. Each channel is only halfway up, and sRGB numbers aren't proportional to light: a channel at 128 gives off only about a fifth of the light of 255 (see the [sRGB transfer function](https://en.wikipedia.org/wiki/SRGB#Transfer_function_(%22gamma%22))). Halfway in numbers is much darker than halfway in light. That's why CSS lets you choose where colors get mixed: [`color-mix(in oklab, red, lime)`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) blends in a space built to match how bright colors look.
+    2. `[128, 128, 0, 255]`: a dim olive, not the bright yellow you might expect. Each channel is only halfway up, and sRGB numbers aren't proportional to light: a channel at 128 gives off only about a fifth of the light of 255 (see the [sRGB transfer function](https://en.wikipedia.org/wiki/SRGB#Transfer_function_%28%22gamma%22%29)). Halfway in numbers is much darker than halfway in light. That's why CSS lets you choose where colors get mixed: [`color-mix(in oklab, red, lime)`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) blends in a space built to match how bright colors look.
     3. 15. With `t × t`, the value reaches halfway when `t × t` = 0.5, so `t` ≈ 0.71: frame 14.1 of 20. Frame 15 is the first whole frame past it. An eased move can spend most of its time on the first half of the distance; layer 05 makes curves that ease in, out, or both.
 
     </details>
@@ -3467,7 +3461,7 @@
           try { console.log(n + " → " + MS.interpolate(n, keys, [0, 100, 200, 300])); }
           catch (e) { console.log(n + " → " + e.message); }
         }
-        // TODO: 15 lies between 0 and 20, and also between 20 and 10. Which segment did your code use?
+        // TODO: 15 lies inside all three segments. Which one did your code use?
         //   Is either answer right?
       });
       display(out);
@@ -3590,7 +3584,7 @@
               [0.25 ──── 0.5]                  … 24 halvings make the gap smaller than 1e-7
     ```
 
-    It's slow but sure, so real solvers use both: a few Newton steps, and bisection when Newton stalls or wanders outside 0 to 1. That's exactly what [WebKit's `UnitBezier`](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h), the code behind Safari's CSS animations, does.
+    It's slow but sure, so real solvers use both. [WebKit's `UnitBezier`](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h), the code behind Safari's CSS animations, takes a first guess from a table of 11 samples, tries up to 4 Newton steps, and bisects if they don't get close enough.
 
     #### Only x has to behave
 
@@ -3896,7 +3890,7 @@
     <details><summary>Answers</summary>
 
     1. 0.6575. Halfway along the curve, two thirds of the time has already gone: `u` is the curve's own parameter, not time. That gap is why `solveBezierX` exists.
-    2. 1.1. A control point pulls the curve toward it but never reaches it, so 1.56 only lifts the peak to about 1.1. The same is true of every Bézier control point, which is why designers drag handles further than the shape they want.
+    2. 1.1. A control point pulls the curve toward it but never reaches it, so 1.56 only lifts the peak to about 1.1. The same is true of every Bézier handle, which is why designers drag handles further than the shape they want.
     3. 0.33. APPLE covers 90% of the move in a third of the time and spends the other two thirds on the last 10%. That long, gentle settle is what makes KineticIntro's words feel like they land rather than stop.
 
     </details>
@@ -3970,7 +3964,7 @@
   </script>
   <script type="text/markdown">
 
-    A curve that's steep in x magnifies small errors in `u`. The precision you need depends on how far things move on screen, which is why the spec asks for 1e-7.
+    A steep curve magnifies small errors in x: APPLE starts out more than six times steeper than a straight line. The precision you need depends on how far things move on screen, which is why the spec asks for 1e-7.
 
     ### Checkpoint
 
@@ -4032,7 +4026,7 @@
 
     #### A spring is a rule, not a curve
 
-    Hang a weight on a spring and pull it down. Two forces act on it. The spring pulls it back toward where it wants to rest, harder the further away it is: that's [Hooke's law](https://en.wikipedia.org/wiki/Hooke%27s_law). Friction, called **damping**, pushes against the motion, harder the faster it moves:
+    Picture a weight on a spring, lying on a slippery table. Pull it and let go. Two forces act on it. The spring pulls it back toward where it wants to rest, harder the further away it is: that's [Hooke's law](https://en.wikipedia.org/wiki/Hooke%27s_law). Friction, called **damping**, pushes against the motion, harder the faster it moves:
 
     ```text
       force = −stiffness × (position − target)  −  damping × velocity
@@ -4061,7 +4055,7 @@
 
     Each step pretends the force stays the same for `dt` seconds. That's fine while `dt` is short compared with how fast the spring swings. A spring's natural speed is `ω = √(stiffness ÷ mass)`, in radians per second, and semi-implicit Euler stays stable only while `ω × dt` is below 2. Past that, every step overshoots a little more than the last, and the numbers explode.
 
-    A video frame is far too long a step: at 30 fps, `dt` is 33 ms, so any spring stiffer than about 3,600 (with mass 1) blows up. This layer steps every **1 ms** instead, and frame `n` is however many whole milliseconds have passed by then. Notice what that costs: because frame = f(n), working out frame 90 means simulating all 3,000 steps from the start, every time.
+    A video frame is far too long a step: at 30 fps, `dt` is 33 ms, so any spring stiffer than about 3,600 (with mass 1) blows up. This layer steps every **1 ms** instead, and frame `n` is 1000 × n ÷ fps milliseconds in, rounded to the nearest whole step. Notice what that costs: because frame = f(n), working out frame 90 means simulating all 3,000 steps from the start, every time.
 
     > **Study buddy:** "Ask me questions until I can explain why updating the velocity before the position keeps a frictionless spring from gaining energy. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20updating%20the%20velocity%20before%20the%20position%20keeps%20a%20frictionless%20spring%20from%20gaining%20energy.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20updating%20the%20velocity%20before%20the%20position%20keeps%20a%20frictionless%20spring%20from%20gaining%20energy.%20No%20code.)
 
@@ -4081,7 +4075,7 @@
 
     #### When is it done?
 
-    A spring never quite arrives. Each bounce is smaller than the last, but it never reaches exactly zero. So "done" needs a definition: the spring has **settled** at the first frame from which it stays within some small distance of its target for good. Remotion's [`measureSpring()`](https://www.remotion.dev/docs/measure-spring) uses half a percent of the distance travelled, and so does `settleFrame`. "Stays" matters: a bouncy spring can pass through the target zone on its way back out.
+    A spring never quite arrives. Each bounce is smaller than the last, but it never reaches exactly zero. So "done" needs a definition: the spring has **settled** at the first frame from which it stays within some small distance of its target for good. Remotion's [`measureSpring()`](https://www.remotion.dev/docs/measure-spring) uses half a percent of the distance from `from` to `to`, and so does `settleFrame`. "Stays" matters: a bouncy spring can pass through the target zone on its way back out.
 
     ### Your turn
 
@@ -4331,10 +4325,10 @@
     {
       const out = document.createElement("pre");
       out.textContent = MS.runExperimentFn(() => {
-        // Predict 2: with damping 20 instead of 10, does the spring ever go past 1?
+        // Predict 2: with damping 18 instead of 10, does the spring ever go past 1?
         const myGuess = null; // TODO: true or false
         let passes = false;
-        for (let n = 0; n <= 300; n++) if (MS.spring({ frame: n, fps: 30, config: { damping: 20 } }) > 1) passes = true;
+        for (let n = 0; n <= 300; n++) if (MS.spring({ frame: n, fps: 30, config: { damping: 18 } }) > 1) passes = true;
         MS.reveal("goes past 1", myGuess, passes);
       });
       display(out);
@@ -4358,7 +4352,7 @@
     <details><summary>Answers</summary>
 
     1. 1.16. With ζ = 0.5, the default spring overshoots by 16% before settling back. There's a formula for the first overshoot, `e^(−πζ ÷ √(1 − ζ²))`, and it gives 0.163.
-    2. false. Damping 20 makes ζ exactly 1: critically damped, the fastest a spring can arrive without ever passing its target. It creeps up on 1 forever and never crosses it.
+    2. true, but only just: it peaks about a thousandth past 1. Damping 18 makes ζ = 0.9, and anything below 1 overshoots a little. Only from ζ = 1 up does a spring arrive without ever passing its target.
     3. 123, more than four times as long. A heavier mass slows the swing (ω halves) *and* makes it bouncier (ζ halves to 0.25), so it takes longer to swing and more swings to settle.
 
     </details>
@@ -4379,7 +4373,7 @@
         // Break it 1: does the order of the two updates matter?
         // TODO(break-it), in src/06-springs.js → stepSpring:
         //   move the position with the OLD velocity first, then update the velocity.
-        const config = { stiffness: 1000, damping: 0, mass: 1 };   // no friction: it should swing forever, never growing
+        const config = { stiffness: 900, damping: 0, mass: 1 };   // no friction: it should swing forever, never growing
         for (let s = 1; s <= 4; s++) {
           let far = 0;
           for (let n = (s - 1) * 30; n < s * 30; n++) far = Math.max(far, Math.abs(MS.spring({ frame: n, fps: 30, config }) - 1));
@@ -4437,7 +4431,7 @@
 
     ### Checkpoint
 
-    When all 14 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is another freeze-frame of flying dots, this time on springs. Each dot's position is worked out twice, in two ways that must agree, so a spring that's off by even a little shows up as a scattered letter. Its traps: configs with some values missing, a spring that falls instead of rising, frames that aren't a whole number of milliseconds, other frame rates, and a settle frame that has to agree with your spring. The three questions are below.
+    When all 14 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is another freeze-frame of flying dots, this time on springs. Each dot's position is worked out twice, in two ways that must agree, so if your two answers disagree even slightly, that letter scatters. Its traps: configs with some values missing, a spring that falls instead of rising, frames that aren't a whole number of milliseconds, other frame rates, and a settle frame that has to agree with your spring. The three questions are below.
 
 
   </script>
@@ -4445,8 +4439,8 @@
     layer06; // after your code
     // Checkpoint 06 · Springs. Replace each null with your answer.
     MS.answers("06", {
-      // 1. Remotion's default spring has stiffness 100 and mass 1. What damping makes it
-      //    critically damped?
+      // 1. A spring has stiffness 300 and mass 2. What damping makes it critically damped?
+      //    Round to 2 decimals.
       q1: null,
       // 2. How many 1 ms steps does spring() simulate to work out frame 100 at 24 fps?
       q2: null,
@@ -4469,7 +4463,7 @@
 
     ### In the real world
 
-    - Remotion's [`spring()`](https://www.remotion.dev/docs/spring) takes the same config names with the same defaults. Instead of simulating in 1 ms steps, it uses the exact formula for a damped spring, one frame at a time, and lands within about 0.001 of your answer.
+    - Remotion's [`spring()`](https://www.remotion.dev/docs/spring) takes the same config names with the same defaults. Instead of simulating in 1 ms steps, it uses the exact formula for a damped spring, one frame at a time. For bouncy springs it lands within about 0.005 of your answer; it treats overdamped springs as critically damped, so there it disagrees.
     - Apple's SwiftUI describes springs by their *damping fraction*, which is the damping ratio, and CSS can fake a spring by listing many points in a [`linear()`](https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function/linear) easing function.
     - Game engines step their physics in small, fixed time steps for exactly the stability reasons in this chapter, whatever the screen's frame rate: see Glenn Fiedler's ["Fix Your Timestep!"](https://gafferongames.com/post/fix_your_timestep/).
 

@@ -976,7 +976,7 @@ MS.answers("03", {
 <p>Each dot is where the value is after another eighth of the time. Because easing works on <code>t</code>, the start and end don't move: <code>t</code> = 0 still gives the first output and <code>t</code> = 1 the last. Easing only changes <em>when</em> the value gets there. With several keyframes, every segment gets its own trip from 0 to 1, so the easing starts over at each keyframe. Layer 05 builds real easing curves; this layer just calls whatever function it's given.</p>
 <h4 data-anchor="colors-are-four-numbers">Colors are four numbers</h4>
 <p><code>interpolateColors</code> blends colors one channel at a time: red with red, green with green, blue with blue, alpha with alpha, each its own interpolation over the same input range. Two things differ from plain numbers:</p>
-<ul><li><strong>It always clamps.</strong> There's no color past "fully red" to extend into; the channel would leave 0–255.</li><li><strong>It rounds.</strong> A channel is a whole byte. A <code>Uint8ClampedArray</code> would round for you, but it sends exact halves to the nearest <em>even</em> number (layer 00's bonus). Rounding with <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round" target="_blank" rel="noopener"><code>Math.round</code></a> yourself turns 127.5 into 128 every time.</li></ul>
+<ul><li><strong>It always clamps.</strong> There's no color past "fully red" to extend into; the channel would leave 0–255.</li><li><strong>It rounds.</strong> A channel is a whole byte. A <code>Uint8ClampedArray</code> would round for you, but it sends exact halves to the nearest <em>even</em> number (layer 00's bonus). Rounding with <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round" target="_blank" rel="noopener"><code>Math.round</code></a> yourself sends them up instead: 128.5 becomes 129, where a clamped array would give 128.</li></ul>
 <p>Remotion's own <a href="https://www.remotion.dev/docs/interpolate-colors" target="_blank" rel="noopener"><code>interpolateColors()</code></a> works the same way: channel by channel, clamped at both ends, rounded.</p>
 <h3 data-anchor="your-turn">Your turn</h3>
 <p>Work through <code>src/04-interpolate.js</code> top to bottom. Each function's comment is its spec. Some questions to guide you, in order:</p>
@@ -1012,7 +1012,7 @@ MS.reveal("first frame at or past 50", myGuess, n);</textarea>
 <pre class="tryit-out" hidden></pre>
 </div>
 <details><summary>Answers</summary>
-<ol><li>−0.33. Only the right end was clamped, so the left end still extends, backwards along the fade's line to an opacity below zero. This happens for real: KineticIntro shows each word from two frames <em>before</em> its animation starts, and those frames sit before the first keyframe. A browser treats a negative opacity as 0, so you'd never notice here, but a position or a scale has no such safety net. Clamp both ends.</li><li><code>[128, 128, 0, 255]</code>: a dim olive, not the bright yellow you might expect. Each channel is only halfway up, and sRGB numbers aren't proportional to light: a channel at 128 gives off only about a fifth of the light of 255 (see the <a href="https://en.wikipedia.org/wiki/SRGB#Transfer_function_(%22gamma%22" target="_blank" rel="noopener">sRGB transfer function</a>)). Halfway in numbers is much darker than halfway in light. That's why CSS lets you choose where colors get mixed: <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix" target="_blank" rel="noopener"><code>color-mix(in oklab, red, lime)</code></a> blends in a space built to match how bright colors look.</li><li>15. With <code>t × t</code>, the value reaches halfway when <code>t × t</code> = 0.5, so <code>t</code> ≈ 0.71: frame 14.1 of 20. Frame 15 is the first whole frame past it. An eased move can spend most of its time on the first half of the distance; layer 05 makes curves that ease in, out, or both.</li></ol>
+<ol><li>−0.33. Only the right end was clamped, so the left end still extends, backwards along the fade's line to an opacity below zero. This happens for real: KineticIntro shows each word from two frames <em>before</em> its animation starts, and those frames sit before the first keyframe. A browser treats a negative opacity as 0, so you'd never notice here, but a position or a scale has no such safety net. Clamp both ends.</li><li><code>[128, 128, 0, 255]</code>: a dim olive, not the bright yellow you might expect. Each channel is only halfway up, and sRGB numbers aren't proportional to light: a channel at 128 gives off only about a fifth of the light of 255 (see the <a href="https://en.wikipedia.org/wiki/SRGB#Transfer_function_%28%22gamma%22%29" target="_blank" rel="noopener">sRGB transfer function</a>). Halfway in numbers is much darker than halfway in light. That's why CSS lets you choose where colors get mixed: <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix" target="_blank" rel="noopener"><code>color-mix(in oklab, red, lime)</code></a> blends in a space built to match how bright colors look.</li><li>15. With <code>t × t</code>, the value reaches halfway when <code>t × t</code> = 0.5, so <code>t</code> ≈ 0.71: frame 14.1 of 20. Frame 15 is the first whole frame past it. An eased move can spend most of its time on the first half of the distance; layer 05 makes curves that ease in, out, or both.</li></ol>
 </details>
 <h3 data-anchor="break-it">Break it</h3>
 <p>Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.</p>
@@ -1052,7 +1052,7 @@ for (const n of [5, 15, 25]) {
   try { console.log(n + " → " + MS.interpolate(n, keys, [0, 100, 200, 300])); }
   catch (e) { console.log(n + " → " + e.message); }
 }
-// TODO: 15 lies between 0 and 20, and also between 20 and 10. Which segment did your code use?
+// TODO: 15 lies inside all three segments. Which one did your code use?
 //   Is either answer right?</textarea>
 <div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
 <pre class="tryit-out" hidden></pre>
@@ -1143,7 +1143,7 @@ MS.answers("04", {
 <pre class="diagram"><code>  [0 ─────────────────────────────── 1]    x at 0.5 too big?   keep the left half
   [0 ─────────────── 0.5]                  x at 0.25 too small? keep the right half
           [0.25 ──── 0.5]                  … 24 halvings make the gap smaller than 1e-7</code></pre>
-<p>It's slow but sure, so real solvers use both: a few Newton steps, and bisection when Newton stalls or wanders outside 0 to 1. That's exactly what <a href="https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h" target="_blank" rel="noopener">WebKit's <code>UnitBezier</code></a>, the code behind Safari's CSS animations, does.</p>
+<p>It's slow but sure, so real solvers use both. <a href="https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h" target="_blank" rel="noopener">WebKit's <code>UnitBezier</code></a>, the code behind Safari's CSS animations, takes a first guess from a table of 11 samples, tries up to 4 Newton steps, and bisects if they don't get close enough.</p>
 <h4 data-anchor="only-x-has-to-behave">Only x has to behave</h4>
 <p>CSS insists that x1 and x2 stay between 0 and 1, and it rejects the curve otherwise. Outside that range the curve's x can turn around and run backwards, which would mean time running backwards: one moment <code>x</code> would have three different <code>u</code>s and no single answer. That's the same reason layer 04 insisted on increasing keyframes.</p>
 <p>The y values have no such rule. A y control point above 1 makes the value <strong>overshoot</strong> its target and settle back, like <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>; one below 0 makes it back up before it starts, called <strong>anticipation</strong>. Both are old tricks from hand-drawn animation.</p>
@@ -1186,7 +1186,7 @@ MS.reveal("time to cover 90%", myGuess, x);</textarea>
 <pre class="tryit-out" hidden></pre>
 </div>
 <details><summary>Answers</summary>
-<ol><li>0.6575. Halfway along the curve, two thirds of the time has already gone: <code>u</code> is the curve's own parameter, not time. That gap is why <code>solveBezierX</code> exists.</li><li>1.1. A control point pulls the curve toward it but never reaches it, so 1.56 only lifts the peak to about 1.1. The same is true of every Bézier control point, which is why designers drag handles further than the shape they want.</li><li>0.33. APPLE covers 90% of the move in a third of the time and spends the other two thirds on the last 10%. That long, gentle settle is what makes KineticIntro's words feel like they land rather than stop.</li></ol>
+<ol><li>0.6575. Halfway along the curve, two thirds of the time has already gone: <code>u</code> is the curve's own parameter, not time. That gap is why <code>solveBezierX</code> exists.</li><li>1.1. A control point pulls the curve toward it but never reaches it, so 1.56 only lifts the peak to about 1.1. The same is true of every Bézier handle, which is why designers drag handles further than the shape they want.</li><li>0.33. APPLE covers 90% of the move in a third of the time and spends the other two thirds on the last 10%. That long, gentle settle is what makes KineticIntro's words feel like they land rather than stop.</li></ol>
 </details>
 <h3 data-anchor="break-it">Break it</h3>
 <p>Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.</p>
@@ -1225,7 +1225,7 @@ for (const x of [0.05, 0.1, 0.2, 0.4]) console.log("x = " + x + " → a 1920-pix
 <div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
 <pre class="tryit-out" hidden></pre>
 </div>
-<p>A curve that's steep in x magnifies small errors in <code>u</code>. The precision you need depends on how far things move on screen, which is why the spec asks for 1e-7.</p>
+<p>A steep curve magnifies small errors in x: APPLE starts out more than six times steeper than a straight line. The precision you need depends on how far things move on screen, which is why the spec asks for 1e-7.</p>
 <h3 data-anchor="checkpoint">Checkpoint</h3>
 <p>When all 15 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a freeze-frame: dots flying in from scattered places, each on its own easing curve, caught at the instant when they should line up into a word. Its traps: everyday curves, curves that start flat, go flat in the middle or end flat, curves that overshoot, and times outside 0 to 1. The three questions are below.</p>
 <div class="cpcell" data-layer="05">
@@ -1283,7 +1283,7 @@ MS.answers("05", {
 <p>Easing curves are drawn by hand: someone picks four numbers and the motion follows the shape exactly. A spring is different. You describe a physical object, how stiff it is, how much friction it has and how heavy it is, and the motion is whatever physics says happens. That's why spring motion feels alive, and why <a href="https://www.remotion.dev/docs/spring" target="_blank" rel="noopener">Remotion's <code>spring()</code></a> is one of its most-used functions. KineticIntro itself only uses easing curves; springs are the other half of Remotion's motion toolkit. This layer simulates one, step by step, and finds out how small the steps have to be.</p>
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="a-spring-is-a-rule-not-a-curve">A spring is a rule, not a curve</h4>
-<p>Hang a weight on a spring and pull it down. Two forces act on it. The spring pulls it back toward where it wants to rest, harder the further away it is: that's <a href="https://en.wikipedia.org/wiki/Hooke%27s_law" target="_blank" rel="noopener">Hooke's law</a>. Friction, called <strong>damping</strong>, pushes against the motion, harder the faster it moves:</p>
+<p>Picture a weight on a spring, lying on a slippery table. Pull it and let go. Two forces act on it. The spring pulls it back toward where it wants to rest, harder the further away it is: that's <a href="https://en.wikipedia.org/wiki/Hooke%27s_law" target="_blank" rel="noopener">Hooke's law</a>. Friction, called <strong>damping</strong>, pushes against the motion, harder the faster it moves:</p>
 <pre class="diagram"><code>  force = −stiffness × (position − target)  −  damping × velocity
           └──── the spring pulls it back ──┘   └─ friction slows it ─┘
 
@@ -1299,7 +1299,7 @@ MS.answers("05", {
 <p>Both look reasonable, and over one step they barely differ. Over thousands of steps, explicit Euler quietly adds energy every time: a spring with no friction swings a little wider each second, forever. <a href="https://en.wikipedia.org/wiki/Semi-implicit_Euler_method" target="_blank" rel="noopener">Semi-implicit Euler</a> keeps the swing the same size, which is why physics engines use it. It costs nothing extra; it's just the right order.</p>
 <h4 data-anchor="how-small-is-small-enough">How small is small enough?</h4>
 <p>Each step pretends the force stays the same for <code>dt</code> seconds. That's fine while <code>dt</code> is short compared with how fast the spring swings. A spring's natural speed is <code>ω = √(stiffness ÷ mass)</code>, in radians per second, and semi-implicit Euler stays stable only while <code>ω × dt</code> is below 2. Past that, every step overshoots a little more than the last, and the numbers explode.</p>
-<p>A video frame is far too long a step: at 30 fps, <code>dt</code> is 33 ms, so any spring stiffer than about 3,600 (with mass 1) blows up. This layer steps every <strong>1 ms</strong> instead, and frame <code>n</code> is however many whole milliseconds have passed by then. Notice what that costs: because frame = f(n), working out frame 90 means simulating all 3,000 steps from the start, every time.</p>
+<p>A video frame is far too long a step: at 30 fps, <code>dt</code> is 33 ms, so any spring stiffer than about 3,600 (with mass 1) blows up. This layer steps every <strong>1 ms</strong> instead, and frame <code>n</code> is 1000 × n ÷ fps milliseconds in, rounded to the nearest whole step. Notice what that costs: because frame = f(n), working out frame 90 means simulating all 3,000 steps from the start, every time.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain why updating the velocity before the position keeps a frictionless spring from gaining energy. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20updating%20the%20velocity%20before%20the%20position%20keeps%20a%20frictionless%20spring%20from%20gaining%20energy.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20updating%20the%20velocity%20before%20the%20position%20keeps%20a%20frictionless%20spring%20from%20gaining%20energy.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="the-damping-ratio">The damping ratio</h4>
 <p>Three numbers describe a spring, but its character comes down to one, the <strong>damping ratio</strong>:</p>
@@ -1310,7 +1310,7 @@ MS.answers("05", {
   ζ above 1   overdamped          creeps in slowly, never overshoots</code></pre>
 <p>Remotion's default spring is stiffness 100, damping 10, mass 1, so ζ = 10 ÷ (2 × 10) = 0.5: a little bouncy.</p>
 <h4 data-anchor="when-is-it-done">When is it done?</h4>
-<p>A spring never quite arrives. Each bounce is smaller than the last, but it never reaches exactly zero. So "done" needs a definition: the spring has <strong>settled</strong> at the first frame from which it stays within some small distance of its target for good. Remotion's <a href="https://www.remotion.dev/docs/measure-spring" target="_blank" rel="noopener"><code>measureSpring()</code></a> uses half a percent of the distance travelled, and so does <code>settleFrame</code>. "Stays" matters: a bouncy spring can pass through the target zone on its way back out.</p>
+<p>A spring never quite arrives. Each bounce is smaller than the last, but it never reaches exactly zero. So "done" needs a definition: the spring has <strong>settled</strong> at the first frame from which it stays within some small distance of its target for good. Remotion's <a href="https://www.remotion.dev/docs/measure-spring" target="_blank" rel="noopener"><code>measureSpring()</code></a> uses half a percent of the distance from <code>from</code> to <code>to</code>, and so does <code>settleFrame</code>. "Stays" matters: a bouncy spring can pass through the target zone on its way back out.</p>
 <h3 data-anchor="your-turn">Your turn</h3>
 <p>Work through <code>src/06-springs.js</code> top to bottom. Each function's comment is its spec. Some questions to guide you, in order:</p>
 <ol><li><strong>springForce.</strong> If the position is past the target, which way should the force point? How do you fill in config values that are missing without losing the ones you were given?</li><li><strong>stepSpring.</strong> Which comes first, the new velocity or the new position? Why must the state you were given stay unchanged? (Think about frame = f(n).)</li><li><strong>spring.</strong> How many 1 ms steps is frame 5 at 24 fps? What should frame 0 give, whatever the config?</li><li><strong>dampingRatio.</strong> What makes ζ exactly 1?</li><li><strong>settleFrame.</strong> If frame 20 is inside the zone but frame 25 is outside, can frame 20 be the answer? Do you need to call <code>spring()</code> for every frame, or can you keep stepping one simulation?</li></ol>
@@ -1329,10 +1329,10 @@ MS.reveal("the highest value", myGuess, Math.round(highest * 100) / 100);</texta
 <pre class="tryit-out" hidden></pre>
 </div>
 <div class="tryit" data-kind="predict" data-layer="06" data-key="06-p2">
-<textarea class="tryit-code" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 2 code">// Predict 2: with damping 20 instead of 10, does the spring ever go past 1?
+<textarea class="tryit-code" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 2 code">// Predict 2: with damping 18 instead of 10, does the spring ever go past 1?
 const myGuess = null; // TODO: true or false
 let passes = false;
-for (let n = 0; n &lt;= 300; n++) if (MS.spring({ frame: n, fps: 30, config: { damping: 20 } }) &gt; 1) passes = true;
+for (let n = 0; n &lt;= 300; n++) if (MS.spring({ frame: n, fps: 30, config: { damping: 18 } }) &gt; 1) passes = true;
 MS.reveal("goes past 1", myGuess, passes);</textarea>
 <div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
 <pre class="tryit-out" hidden></pre>
@@ -1346,7 +1346,7 @@ MS.reveal("settle frame with mass 4", myGuess, MS.settleFrame({ fps: 30, config:
 <pre class="tryit-out" hidden></pre>
 </div>
 <details><summary>Answers</summary>
-<ol><li>1.16. With ζ = 0.5, the default spring overshoots by 16% before settling back. There's a formula for the first overshoot, <code>e^(−πζ ÷ √(1 − ζ²))</code>, and it gives 0.163.</li><li>false. Damping 20 makes ζ exactly 1: critically damped, the fastest a spring can arrive without ever passing its target. It creeps up on 1 forever and never crosses it.</li><li>123, more than four times as long. A heavier mass slows the swing (ω halves) <em>and</em> makes it bouncier (ζ halves to 0.25), so it takes longer to swing and more swings to settle.</li></ol>
+<ol><li>1.16. With ζ = 0.5, the default spring overshoots by 16% before settling back. There's a formula for the first overshoot, <code>e^(−πζ ÷ √(1 − ζ²))</code>, and it gives 0.163.</li><li>true, but only just: it peaks about a thousandth past 1. Damping 18 makes ζ = 0.9, and anything below 1 overshoots a little. Only from ζ = 1 up does a spring arrive without ever passing its target.</li><li>123, more than four times as long. A heavier mass slows the swing (ω halves) <em>and</em> makes it bouncier (ζ halves to 0.25), so it takes longer to swing and more swings to settle.</li></ol>
 </details>
 <h3 data-anchor="break-it">Break it</h3>
 <p>Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.</p>
@@ -1355,7 +1355,7 @@ MS.reveal("settle frame with mass 4", myGuess, MS.settleFrame({ fps: 30, config:
 <textarea class="tryit-code" rows="11" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 1 code">// Break it 1: does the order of the two updates matter?
 // TODO(break-it), in src/06-springs.js → stepSpring:
 //   move the position with the OLD velocity first, then update the velocity.
-const config = { stiffness: 1000, damping: 0, mass: 1 };   // no friction: it should swing forever, never growing
+const config = { stiffness: 900, damping: 0, mass: 1 };   // no friction: it should swing forever, never growing
 for (let s = 1; s &lt;= 4; s++) {
   let far = 0;
   for (let n = (s - 1) * 30; n &lt; s * 30; n++) far = Math.max(far, Math.abs(MS.spring({ frame: n, fps: 30, config }) - 1));
@@ -1389,12 +1389,12 @@ console.log("frame 12 at 24 fps: " + MS.spring({ frame: 12, fps: 24 }).toFixed(4
 <pre class="tryit-out" hidden></pre>
 </div>
 <h3 data-anchor="checkpoint">Checkpoint</h3>
-<p>When all 14 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is another freeze-frame of flying dots, this time on springs. Each dot's position is worked out twice, in two ways that must agree, so a spring that's off by even a little shows up as a scattered letter. Its traps: configs with some values missing, a spring that falls instead of rising, frames that aren't a whole number of milliseconds, other frame rates, and a settle frame that has to agree with your spring. The three questions are below.</p>
+<p>When all 14 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is another freeze-frame of flying dots, this time on springs. Each dot's position is worked out twice, in two ways that must agree, so if your two answers disagree even slightly, that letter scatters. Its traps: configs with some values missing, a spring that falls instead of rising, frames that aren't a whole number of milliseconds, other frame rates, and a settle frame that has to agree with your spring. The three questions are below.</p>
 <div class="cpcell" data-layer="06">
 <textarea class="tryit-code" rows="12" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint 06 answers">// Checkpoint 06 · Springs. Replace each null with your answer.
 MS.answers("06", {
-  // 1. Remotion's default spring has stiffness 100 and mass 1. What damping makes it
-  //    critically damped?
+  // 1. A spring has stiffness 300 and mass 2. What damping makes it critically damped?
+  //    Round to 2 decimals.
   q1: null,
   // 2. How many 1 ms steps does spring() simulate to work out frame 100 at 24 fps?
   q2: null,
@@ -1406,7 +1406,7 @@ MS.answers("06", {
 <div class="cp-result" data-cp-out hidden></div>
 </div>
 <h3 data-anchor="in-the-real-world">In the real world</h3>
-<ul><li>Remotion's <a href="https://www.remotion.dev/docs/spring" target="_blank" rel="noopener"><code>spring()</code></a> takes the same config names with the same defaults. Instead of simulating in 1 ms steps, it uses the exact formula for a damped spring, one frame at a time, and lands within about 0.001 of your answer.</li><li>Apple's SwiftUI describes springs by their <em>damping fraction</em>, which is the damping ratio, and CSS can fake a spring by listing many points in a <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function/linear" target="_blank" rel="noopener"><code>linear()</code></a> easing function.</li><li>Game engines step their physics in small, fixed time steps for exactly the stability reasons in this chapter, whatever the screen's frame rate: see Glenn Fiedler's <a href="https://gafferongames.com/post/fix_your_timestep/" target="_blank" rel="noopener">"Fix Your Timestep!"</a>.</li></ul>
+<ul><li>Remotion's <a href="https://www.remotion.dev/docs/spring" target="_blank" rel="noopener"><code>spring()</code></a> takes the same config names with the same defaults. Instead of simulating in 1 ms steps, it uses the exact formula for a damped spring, one frame at a time. For bouncy springs it lands within about 0.005 of your answer; it treats overdamped springs as critically damped, so there it disagrees.</li><li>Apple's SwiftUI describes springs by their <em>damping fraction</em>, which is the damping ratio, and CSS can fake a spring by listing many points in a <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function/linear" target="_blank" rel="noopener"><code>linear()</code></a> easing function.</li><li>Game engines step their physics in small, fixed time steps for exactly the stability reasons in this chapter, whatever the screen's frame rate: see Glenn Fiedler's <a href="https://gafferongames.com/post/fix_your_timestep/" target="_blank" rel="noopener">"Fix Your Timestep!"</a>.</li></ul>
 <h3 data-anchor="going-further-optional">Going further (optional)</h3>
 <ul><li><strong>Read the original.</strong> Glenn Fiedler's <a href="https://gafferongames.com/post/integration_basics/" target="_blank" rel="noopener">"Integration Basics"</a> compares explicit Euler, semi-implicit Euler and RK4 on a spring, with graphs.</li><li>Replace the simulation with the exact formula for an underdamped spring, <code>to − (to − from) × e^(−ζωt) × (cos(ω_d t) + (ζω ÷ ω_d) × sin(ω_d t))</code> with <code>ω_d = ω√(1 − ζ²)</code>, and compare with your 1 ms answer at frame 10.</li><li>Make <code>spring()</code> fast without breaking frame = f(n): cache states so a later frame can continue from an earlier one, and check you still get the same answer whatever order frames are asked in.</li></ul>
   </div>
@@ -1983,7 +1983,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     "06": {
       "mystery": "d2c3d8d5",
       "questions": {
-        "q1": "1ff44ef7",
+        "q1": "fcf0b317",
         "q2": "1615219e",
         "q3": "bdae1b04"
       }
@@ -2418,20 +2418,14 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     { frames: [2, 3, 5, 7, 10], want: n => sp(n, 30, { config: QUICK }), got: n => sp(2 * n, 60, { config: QUICK }) },
     { frames: [3, 4, 7, 10, 13, 15], want: n => sp(Math.round((1000 * n) / 24), 1000), got: n => sp(n, 24) },
   ];
-  // The last letter checks settleFrame against spring() itself.
-  const SETTLE = { fps: 25, from: 3, to: -2, config: { stiffness: 300, damping: 18 }, threshold: 0.01 };
+  // The last letter checks settleFrame on a spring with every option set.
+  const SETTLE = { fps: 25, from: 3, to: -2, config: { stiffness: 300, damping: 18 }, threshold: 0.01 }, SETTLES_AT = 13;
   const OFFSETS = [];
   for (let dy = -12; dy <= 12; dy++) for (let dx = -12; dx <= 12; dx++) if (Math.abs(dx) + Math.abs(dy) >= 8) OFFSETS.push([dx, dy]);
   shuffle(OFFSETS, 6);
   const px = v => Math.floor(v + 0.5 + 1e-7);
   const STOPS = [[255, 92, 138], [91, 140, 255], [234, 240, 250]];
 
-  function settlesWhere(s) {   // the first frame from which spring() stays close, up to 10 s
-    const limit = s.threshold * Math.abs(s.to - s.from), last = 10 * s.fps;
-    let first = 0;
-    for (let n = 0; n <= last; n++) if (Math.abs(MS.spring({ frame: n, fps: s.fps, from: s.from, to: s.to, config: s.config }) - s.to) > limit) first = n + 1;
-    return first > last ? Infinity : first;
-  }
 
   MS.mystery("06", {
     draw() {
@@ -2440,7 +2434,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
       MS.clearFrame(frame, [11, 13, 18]);
       const scattered = WORD.split("").map(() => 0), failed = [];
       let settled = false;
-      try { settled = MS.settleFrame(SETTLE) === settlesWhere(SETTLE); } catch (e) { failed.push(`settleFrame threw "${e.message}"`); }
+      try { settled = MS.settleFrame(SETTLE) === SETTLES_AT; } catch (e) { failed.push(`settleFrame threw "${e.message}"`); }
       let dot = 0;
       [...WORD].forEach((ch, j) => {
         const color = MS.interpolateColors(j, [0, 2.5, 5], STOPS);
@@ -2473,7 +2467,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
         "The R is scattered: a spring falling from 40 to 10 should move exactly like one rising from 0 to 1, flipped and stretched. Check how from and to are used.",
         "The I is scattered: frame 2n at 60 fps is the same moment as frame n at 30 fps, so it should give the same value.",
         "The N is scattered: at 24 fps, frame n is Math.round(1000 × n ÷ 24) milliseconds in, exactly like that many frames at 1000 fps.",
-        "The G is scattered: settleFrame disagrees with your spring(). It should be the first frame from which spring() stays within threshold × |to − from| of `to`, using the fps, from, to, config and threshold it's given.",
+        "The G is scattered: settleFrame gave the wrong frame for a spring with every option set. It should be the first frame from which spring() stays within threshold × |to − from| of `to`, using the fps, from, to, config and threshold it's given.",
       ];
       scattered.forEach((n, j) => { if (n) hints.push(why[j]); });
       const ok = MS.hashFrame(frame) === data.mystery;
