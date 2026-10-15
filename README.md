@@ -30,7 +30,7 @@ Pick one way to work. Every option has the same chapters, starter code and tests
 | **Interactive guide** | Fastest; nothing to install. Code saves in your browser | [Open the guide](https://nalediym.github.io/motion-from-scratch/guide.html) |
 | **GitHub Codespaces** | A cloud VS Code with a terminal, Node and Claude Code set up; your work lives in git | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nalediym/motion-from-scratch?quickstart=1) |
 | **Google Colab** | A notebook in your Google Drive | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nalediym/motion-from-scratch/blob/main/notebooks/colab.ipynb) |
-| **Your own editor** | Working with Claude Code or Codex as a study buddy | `git clone https://github.com/nalediym/motion-from-scratch` or [download the ZIP](https://github.com/nalediym/motion-from-scratch/archive/refs/heads/main.zip) |
+| **Your own editor** | Working with Claude Code or Codex as a study buddy | `git clone https://github.com/nalediym/motion-from-scratch` |
 | **Jupyter / VS Code** | A local JavaScript notebook (Deno kernel) | [`notebooks/jupyter-deno.ipynb`](notebooks/jupyter-deno.ipynb) |
 | **Observable** | Read and run online; edit locally | [Observable view](https://nalediym.github.io/motion-from-scratch/observable/observable.html) · [`notebooks/observable.html`](notebooks/observable.html) |
 
