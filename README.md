@@ -64,20 +64,21 @@ Stuck? Ask an AI, and it won't do the work for you.
 ## Layout
 
 ```text
-docs/       the chapters
-src/        your code (one file per layer)
-checkpoints/ your checkpoint answers (one file per layer)
-tests/      the tests, plus run.js for the terminal
-lib/        provided helpers: font, test library, PNG writer, page loader, styles
-notebooks/  Colab, Jupyter (Deno) and Observable versions of the course
-tools/      pictures.js for learners; build scripts for maintainers
-index.html  course map, ways to start, and progress
-guide.html  the interactive guide
-tests.html  results and pictures
+docs/          the chapters
+src/           your code (one file per layer)
+checkpoints/   your checkpoint answers (one file per layer)
+tests/         the tests, plus run.js for the terminal
+lib/           provided helpers: font, test library, PNG writer, page loader, styles
+notebooks/     Colab, Jupyter (Deno) and Observable versions of the course
+tools/         try.js, pictures.js and serve.js for you; the scripts that build the site
+scratch.js     your playground for Predict and Break it blocks
+index.html     course map, ways to start, and progress
+guide.html     the interactive guide
+tests.html     results and pictures
 showcase.html  the page Share my engine opens
 ```
 
-**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/build.js` and commit the results; CI checks they're up to date, then publishes the site. To add or revise a layer, see [AUTHORING.md](AUTHORING.md): `tools/new-layer.js` sets one up from templates and `tools/check-layer.js` checks it. Solutions and checkpoint answers stay in a private kit outside the repo.
+**Maintainers:** chapters live only in `docs/`. After editing docs, stubs or tests, run `node tools/build.js` and commit the results; CI checks they're up to date, then publishes the site. Solutions and checkpoint answers are never committed here.
 
 ## Credits
 

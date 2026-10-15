@@ -1,4 +1,4 @@
-// tests/01-shapes.test.js — PROVIDED.
+// tests/01-shapes.test.js — PROVIDED. Read a failing test to see what's expected.
 (function (MS) {
   const L = "01";
   const inked = f => { let n = 0; for (let i = 3; i < f.data.length; i += 4) if (f.data[i]) n++; return n; };

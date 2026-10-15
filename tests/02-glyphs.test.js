@@ -1,4 +1,4 @@
-// tests/02-glyphs.test.js — PROVIDED.
+// tests/02-glyphs.test.js — PROVIDED. Read a failing test to see what's expected.
 (function (MS) {
   const L = "02";
   const W = [255, 255, 255, 255], EMPTY = [0, 0, 0, 0];

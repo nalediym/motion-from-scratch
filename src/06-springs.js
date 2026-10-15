@@ -28,8 +28,8 @@
    * Like Remotion's spring(): where is a spring at `frame`, if it starts at
    * rest at `from` on frame 0 and is pulled toward `to`?
    * Simulate it with stepSpring in steps of 1 ms (dt = 0.001). Frame n is
-   * Math.round(1000 × n ÷ fps) steps from the start. from defaults to 0 and
-   * to to 1; config is passed on as it is.
+   * Math.round(1000 × n ÷ fps) steps from the start. `from` defaults to 0 and
+   * `to` to 1; config is passed on as it is.
    */
   function spring({ frame, fps, from = 0, to = 1, config } = {}) {
     throw MS.todo("spring");

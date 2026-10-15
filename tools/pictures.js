@@ -10,7 +10,7 @@ const path = require("path");
 const vm = require("vm");
 
 const root = path.join(__dirname, "..");
-const layerArg = (process.argv[2] || "").padStart(2, "0");
+const layerArg = process.argv[2] ? process.argv[2].padStart(2, "0") : "";
 const context = vm.createContext({ console, Buffer });
 const load = rel => vm.runInContext(fs.readFileSync(path.join(root, rel), "utf8"), context, { filename: rel });
 load("lib/course.js");

@@ -16,7 +16,7 @@ http.createServer((req, res) => {
   try { rel = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch (e) { res.writeHead(400).end(); return; }
   if (rel.endsWith("/")) rel += "index.html";
   const file = path.join(root, rel);
-  // Never serve dot-folders or a maintainer's private kit/ (see AUTHORING.md).
+  // Never serve dot-folders or a maintainer's private kit/ folder.
   if (!file.startsWith(root + path.sep) || rel.split("/").some(part => part.startsWith(".")) || rel.split("/")[1] === "kit") { res.writeHead(404).end("Not found"); return; }
   fs.readFile(file, (err, body) => {
     if (err) { res.writeHead(404, { "Content-Type": "text/plain" }).end("Not found"); return; }
