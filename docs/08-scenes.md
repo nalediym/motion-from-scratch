@@ -2,11 +2,11 @@
 
 _A scene is a stack of pictures, each with its own clock._
 
-**You'll write:** `drawTextCanvas`, `textSprite`, `sequence`, `series`, `camera`, `renderLayers`, `mulberry32`, `random` in `src/08-scenes.js`
+**You'll write:** `drawTextCanvas`, `textSprite`, `sequence`, `series`, `camera`, `renderLayers` in `src/08-scenes.js`
 **Check it:** `node tests/run.js 08`, or open `tests.html`
 **Builds on:** layers 00–07
 
-KineticIntro is four scenes on one timeline: three words, then the logo. Each word is real text in Inter, the heaviest weight, turned into a picture and then moved, scaled, blurred and faded on its own schedule. This layer builds the parts for that: text from the browser's real fonts, clocks that start and stop, a camera, a stack of layers with effects, and randomness that gives the same answer every time you render.
+KineticIntro is four scenes on one timeline: three words, then the logo. Each word is real text in Inter, the heaviest weight, turned into a picture and then moved, scaled, blurred and faded on its own schedule. This layer builds the parts for that: text from the browser's real fonts, clocks that start and stop, a camera, and a stack of layers with effects.
 
 ## Under the hood
 
@@ -30,7 +30,7 @@ To make a picture that fits the text, you measure first. [`measureText`](https:/
 
 `measureText` also reports `actualBoundingBoxAscent` and `actualBoundingBoxDescent`: the ink of this particular word. "ace" has less ink above its baseline than "Hid", so boxes cut to the ink would put their baselines at different heights. The font's ascent and descent are the same for every word in that font and size, so "DESIGN." and "ANIMATE." get boxes of the same height with their baselines at the same place, and they line up. The pixels come back from [`getImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/getImageData) as straight (not premultiplied) RGBA bytes, row by row: exactly the layout your frames have used since layer 00.
 
-> **Study buddy:** "Ask me questions until I can explain what a font's ascent, descent and baseline are, and why sprites for two different words should use the font's ascent rather than each word's own ink. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code.)
+> **Study buddy:** "Ask me questions until I can explain what a font's ascent, descent and baseline are, and why sprites for two different words should use the font's ascent rather than each word's own ink. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code.)
 
 ### Every layer has its own clock
 
@@ -57,24 +57,9 @@ A scene is drawn like a painting: background first, each layer on top of the one
            own pixels)                        a rectangle)
 ```
 
-Order matters, and CSS has an answer. The [Filter Effects spec](https://www.w3.org/TR/filter-effects-1/#FilterProperty) applies an element's filters "in the element's local coordinate system", before its transform moves it to the screen. So a word with `filter: blur(14px)` and `transform: scale(1.5)` gets a blur 1.5 times as wide. Blurring the sprite first, then transforming it, gives the same result.
+Order matters, and CSS has an answer. The [Filter Effects spec](https://www.w3.org/TR/filter-effects-1/#FilterProperty) applies an element's filters "in the element's local coordinate system", before its transform moves it to the screen. So a word with `filter: blur(10px)` and `transform: scale(2)` gets a blur twice as wide. Blurring the sprite first, then transforming it, gives the same result.
 
 A **clip** is the simplest mask: a rectangle the layer can't paint outside. CSS's `overflow: hidden` is one, and KineticIntro uses it to make each word rise out of an invisible slot.
-
-### Randomness you can replay
-
-`Math.random()` gives a new number every time it's called. A video can't use it: Remotion renders frames in parallel, on several copies of the page at once, and [the docs warn](https://www.remotion.dev/docs/using-randomness) that each tab would get different random numbers, so a star could jump from frame to frame. frame = f(n) needs randomness that's a function too.
-
-Remotion's [`random(seed)`](https://www.remotion.dev/docs/random) is one: the same seed always gives the same number. It turns a string into a 32-bit number with a hash, then scrambles that number with [mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c), a tiny generator by Tommy Ettinger.
-
-### 32-bit math in a 64-bit language
-
-The hash and mulberry32 both work on 32-bit integers, and JavaScript doesn't really have those. Its numbers are 64-bit floats, which hold whole numbers exactly only up to 2⁵³. The bit operators (`^`, `|`, `>>>`) first convert to 32-bit integers, and [`Math.imul`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul) multiplies two 32-bit integers the way a CPU does, keeping the low 32 bits of the answer. Plain `*` works out the full product first, and once that passes 2⁵³ the low bits are already gone.
-
-```text
-  0x7FFFFFFF × 0x7FFFFFFF = 4611686014132420609   (needs 62 bits)
-  as a float:               4611686014132420608   (the low bits are lost)
-```
 
 ## Your turn
 
@@ -86,13 +71,12 @@ Work through `src/08-scenes.js` top to bottom. Each function's comment is its sp
 4. **series.** Where does the second sequence start? If the second one has an offset, where does the third start?
 5. **camera.** Where should the point the camera looks at end up? If the camera turns clockwise, which way should the world turn? You have `translate`, `scale`, `rotate` and `multiply` from layer 07: in which order does a world point need them?
 6. **renderLayers.** When should the blur happen, before or after the matrix? How can you stop a layer from painting outside its clip, using only what you already have?
-7. **mulberry32 and random.** Which steps need `Math.imul`, and what does `>>> 0` do to a negative number?
 
 Run the tests after each function. A failing test tells you exactly what it expected.
 
-Once it works, the test pictures show text sprites with their boxes and baselines (real fonts in a browser, your bitmap font elsewhere), 300 dots scattered by seeded randomness, and three words playing in a series over stars filmed by a drifting camera.
+Once it works, the test pictures show text sprites with their boxes and baselines (real fonts in a browser, your bitmap font elsewhere), one sprite drawn as three layers (faded, blurred before it's scaled up, and seen through a window), and three words playing in a series over stars filmed by a drifting camera.
 
-> **Study buddy:** "Give me a timeline with three sequences and some offsets, and ask me which sequences are on at a few frames, and what each one's own frame number is. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20timeline%20with%20three%20sequences%20and%20some%20offsets%2C%20and%20ask%20me%20which%20sequences%20are%20on%20at%20a%20few%20frames%2C%20and%20what%20each%20one%27s%20own%20frame%20number%20is.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20timeline%20with%20three%20sequences%20and%20some%20offsets%2C%20and%20ask%20me%20which%20sequences%20are%20on%20at%20a%20few%20frames%2C%20and%20what%20each%20one%27s%20own%20frame%20number%20is.%20No%20code.)
+> **Study buddy:** "Give me a timeline with three sequences and some offsets, and ask me which sequences are on at a few frames, and what each one's own frame number is. No code." [Ask Claude](https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20timeline%20with%20three%20sequences%20and%20some%20offsets%2C%20and%20ask%20me%20which%20sequences%20are%20on%20at%20a%20few%20frames%2C%20and%20what%20each%20one%27s%20own%20frame%20number%20is.%20No%20code.) · [Ask ChatGPT](https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20timeline%20with%20three%20sequences%20and%20some%20offsets%2C%20and%20ask%20me%20which%20sequences%20are%20on%20at%20a%20few%20frames%2C%20and%20what%20each%20one%27s%20own%20frame%20number%20is.%20No%20code.)
 
 ## Predict, then run
 
@@ -106,10 +90,12 @@ MS.reveal("on at frame 90", myGuess, MS.sequence(90, 60, 30) !== null);
 ```
 
 ```js predict
-// Predict 2: do a plain multiply and Math.imul agree on this one?
-const myGuess = null; // TODO: true or false
-const a = 0x6D2B79F5;
-MS.reveal("(a * a) | 0 equals Math.imul(a, a)", myGuess, ((a * a) | 0) === Math.imul(a, a));
+// Predict 2: three 30-frame sequences in a series. The second and third each start
+// 6 frames before the previous one ends. At which frame is the last one over?
+const myGuess = null; // TODO: your guess, the first frame it's no longer on
+const parts = MS.series([{ durationInFrames: 30 }, { durationInFrames: 30, offset: -6 }, { durationInFrames: 30, offset: -6 }]);
+const last = parts[parts.length - 1];
+MS.reveal("the series is over at frame", myGuess, last.from + last.durationInFrames);
 ```
 
 ```js predict
@@ -123,7 +109,7 @@ MS.reveal("(30, 10) appears at", myGuess, p.map(v => Math.round(v * 1e6) / 1e6))
 <details><summary>Answers</summary>
 
 1. false. The sequence covers frames 60 to 89: 30 frames. Frame 90 is the first frame after it, the same way an array of length 30 has no index 30, so `sequence(90, 60, 30)` is null.
-2. false. a × a is about 3.4 × 10¹⁸, far past 2⁵³, so the float has already lost its low bits before `| 0` keeps only the low 32. `Math.imul` keeps them exactly. That's the whole reason mulberry32 uses it.
+2. 78. Each overlap pulls its sequence, and everything after it, 6 frames earlier: 3 × 30 − 2 × 6. Offsets add up along a series, which is why one offset can move a whole chain of scenes.
 3. [170, 140]. Half a turn sends (30, 10) to (−30, −10), so the point appears 30 to the left of and 10 above the middle (200, 150). A half turn looks the same whichever way the camera turns; try a quarter turn to tell the two apart.
 
 </details>
@@ -146,17 +132,19 @@ for (const n of [29, 30, 31, 59, 60]) {
 // TODO: before the change, exactly one word is on at every frame. After it, what happens at frames 30 and 60?
 ```
 
-### 2. Multiply with *
+### 2. Turn the world the same way
 
 ```js experiment
-// Break it 2: does Math.imul matter?
-// TODO(break-it), in src/08-scenes.js → mulberry32:
-//   use * instead of Math.imul for both multiplications.
-console.log("random(\"hello\") = " + MS.random("hello") + "   (Remotion says 0.41293257870711386)");
-let low = 0;
-for (let i = 0; i < 1000; i++) if (MS.random("s" + i) < 0.5) low++;
-console.log("below 0.5: " + low + " of 1000");
-// TODO: which line changes? Are the numbers still spread evenly? Would your video still match Remotion's?
+// Break it 2: which way should the world turn?
+// TODO(break-it), in src/08-scenes.js → camera:
+//   turn the world the same way as the camera, not the opposite way.
+const cam = MS.camera({ rotation: Math.PI / 2 }, 200, 100);
+const where = (x, y) => MS.transformPoint(cam, x, y).map(v => Math.round(v)).join(", ");
+console.log("(30, 0), right of what the camera looks at, appears at " + where(30, 0));
+console.log("(0, 30), below what it looks at, appears at " + where(0, 30));
+// TODO: before the change, turning the camera clockwise swings what was on its right up above the middle.
+// Where does it go after? Look at something a little right of center, then tilt your head clockwise
+// (right ear toward your right shoulder): where does it move in your view, and which one matches?
 ```
 
 ### 3. Blur after moving
@@ -176,7 +164,7 @@ console.log(MS.asciiFrame(MS.renderLayers(MS.createFrame(70, 40), [layer])));
 
 ## Checkpoint
 
-When all 22 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, filmed through your own camera. Every dot asks one small question about a rule, and a dot that gets a wrong answer flies off its letter. Text is checked on a pretend canvas, so the picture is the same on every computer. Its traps: sequences that start before frame 0, last one frame, or never end; offsets on the first sequence of a series; cameras turned both ways and zoomed out; seeds with accents in them and huge numbers for mulberry32; layers that are invisible, clipped or blurred; and text that's sized, spaced and measured exactly. The three questions are below.
+When all 19 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, filmed through your own camera. Every dot asks one small question about a rule, and a dot that gets a wrong answer flies off its letter. Text is checked on a pretend canvas, so the picture is the same on every computer. Its traps: sequences that start before frame 0, last one frame, or never end; offsets on the first sequence of a series; cameras turned both ways and zoomed out; layers that are faded, invisible or blurred, and windows that hang off the frame or the sprite; and text that's sized, spaced and measured exactly. The three questions are below.
 
 ```js checkpoint
 // Checkpoint 08 · Scenes. Replace each null with your answer.
@@ -184,8 +172,8 @@ MS.answers("08", {
   // 1. KineticIntro's three words each last 48 frames, and each starts 40 frames after
   //    the one before. As a series, what offset do the second and third words need?
   q1: null,
-  // 2. random() turns a string seed into a whole number before mulberry32 sees it.
-  //    Which number does the string "ab" become?
+  // 2. A layer has blur 14, and its matrix scales it up by 1.5. On the screen, its
+  //    blur looks like a blur of which σ?
   q2: null,
   // 3. A 1080 × 1920 screen. The camera looks at (100, 0) and is turned a quarter turn
   //    clockwise (rotation Math.PI / 2), zoom 1. Where does the world point (0, 0)
@@ -205,4 +193,5 @@ MS.answers("08", {
 
 - **Read the original.** The HTML standard's [text preparation algorithm](https://html.spec.whatwg.org/multipage/canvas.html#text-preparation-algorithm) is what `fillText` and `measureText` run. Look for where `letterSpacing` and `textBaseline` come in.
 - Add `rotate` and a center point to `camera`'s options, and make a camera that orbits a word.
-- Write `noise(x)`: smooth randomness that changes gently as x changes, by blending `random()` values at whole numbers with your easing from layer 05. Use it to make the stars twinkle.
+- **Randomness you can replay.** `Math.random()` breaks frame = f(n): Remotion renders frames in parallel on several copies of the page, and [its docs warn](https://www.remotion.dev/docs/using-randomness) that each copy gets different numbers. Its [`random(seed)`](https://www.remotion.dev/docs/random) is a function instead: a string hash, then one step of [mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c). Write your own from [its source](https://github.com/remotion-dev/remotion/blob/main/packages/core/src/random.ts) until `random("hello")` gives 0.41293257870711386, and work out why it multiplies with [`Math.imul`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul) instead of `*`. Then scatter the test animation's stars with it.
+- Blend `random()` values at whole numbers with your easing from layer 05 into a smooth `noise(x)`, and make the stars twinkle.

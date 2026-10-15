@@ -1,4 +1,4 @@
-// Layer 08 · Scenes — real fonts, sequences, a camera, masks, seeded randomness.
+// Layer 08 · Scenes — real fonts, sequences, a camera, layers and masks.
 // Read the chapter first (docs/08-scenes.md). Each comment below is a spec; the tests check it.
 (function (MS) {
   // Text options, used by both text functions:
@@ -84,32 +84,5 @@
     throw MS.todo("renderLayers");
   }
 
-  /**
-   * mulberry32, one step, exactly as Remotion does it. All of it is 32-bit
-   * integer math: "×" is Math.imul (a 32-bit multiply), ^ | >>> are JavaScript's
-   * bit operators.
-   *   t = a + 0x6D2B79F5
-   *   t = (t ^ (t >>> 15)) × (t | 1)
-   *   t = t ^ (t + (t ^ (t >>> 7)) × (t | 61))
-   *   return ((t ^ (t >>> 14)) >>> 0) ÷ 4294967296      (a number from 0 up to 1)
-   */
-  function mulberry32(a) {
-    throw MS.todo("mulberry32");
-  }
-
-  /**
-   * Remotion's random(seed): the same seed always gives the same number from
-   * 0 up to 1.
-   * - a string: hash it (below), then return mulberry32(hash);
-   * - a number: return mulberry32(seed × 10000000000);
-   * - null: return Math.random() (really random: avoid it in a video);
-   * - anything else: throw an Error.
-   * The hash (Java's String.hashCode): start at 0; for each character,
-   *   hash = (hash × 31 + its char code), kept to a 32-bit integer with | 0.
-   */
-  function random(seed) {
-    throw MS.todo("random");
-  }
-
-  Object.assign(MS, { drawTextCanvas, textSprite, sequence, series, camera, renderLayers, mulberry32, random });
+  Object.assign(MS, { drawTextCanvas, textSprite, sequence, series, camera, renderLayers });
 })(globalThis.MS = globalThis.MS || {});

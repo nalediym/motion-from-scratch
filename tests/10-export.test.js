@@ -121,7 +121,7 @@
   // ---- pictures ----
   const KINDS = [["ftyp", [255, 92, 138]], ["mdat", [91, 140, 255]], ["moov", [120, 130, 150]], ["stbl", [234, 240, 250]], ["stsd", [250, 200, 80]]];
   MS.visual(L, "Every byte of a small MP4 as one pixel: ftyp (pink), mdat (blue), moov (grey), the sample tables (white) and the decoder setup (yellow); white dots mark where key frames start", () => {
-    const chunks = fake(48, { size: i => (i % 12 === 0 ? 140 : 18 + Math.floor(MS.random("size" + i) * 30)), keyEvery: 12 });
+    const chunks = fake(48, { size: i => (i % 12 === 0 ? 140 : 18 + ((i * 17) % 30)), keyEvery: 12 });
     const f = MS.mp4(chunks, { width: 216, height: 384, description: AVCC }), tree = MS.parseMP4(f);
     const W = 96, H = Math.ceil(f.length / W), pic = MS.createFrame(W + 4, H + 4);
     MS.clearFrame(pic, [11, 13, 18]);

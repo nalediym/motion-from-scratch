@@ -216,7 +216,7 @@ You've built, from single pixels up, every piece of a motion-graphics engine. He
 | `cubicBezier` | 05 | [`Easing.bezier()`](https://www.remotion.dev/docs/easing) |
 | `spring` | 06 | [`spring()`](https://www.remotion.dev/docs/spring) |
 | matrices, `drawTransformed`, `blur` | 07 | CSS `transform` and `filter: blur()`, drawn by Chrome |
-| `sequence`, `series`, `random`, `textSprite` | 08 | [`<Sequence>`](https://www.remotion.dev/docs/sequence), [`<Series>`](https://www.remotion.dev/docs/series), [`random()`](https://www.remotion.dev/docs/random), web fonts |
+| `sequence`, `series`, `textSprite` | 08 | [`<Sequence>`](https://www.remotion.dev/docs/sequence), [`<Series>`](https://www.remotion.dev/docs/series), web fonts (and [`random()`](https://www.remotion.dev/docs/random), if you did 08's Going further) |
 | `kineticIntro` | 09 | the KineticIntro component itself |
 | `mp4` | 10 | [`renderMedia()`](https://www.remotion.dev/docs/renderer/render-media), which hands the frames to FFmpeg to encode and package; or, in the browser, [`renderMediaOnWeb()`](https://www.remotion.dev/docs/web-renderer/render-media-on-web), which encodes with WebCodecs like you did |
 

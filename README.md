@@ -7,7 +7,7 @@ No libraries. No install. Just a browser, a text editor, and (if you like) an AI
 ```text
   10  Export          frames → MP4, then map it all to Remotion
   09  KineticIntro    the recreation
-  08  Scenes          real fonts, sequences, camera, masks, randomness
+  08  Scenes          real fonts, sequences, a camera, layers, masks
   07  Transforms      matrices, resampling and blur, by hand
   06  Springs         physics stepping and stability
   05  Easing          a cubic-Bézier solver

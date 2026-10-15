@@ -1653,8 +1653,8 @@ MS.answers("07", {
       <p class="lede">A scene is a stack of pictures, each with its own clock.</p>
       <a class="to-bench" href="#bench-08">Open the workbench ↓</a>
     </header>
-    <p class="meta"><strong>You'll write:</strong> <code>drawTextCanvas</code>, <code>textSprite</code>, <code>sequence</code>, <code>series</code>, <code>camera</code>, <code>renderLayers</code>, <code>mulberry32</code>, <code>random</code> in <code>src/08-scenes.js</code><br><strong>Builds on:</strong> layers 00–07</p>
-<p>KineticIntro is four scenes on one timeline: three words, then the logo. Each word is real text in Inter, the heaviest weight, turned into a picture and then moved, scaled, blurred and faded on its own schedule. This layer builds the parts for that: text from the browser's real fonts, clocks that start and stop, a camera, a stack of layers with effects, and randomness that gives the same answer every time you render.</p>
+    <p class="meta"><strong>You'll write:</strong> <code>drawTextCanvas</code>, <code>textSprite</code>, <code>sequence</code>, <code>series</code>, <code>camera</code>, <code>renderLayers</code> in <code>src/08-scenes.js</code><br><strong>Builds on:</strong> layers 00–07</p>
+<p>KineticIntro is four scenes on one timeline: three words, then the logo. Each word is real text in Inter, the heaviest weight, turned into a picture and then moved, scaled, blurred and faded on its own schedule. This layer builds the parts for that: text from the browser's real fonts, clocks that start and stop, a camera, and a stack of layers with effects.</p>
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="real-text-is-a-picture-the-browser-draws-for-you">Real text is a picture the browser draws for you</h4>
 <p>Layer 02's bitmap font had one size and no curves. Real fonts are outlines, and the browser's text engine turns an outline into pixels, with smooth edges, at any size. You ask for it through a canvas: set <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/font" target="_blank" rel="noopener"><code>ctx.font</code></a>, then call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/fillText" target="_blank" rel="noopener"><code>fillText</code></a>. The font is a string in the same order as CSS's <a href="https://www.w3.org/TR/css-fonts-4/#font-prop" target="_blank" rel="noopener"><code>font</code> shorthand</a>: weight, then size, then family, like <code>"900 150px Inter"</code>.</p>
@@ -1668,7 +1668,7 @@ MS.answers("07", {
    └─────────────────────────────┘  ┘
    ◄────────── width ───────────►</code></pre>
 <p><code>measureText</code> also reports <code>actualBoundingBoxAscent</code> and <code>actualBoundingBoxDescent</code>: the ink of this particular word. "ace" has less ink above its baseline than "Hid", so boxes cut to the ink would put their baselines at different heights. The font's ascent and descent are the same for every word in that font and size, so "DESIGN." and "ANIMATE." get boxes of the same height with their baselines at the same place, and they line up. The pixels come back from <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/getImageData" target="_blank" rel="noopener"><code>getImageData</code></a> as straight (not premultiplied) RGBA bytes, row by row: exactly the layout your frames have used since layer 00.</p>
-<blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain what a font's ascent, descent and baseline are, and why sprites for two different words should use the font's ascent rather than each word's own ink. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
+<blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain what a font's ascent, descent and baseline are, and why sprites for two different words should use the font's ascent rather than each word's own ink. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="every-layer-has-its-own-clock">Every layer has its own clock</h4>
 <p>A scene doesn't care what time the video says it is. It cares how long it has been running. Remotion's <a href="https://www.remotion.dev/docs/sequence" target="_blank" rel="noopener"><code>&lt;Sequence&gt;</code></a> gives each part of a video its own frame counter: inside <code>&lt;Sequence from={30} durationInFrames={20}&gt;</code>, video frame 30 is frame 0, and outside frames 30–49 the sequence isn't drawn at all.</p>
 <pre class="diagram"><code>  video frame:   0 ··· 29  30  31  ···  49  50 ···
@@ -1681,21 +1681,14 @@ MS.answers("07", {
 <pre class="diagram"><code>  sprite ──► blur ──► matrix ──► opacity ──► clip ──► onto the frame
           (in the sprite's       (fade)     (only inside
            own pixels)                        a rectangle)</code></pre>
-<p>Order matters, and CSS has an answer. The <a href="https://www.w3.org/TR/filter-effects-1/#FilterProperty" target="_blank" rel="noopener">Filter Effects spec</a> applies an element's filters "in the element's local coordinate system", before its transform moves it to the screen. So a word with <code>filter: blur(14px)</code> and <code>transform: scale(1.5)</code> gets a blur 1.5 times as wide. Blurring the sprite first, then transforming it, gives the same result.</p>
+<p>Order matters, and CSS has an answer. The <a href="https://www.w3.org/TR/filter-effects-1/#FilterProperty" target="_blank" rel="noopener">Filter Effects spec</a> applies an element's filters "in the element's local coordinate system", before its transform moves it to the screen. So a word with <code>filter: blur(10px)</code> and <code>transform: scale(2)</code> gets a blur twice as wide. Blurring the sprite first, then transforming it, gives the same result.</p>
 <p>A <strong>clip</strong> is the simplest mask: a rectangle the layer can't paint outside. CSS's <code>overflow: hidden</code> is one, and KineticIntro uses it to make each word rise out of an invisible slot.</p>
-<h4 data-anchor="randomness-you-can-replay">Randomness you can replay</h4>
-<p><code>Math.random()</code> gives a new number every time it's called. A video can't use it: Remotion renders frames in parallel, on several copies of the page at once, and <a href="https://www.remotion.dev/docs/using-randomness" target="_blank" rel="noopener">the docs warn</a> that each tab would get different random numbers, so a star could jump from frame to frame. frame = f(n) needs randomness that's a function too.</p>
-<p>Remotion's <a href="https://www.remotion.dev/docs/random" target="_blank" rel="noopener"><code>random(seed)</code></a> is one: the same seed always gives the same number. It turns a string into a 32-bit number with a hash, then scrambles that number with <a href="https://gist.github.com/tommyettinger/46a874533244883189143505d203312c" target="_blank" rel="noopener">mulberry32</a>, a tiny generator by Tommy Ettinger.</p>
-<h4 data-anchor="32-bit-math-in-a-64-bit-language">32-bit math in a 64-bit language</h4>
-<p>The hash and mulberry32 both work on 32-bit integers, and JavaScript doesn't really have those. Its numbers are 64-bit floats, which hold whole numbers exactly only up to 2⁵³. The bit operators (<code>^</code>, <code>|</code>, <code>&gt;&gt;&gt;</code>) first convert to 32-bit integers, and <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul" target="_blank" rel="noopener"><code>Math.imul</code></a> multiplies two 32-bit integers the way a CPU does, keeping the low 32 bits of the answer. Plain <code>*</code> works out the full product first, and once that passes 2⁵³ the low bits are already gone.</p>
-<pre class="diagram"><code>  0x7FFFFFFF × 0x7FFFFFFF = 4611686014132420609   (needs 62 bits)
-  as a float:               4611686014132420608   (the low bits are lost)</code></pre>
 <h3 data-anchor="your-turn">Your turn</h3>
 <p>Work through <code>src/08-scenes.js</code> top to bottom. Each function's comment is its spec. Some questions to guide you, in order:</p>
-<ol><li><strong>drawTextCanvas.</strong> In what order do weight, size and family go? How do you turn an alpha of 0–255 into the 0–1 that <code>rgba()</code> wants?</li><li><strong>textSprite.</strong> Which font must be set before you call <code>measureText</code>? Where's the baseline in the sprite, if there's <code>pad</code> empty pixels above the font's ascent? When <code>MS.createCanvas</code> gives you <code>null</code>, which layer 02 function tells you the width?</li><li><strong>sequence.</strong> For a sequence from frame 30 lasting 20 frames, what's its last frame? Is frame 50 inside?</li><li><strong>series.</strong> Where does the second sequence start? If the second one has an offset, where does the third start?</li><li><strong>camera.</strong> Where should the point the camera looks at end up? If the camera turns clockwise, which way should the world turn? You have <code>translate</code>, <code>scale</code>, <code>rotate</code> and <code>multiply</code> from layer 07: in which order does a world point need them?</li><li><strong>renderLayers.</strong> When should the blur happen, before or after the matrix? How can you stop a layer from painting outside its clip, using only what you already have?</li><li><strong>mulberry32 and random.</strong> Which steps need <code>Math.imul</code>, and what does <code>&gt;&gt;&gt; 0</code> do to a negative number?</li></ol>
+<ol><li><strong>drawTextCanvas.</strong> In what order do weight, size and family go? How do you turn an alpha of 0–255 into the 0–1 that <code>rgba()</code> wants?</li><li><strong>textSprite.</strong> Which font must be set before you call <code>measureText</code>? Where's the baseline in the sprite, if there's <code>pad</code> empty pixels above the font's ascent? When <code>MS.createCanvas</code> gives you <code>null</code>, which layer 02 function tells you the width?</li><li><strong>sequence.</strong> For a sequence from frame 30 lasting 20 frames, what's its last frame? Is frame 50 inside?</li><li><strong>series.</strong> Where does the second sequence start? If the second one has an offset, where does the third start?</li><li><strong>camera.</strong> Where should the point the camera looks at end up? If the camera turns clockwise, which way should the world turn? You have <code>translate</code>, <code>scale</code>, <code>rotate</code> and <code>multiply</code> from layer 07: in which order does a world point need them?</li><li><strong>renderLayers.</strong> When should the blur happen, before or after the matrix? How can you stop a layer from painting outside its clip, using only what you already have?</li></ol>
 <p>Run the tests after each function. A failing test tells you exactly what it expected.</p>
-<p>Once it works, the test pictures show text sprites with their boxes and baselines (real fonts in a browser, your bitmap font elsewhere), 300 dots scattered by seeded randomness, and three words playing in a series over stars filmed by a drifting camera.</p>
-<blockquote class="ask"><strong>Study buddy:</strong> "Give me a timeline with three sequences and some offsets, and ask me which sequences are on at a few frames, and what each one's own frame number is. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20timeline%20with%20three%20sequences%20and%20some%20offsets%2C%20and%20ask%20me%20which%20sequences%20are%20on%20at%20a%20few%20frames%2C%20and%20what%20each%20one%27s%20own%20frame%20number%20is.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20timeline%20with%20three%20sequences%20and%20some%20offsets%2C%20and%20ask%20me%20which%20sequences%20are%20on%20at%20a%20few%20frames%2C%20and%20what%20each%20one%27s%20own%20frame%20number%20is.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
+<p>Once it works, the test pictures show text sprites with their boxes and baselines (real fonts in a browser, your bitmap font elsewhere), one sprite drawn as three layers (faded, blurred before it's scaled up, and seen through a window), and three words playing in a series over stars filmed by a drifting camera.</p>
+<blockquote class="ask"><strong>Study buddy:</strong> "Give me a timeline with three sequences and some offsets, and ask me which sequences are on at a few frames, and what each one's own frame number is. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20timeline%20with%20three%20sequences%20and%20some%20offsets%2C%20and%20ask%20me%20which%20sequences%20are%20on%20at%20a%20few%20frames%2C%20and%20what%20each%20one%27s%20own%20frame%20number%20is.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20timeline%20with%20three%20sequences%20and%20some%20offsets%2C%20and%20ask%20me%20which%20sequences%20are%20on%20at%20a%20few%20frames%2C%20and%20what%20each%20one%27s%20own%20frame%20number%20is.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h3 data-anchor="predict-then-run">Predict, then run</h3>
 <p>Guess first, then run.</p>
 <div class="tryit" data-kind="predict" data-layer="08" data-key="08-p1">
@@ -1707,10 +1700,12 @@ MS.reveal("on at frame 90", myGuess, MS.sequence(90, 60, 30) !== null);</textare
 <pre class="tryit-out" hidden></pre>
 </div>
 <div class="tryit" data-kind="predict" data-layer="08" data-key="08-p2">
-<textarea class="tryit-code" rows="5" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 2 code">// Predict 2: do a plain multiply and Math.imul agree on this one?
-const myGuess = null; // TODO: true or false
-const a = 0x6D2B79F5;
-MS.reveal("(a * a) | 0 equals Math.imul(a, a)", myGuess, ((a * a) | 0) === Math.imul(a, a));</textarea>
+<textarea class="tryit-code" rows="7" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Predict 2 code">// Predict 2: three 30-frame sequences in a series. The second and third each start
+// 6 frames before the previous one ends. At which frame is the last one over?
+const myGuess = null; // TODO: your guess, the first frame it's no longer on
+const parts = MS.series([{ durationInFrames: 30 }, { durationInFrames: 30, offset: -6 }, { durationInFrames: 30, offset: -6 }]);
+const last = parts[parts.length - 1];
+MS.reveal("the series is over at frame", myGuess, last.from + last.durationInFrames);</textarea>
 <div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
 <pre class="tryit-out" hidden></pre>
 </div>
@@ -1724,7 +1719,7 @@ MS.reveal("(30, 10) appears at", myGuess, p.map(v =&gt; Math.round(v * 1e6) / 1e
 <pre class="tryit-out" hidden></pre>
 </div>
 <details><summary>Answers</summary>
-<ol><li>false. The sequence covers frames 60 to 89: 30 frames. Frame 90 is the first frame after it, the same way an array of length 30 has no index 30, so <code>sequence(90, 60, 30)</code> is null.</li><li>false. a × a is about 3.4 × 10¹⁸, far past 2⁵³, so the float has already lost its low bits before <code>| 0</code> keeps only the low 32. <code>Math.imul</code> keeps them exactly. That's the whole reason mulberry32 uses it.</li><li>[170, 140]. Half a turn sends (30, 10) to (−30, −10), so the point appears 30 to the left of and 10 above the middle (200, 150). A half turn looks the same whichever way the camera turns; try a quarter turn to tell the two apart.</li></ol>
+<ol><li>false. The sequence covers frames 60 to 89: 30 frames. Frame 90 is the first frame after it, the same way an array of length 30 has no index 30, so <code>sequence(90, 60, 30)</code> is null.</li><li>78. Each overlap pulls its sequence, and everything after it, 6 frames earlier: 3 × 30 − 2 × 6. Offsets add up along a series, which is why one offset can move a whole chain of scenes.</li><li>[170, 140]. Half a turn sends (30, 10) to (−30, −10), so the point appears 30 to the left of and 10 above the middle (200, 150). A half turn looks the same whichever way the camera turns; try a quarter turn to tell the two apart.</li></ol>
 </details>
 <h3 data-anchor="break-it">Break it</h3>
 <p>Once your tests pass: make each TODO change, run the experiment before and after, explain the difference, then undo it.</p>
@@ -1742,16 +1737,18 @@ for (const n of [29, 30, 31, 59, 60]) {
 <div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
 <pre class="tryit-out" hidden></pre>
 </div>
-<h4 data-anchor="2-multiply-with">2. Multiply with *</h4>
+<h4 data-anchor="2-turn-the-world-the-same-way">2. Turn the world the same way</h4>
 <div class="tryit" data-kind="break" data-layer="08" data-key="08-b2">
-<textarea class="tryit-code" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 2 code">// Break it 2: does Math.imul matter?
-// TODO(break-it), in src/08-scenes.js → mulberry32:
-//   use * instead of Math.imul for both multiplications.
-console.log("random(\"hello\") = " + MS.random("hello") + "   (Remotion says 0.41293257870711386)");
-let low = 0;
-for (let i = 0; i &lt; 1000; i++) if (MS.random("s" + i) &lt; 0.5) low++;
-console.log("below 0.5: " + low + " of 1000");
-// TODO: which line changes? Are the numbers still spread evenly? Would your video still match Remotion's?</textarea>
+<textarea class="tryit-code" rows="11" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Break it 2 code">// Break it 2: which way should the world turn?
+// TODO(break-it), in src/08-scenes.js → camera:
+//   turn the world the same way as the camera, not the opposite way.
+const cam = MS.camera({ rotation: Math.PI / 2 }, 200, 100);
+const where = (x, y) =&gt; MS.transformPoint(cam, x, y).map(v =&gt; Math.round(v)).join(", ");
+console.log("(30, 0), right of what the camera looks at, appears at " + where(30, 0));
+console.log("(0, 30), below what it looks at, appears at " + where(0, 30));
+// TODO: before the change, turning the camera clockwise swings what was on its right up above the middle.
+// Where does it go after? Look at something a little right of center, then tilt your head clockwise
+// (right ear toward your right shoulder): where does it move in your view, and which one matches?</textarea>
 <div class="tryit-actions"><button class="btn" type="button" data-try>Run</button><button class="btn ghost" type="button" data-try-reset>Reset</button></div>
 <pre class="tryit-out" hidden></pre>
 </div>
@@ -1771,15 +1768,15 @@ console.log(MS.asciiFrame(MS.renderLayers(MS.createFrame(70, 40), [layer])));
 <pre class="tryit-out" hidden></pre>
 </div>
 <h3 data-anchor="checkpoint">Checkpoint</h3>
-<p>When all 22 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, filmed through your own camera. Every dot asks one small question about a rule, and a dot that gets a wrong answer flies off its letter. Text is checked on a pretend canvas, so the picture is the same on every computer. Its traps: sequences that start before frame 0, last one frame, or never end; offsets on the first sequence of a series; cameras turned both ways and zoomed out; seeds with accents in them and huge numbers for mulberry32; layers that are invisible, clipped or blurred; and text that's sized, spaced and measured exactly. The three questions are below.</p>
+<p>When all 19 tests pass, the checkpoint unlocks (layer 00 explains how it works). The picture is a word made of dots, filmed through your own camera. Every dot asks one small question about a rule, and a dot that gets a wrong answer flies off its letter. Text is checked on a pretend canvas, so the picture is the same on every computer. Its traps: sequences that start before frame 0, last one frame, or never end; offsets on the first sequence of a series; cameras turned both ways and zoomed out; layers that are faded, invisible or blurred, and windows that hang off the frame or the sprite; and text that's sized, spaced and measured exactly. The three questions are below.</p>
 <div class="cpcell" data-layer="08">
 <textarea class="tryit-code" rows="14" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Checkpoint 08 answers">// Checkpoint 08 · Scenes. Replace each null with your answer.
 MS.answers("08", {
   // 1. KineticIntro's three words each last 48 frames, and each starts 40 frames after
   //    the one before. As a series, what offset do the second and third words need?
   q1: null,
-  // 2. random() turns a string seed into a whole number before mulberry32 sees it.
-  //    Which number does the string "ab" become?
+  // 2. A layer has blur 14, and its matrix scales it up by 1.5. On the screen, its
+  //    blur looks like a blur of which σ?
   q2: null,
   // 3. A 1080 × 1920 screen. The camera looks at (100, 0) and is turned a quarter turn
   //    clockwise (rotation Math.PI / 2), zoom 1. Where does the world point (0, 0)
@@ -1792,7 +1789,7 @@ MS.answers("08", {
 <h3 data-anchor="in-the-real-world">In the real world</h3>
 <ul><li>Remotion loads web fonts with <code>loadFont()</code> from <a href="https://www.remotion.dev/docs/google-fonts/load-font" target="_blank" rel="noopener"><code>@remotion/google-fonts</code></a>, which holds the render until the font is ready. Under the hood that's <a href="https://www.remotion.dev/docs/delay-render" target="_blank" rel="noopener"><code>delayRender()</code></a>, the general way to make a render wait for anything asynchronous.</li><li><a href="https://www.remotion.dev/docs/use-current-frame" target="_blank" rel="noopener"><code>useCurrentFrame()</code></a> inside a <code>&lt;Sequence&gt;</code> returns the sequence's own frame, exactly like <code>sequence()</code>. Remotion also has <a href="https://www.remotion.dev/docs/freeze" target="_blank" rel="noopener"><code>&lt;Freeze&gt;</code></a> and <a href="https://www.remotion.dev/docs/loop" target="_blank" rel="noopener"><code>&lt;Loop&gt;</code></a>, which change the frame number in other ways.</li><li>2D engines like <a href="https://pixijs.com/" target="_blank" rel="noopener">PixiJS</a> and game engines keep a scene graph: every object has a matrix relative to its parent, and the camera is one more matrix at the top.</li><li>CSS has many masks: <code>overflow: hidden</code> and <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/clip-path" target="_blank" rel="noopener"><code>clip-path</code></a> cut shapes, and <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/mask-image" target="_blank" rel="noopener"><code>mask-image</code></a> uses a picture's alpha.</li></ul>
 <h3 data-anchor="going-further-optional">Going further (optional)</h3>
-<ul><li><strong>Read the original.</strong> The HTML standard's <a href="https://html.spec.whatwg.org/multipage/canvas.html#text-preparation-algorithm" target="_blank" rel="noopener">text preparation algorithm</a> is what <code>fillText</code> and <code>measureText</code> run. Look for where <code>letterSpacing</code> and <code>textBaseline</code> come in.</li><li>Add <code>rotate</code> and a center point to <code>camera</code>'s options, and make a camera that orbits a word.</li><li>Write <code>noise(x)</code>: smooth randomness that changes gently as x changes, by blending <code>random()</code> values at whole numbers with your easing from layer 05. Use it to make the stars twinkle.</li></ul>
+<ul><li><strong>Read the original.</strong> The HTML standard's <a href="https://html.spec.whatwg.org/multipage/canvas.html#text-preparation-algorithm" target="_blank" rel="noopener">text preparation algorithm</a> is what <code>fillText</code> and <code>measureText</code> run. Look for where <code>letterSpacing</code> and <code>textBaseline</code> come in.</li><li>Add <code>rotate</code> and a center point to <code>camera</code>'s options, and make a camera that orbits a word.</li><li><strong>Randomness you can replay.</strong> <code>Math.random()</code> breaks frame = f(n): Remotion renders frames in parallel on several copies of the page, and <a href="https://www.remotion.dev/docs/using-randomness" target="_blank" rel="noopener">its docs warn</a> that each copy gets different numbers. Its <a href="https://www.remotion.dev/docs/random" target="_blank" rel="noopener"><code>random(seed)</code></a> is a function instead: a string hash, then one step of <a href="https://gist.github.com/tommyettinger/46a874533244883189143505d203312c" target="_blank" rel="noopener">mulberry32</a>. Write your own from <a href="https://github.com/remotion-dev/remotion/blob/main/packages/core/src/random.ts" target="_blank" rel="noopener">its source</a> until <code>random("hello")</code> gives 0.41293257870711386, and work out why it multiplies with <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul" target="_blank" rel="noopener"><code>Math.imul</code></a> instead of <code>*</code>. Then scatter the test animation's stars with it.</li><li>Blend <code>random()</code> values at whole numbers with your easing from layer 05 into a smooth <code>noise(x)</code>, and make the stars twinkle.</li></ul>
   </div>
   <aside class="bench" id="bench-08" aria-label="Layer 08 workbench">
     <div class="bench-head">
@@ -1807,7 +1804,7 @@ MS.answers("08", {
       <button class="btn ghost" type="button" data-reset>Reset to starter code</button>
     </div>
     <p class="bench-confirm" data-confirm hidden>Replace your code with the starter code? <button class="btn ghost" type="button" data-reset-yes>Yes, reset</button> <button class="btn ghost" type="button" data-reset-no>Keep my code</button></p>
-    <p class="help">Stuck? <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Ask Claude</a> · <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20masks%2C%20seeded%20randomness.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Ask ChatGPT</a>
+    <p class="help">Stuck? <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="claude" href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Ask Claude</a> · <a class="tip" data-tip="Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers." data-ask="chatgpt" href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Start%20by%20asking%20what%20I%27m%20working%20on.%20I%27ll%20paste%20my%20code%20and%20test%20output%20next." target="_blank" rel="noopener">Ask ChatGPT</a>
       <span class="level"><span class="tip" tabindex="0" data-tip="How much help a tutor may give you. 1 is questions only; 5 points at the line to look at. The Ask links and Claude in Chrome both follow it.">Hint level</span><span class="dots" role="radiogroup" aria-label="Hint level"><button type="button" role="radio" aria-checked="false" data-level="1" title="1: ask what I expected, what happened and what I've tried" aria-label="Level 1: ask what I expected, what happened and what I've tried"></button><button type="button" role="radio" aria-checked="false" data-level="2" title="2: point at a failing test's expected vs actual values" aria-label="Level 2: point at a failing test's expected vs actual values"></button><button type="button" role="radio" aria-checked="false" data-level="3" title="3: ask a concept question and point to the chapter section" aria-label="Level 3: ask a concept question and point to the chapter section"></button><button type="button" role="radio" aria-checked="false" data-level="4" title="4: explain with an analogy or ASCII diagram, using different numbers" aria-label="Level 4: explain with an analogy or ASCII diagram, using different numbers"></button><button type="button" role="radio" aria-checked="false" data-level="5" title="5: point at the line to look at and ask about it" aria-label="Level 5: point at the line to look at and ask about it"></button></span><span class="level-now" data-hint-level></span></span></p>
     <div class="bench-error" data-error hidden></div>
     <ul class="results" data-results></ul>
@@ -2152,7 +2149,7 @@ MS.answers("10", {
 </div>
 <h3 data-anchor="in-the-real-world">In the real world</h3>
 <p>You've built, from single pixels up, every piece of a motion-graphics engine. Here's where each one lives in Remotion:</p>
-<p>| You wrote | Layer | In Remotion | |---|---|---| | <code>createComposition</code>, <code>renderFrame</code> | 03 | <a href="https://www.remotion.dev/docs/composition" target="_blank" rel="noopener"><code>&lt;Composition&gt;</code></a>, and each frame a headless Chrome renders | | <code>frameAt</code>, <code>MS.play</code> | 03 | <a href="https://www.remotion.dev/docs/player" target="_blank" rel="noopener"><code>&lt;Player&gt;</code></a>, <a href="https://www.remotion.dev/docs/use-current-frame" target="_blank" rel="noopener"><code>useCurrentFrame()</code></a> | | <code>interpolate</code>, <code>interpolateColors</code> | 04 | <a href="https://www.remotion.dev/docs/interpolate" target="_blank" rel="noopener"><code>interpolate()</code></a>, <a href="https://www.remotion.dev/docs/interpolate-colors" target="_blank" rel="noopener"><code>interpolateColors()</code></a> | | <code>cubicBezier</code> | 05 | <a href="https://www.remotion.dev/docs/easing" target="_blank" rel="noopener"><code>Easing.bezier()</code></a> | | <code>spring</code> | 06 | <a href="https://www.remotion.dev/docs/spring" target="_blank" rel="noopener"><code>spring()</code></a> | | matrices, <code>drawTransformed</code>, <code>blur</code> | 07 | CSS <code>transform</code> and <code>filter: blur()</code>, drawn by Chrome | | <code>sequence</code>, <code>series</code>, <code>random</code>, <code>textSprite</code> | 08 | <a href="https://www.remotion.dev/docs/sequence" target="_blank" rel="noopener"><code>&lt;Sequence&gt;</code></a>, <a href="https://www.remotion.dev/docs/series" target="_blank" rel="noopener"><code>&lt;Series&gt;</code></a>, <a href="https://www.remotion.dev/docs/random" target="_blank" rel="noopener"><code>random()</code></a>, web fonts | | <code>kineticIntro</code> | 09 | the KineticIntro component itself | | <code>mp4</code> | 10 | <a href="https://www.remotion.dev/docs/renderer/render-media" target="_blank" rel="noopener"><code>renderMedia()</code></a>, which hands the frames to FFmpeg to encode and package; or, in the browser, <a href="https://www.remotion.dev/docs/web-renderer/render-media-on-web" target="_blank" rel="noopener"><code>renderMediaOnWeb()</code></a>, which encodes with WebCodecs like you did |</p>
+<p>| You wrote | Layer | In Remotion | |---|---|---| | <code>createComposition</code>, <code>renderFrame</code> | 03 | <a href="https://www.remotion.dev/docs/composition" target="_blank" rel="noopener"><code>&lt;Composition&gt;</code></a>, and each frame a headless Chrome renders | | <code>frameAt</code>, <code>MS.play</code> | 03 | <a href="https://www.remotion.dev/docs/player" target="_blank" rel="noopener"><code>&lt;Player&gt;</code></a>, <a href="https://www.remotion.dev/docs/use-current-frame" target="_blank" rel="noopener"><code>useCurrentFrame()</code></a> | | <code>interpolate</code>, <code>interpolateColors</code> | 04 | <a href="https://www.remotion.dev/docs/interpolate" target="_blank" rel="noopener"><code>interpolate()</code></a>, <a href="https://www.remotion.dev/docs/interpolate-colors" target="_blank" rel="noopener"><code>interpolateColors()</code></a> | | <code>cubicBezier</code> | 05 | <a href="https://www.remotion.dev/docs/easing" target="_blank" rel="noopener"><code>Easing.bezier()</code></a> | | <code>spring</code> | 06 | <a href="https://www.remotion.dev/docs/spring" target="_blank" rel="noopener"><code>spring()</code></a> | | matrices, <code>drawTransformed</code>, <code>blur</code> | 07 | CSS <code>transform</code> and <code>filter: blur()</code>, drawn by Chrome | | <code>sequence</code>, <code>series</code>, <code>textSprite</code> | 08 | <a href="https://www.remotion.dev/docs/sequence" target="_blank" rel="noopener"><code>&lt;Sequence&gt;</code></a>, <a href="https://www.remotion.dev/docs/series" target="_blank" rel="noopener"><code>&lt;Series&gt;</code></a>, web fonts (and <a href="https://www.remotion.dev/docs/random" target="_blank" rel="noopener"><code>random()</code></a>, if you did 08's Going further) | | <code>kineticIntro</code> | 09 | the KineticIntro component itself | | <code>mp4</code> | 10 | <a href="https://www.remotion.dev/docs/renderer/render-media" target="_blank" rel="noopener"><code>renderMedia()</code></a>, which hands the frames to FFmpeg to encode and package; or, in the browser, <a href="https://www.remotion.dev/docs/web-renderer/render-media-on-web" target="_blank" rel="noopener"><code>renderMediaOnWeb()</code></a>, which encodes with WebCodecs like you did |</p>
 <ul><li>FFmpeg's <code>-movflags +faststart</code> moves the <code>moov</code> box to the front after writing, the "fast start" from the chapter.</li><li>Files over 4 GB outgrow u32 twice: the <code>mdat</code>'s size no longer fits, so its size field says 1 and a 64-bit size follows the type; and the <code>co64</code> box is <code>stco</code> with 64-bit offsets.</li><li>Streaming video (YouTube, Netflix) uses <strong>fragmented MP4</strong>: many small <code>moof</code> + <code>mdat</code> pairs, each with its own little sample table, so a player can start before the file ends.</li></ul>
 <h3 data-anchor="going-further-optional">Going further (optional)</h3>
 <ul><li><strong>Read the original.</strong> ISO/IEC 14496-12 is long, but its box definitions are short and regular. Find <code>stts</code> and <code>stss</code> in it and compare them with your code. Apple's <a href="https://developer.apple.com/documentation/quicktime-file-format" target="_blank" rel="noopener">QuickTime File Format</a> documentation describes the same boxes as "atoms", with diagrams.</li><li>Make a fast-start file: build the <code>moov</code> first with placeholder offsets, measure it, then fix the offsets. Check it still plays.</li><li>Open your exported file in a hex editor (or <code>xxd</code> in a terminal) and find the <code>moov</code>, the <code>stss</code> and your first key frame by hand.</li></ul>
@@ -2194,7 +2191,7 @@ MS.answers("10", {
       { id: "05", slug: "easing", title: "Easing", builds: "a cubic-Bézier solver", ready: true },
       { id: "06", slug: "springs", title: "Springs", builds: "physics stepping and stability", ready: true },
       { id: "07", slug: "transforms", title: "Transforms & blur", builds: "matrices, resampling and blur", ready: true },
-      { id: "08", slug: "scenes", title: "Scenes", builds: "real fonts, sequences, a camera, masks, seeded randomness", ready: true },
+      { id: "08", slug: "scenes", title: "Scenes", builds: "real fonts, sequences, a camera, layers and masks", ready: true },
       { id: "09", slug: "kinetic-intro", title: "KineticIntro", builds: "the recreation", ready: true },
       { id: "10", slug: "export", title: "Export", builds: "frames to MP4, then map it to Remotion", ready: true },
     ],
@@ -2760,7 +2757,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
       "mystery": "1cdc1c74",
       "questions": {
         "q1": "8e3830da",
-        "q2": "0427b7cf",
+        "q2": "592a400d",
         "q3": "10a256cf"
       }
     },
@@ -3623,9 +3620,9 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
 </script>
 <script type="text/plain" id="mystery-08">// lib/mysteries/08-scenes.js — layer 08's checkpoint picture. PROVIDED.
 // A word made of dots, filmed through your own camera. Every dot asks one
-// small question about a rule (when a sequence is on, where a series starts,
-// where the camera puts things, which random number a seed gives, how layers
-// stack, how text is measured). A dot that gets a wrong answer flies off its
+// small question about a rule (when a sequence is on, where the camera puts
+// things, where a series starts, how a layer fades and is cut by a window, how
+// layers stack, how text is measured). A dot that gets a wrong answer flies off its
 // letter. Every rule right spells a word.
 // Text is checked on a pretend canvas, so the picture never depends on which
 // fonts a computer has.
@@ -3700,32 +3697,56 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
         () => MS.series([]).length === 0,
       ],
     },
-    { // N: random
-      rule: "random(seed) should give exactly Remotion's number (and random(null) a really random one): strings are hashed with 32-bit integer math at every step, numbers are multiplied by 10000000000, and mulberry32 does all its multiplying 32 bits at a time",
-      probes: [
-        () => MS.random("a") === 0.5655837582889944, () => MS.random("seed-42") === 0.013173656072467566, () => MS.random("é") === 0.29089684784412384,
-        () => MS.random(7) === 0.21941731218248606, () => MS.random(-0.25) === 0.1771750277839601, () => MS.mulberry32(7) === 0.011704753153026104,
-        () => MS.mulberry32(2 ** 31) === 0.8205775609239936, () => MS.mulberry32(123456789) === 0.2577907438389957,
-        () => MS.random("a") === MS.random("a"), () => MS.random("a-very-long-seed-string-for-stars") === 0.920754294609651,
-        () => new Set([1, 2, 3, 4].map(() => MS.random(null))).size > 1,
-      ],
-    },
-    { // E: layers
-      rule: "renderLayers draws its layers in order, later ones on top; it blurs a sprite before the matrix moves it, fades it by its opacity, keeps everything outside a clip unchanged, and returns the frame",
+    { // N: fading and windows
+      rule: "a layer's opacity fades it (opacity 0 draws nothing), and its clip is a window in frame pixels: inside it the layer draws as usual, outside it nothing changes, even where the window hangs off the frame or the sprite; a clipped layer keeps its blur; and each layer's fade and window are its own: they leave its sprite and the other layers alone",
       probes: (() => {
         const art = () => { const f = MS.createFrame(7, 5); MS.fillRect(f, 2, 1, 3, 3, [255, 160, 40]); return f; };
         const m = () => MS.multiply(MS.translate(3, 2), MS.scale(1.5));
-        const ref = (fn) => { const f = filled(16, 12, [10, 10, 30]); fn(f); return f; };
+        const ref = fn => { const f = filled(16, 12, [10, 10, 30]); fn(f); return f; };
+        const black = (w, h) => filled(w, h, [0, 0, 0]);
+        const at = (f, x, y) => MS.getPixel(f, x, y);
+        return [
+          () => sameFrame(MS.renderLayers(filled(16, 12, [10, 10, 30]), [{ sprite: art(), matrix: m(), opacity: 0.6 }]), ref(f => MS.drawTransformed(f, art(), m(), 0.6))),
+          () => sameFrame(MS.renderLayers(filled(16, 12, [10, 10, 30]), [{ sprite: art(), matrix: m(), opacity: 0 }]), filled(16, 12, [10, 10, 30])),
+          () => sameFrame(MS.renderLayers(filled(16, 12, [10, 10, 30]), [{ sprite: art(), matrix: MS.translate(5, 4), opacity: 0.25 }]), ref(f => MS.drawTransformed(f, art(), MS.translate(5, 4), 0.25))),
+          () => { const f = MS.renderLayers(black(10, 6), [{ sprite: filled(10, 6, [255, 255, 255]), clip: { x: 2, y: 1, width: 4, height: 3 } }]);
+            return samePixel(at(f, 2, 1), [255, 255, 255, 255]) && samePixel(at(f, 5, 3), [255, 255, 255, 255]) &&
+              samePixel(at(f, 1, 1), [0, 0, 0, 255], 0) && samePixel(at(f, 6, 2), [0, 0, 0, 255], 0) && samePixel(at(f, 3, 4), [0, 0, 0, 255], 0); },
+          () => { const f = MS.renderLayers(black(6, 4), [{ sprite: filled(6, 4, [255, 255, 255]), clip: { x: -2, y: -1, width: 5, height: 4 } }]);
+            return samePixel(at(f, 0, 0), [255, 255, 255, 255]) && samePixel(at(f, 2, 2), [255, 255, 255, 255]) &&
+              samePixel(at(f, 3, 0), [0, 0, 0, 255], 0) && samePixel(at(f, 0, 3), [0, 0, 0, 255], 0) && samePixel(at(f, 5, 1), [0, 0, 0, 255], 0); },
+          () => { const f = MS.renderLayers(black(6, 4), [{ sprite: filled(6, 4, [255, 255, 255]), clip: { x: 4, y: 2, width: 4, height: 4 } }]);
+            return samePixel(at(f, 5, 3), [255, 255, 255, 255]) && samePixel(at(f, 3, 3), [0, 0, 0, 255], 0) && samePixel(at(f, 0, 3), [0, 0, 0, 255], 0); },
+          () => { const f = MS.renderLayers(black(10, 6), [{ sprite: filled(3, 3, [255, 255, 255]), matrix: MS.translate(4, 1), clip: { x: 3, y: 0, width: 3, height: 6 } }]);
+            return samePixel(at(f, 4, 1), [255, 255, 255, 255]) && samePixel(at(f, 5, 3), [255, 255, 255, 255]) &&
+              samePixel(at(f, 6, 1), [0, 0, 0, 255], 0) && samePixel(at(f, 3, 2), [0, 0, 0, 255], 0); },
+          () => { const f = MS.renderLayers(black(8, 4), [{ sprite: filled(8, 4, [255, 255, 255]), opacity: 0.5, clip: { x: 0, y: 0, width: 4, height: 4 } }]);
+            return samePixel(at(f, 1, 1), [128, 128, 128, 255]) && samePixel(at(f, 5, 1), [0, 0, 0, 255], 0); },
+          () => { const s = MS.createFrame(9, 9); MS.fillRect(s, 3, 3, 3, 3, [255, 255, 255]); const want = black(9, 9); MS.drawTransformed(want, MS.blur(s, 1.5), [1, 0, 0, 1, 0, 0]);
+            const f = MS.renderLayers(black(9, 9), [{ sprite: s, blur: 1.5, clip: { x: 0, y: 0, width: 5, height: 9 } }]);
+            return samePixel(at(f, 2, 4), at(want, 2, 4)) && samePixel(at(f, 6, 4), [0, 0, 0, 255], 0); },
+          () => { const s = filled(2, 2, [255, 255, 255]);
+            const f = MS.renderLayers(black(9, 2), [{ sprite: s }, { sprite: s, matrix: MS.translate(3, 0), opacity: 0.5, clip: { x: 3, y: 0, width: 1, height: 2 } }, { sprite: s, matrix: MS.translate(6, 0) }]);
+            return samePixel(at(f, 0, 0), [255, 255, 255, 255], 0) && samePixel(at(f, 3, 0), [128, 128, 128, 255]) && samePixel(at(f, 4, 0), [0, 0, 0, 255], 0) &&
+              samePixel(at(f, 7, 1), [255, 255, 255, 255], 0) && samePixel(MS.getPixel(s, 0, 0), [255, 255, 255, 255], 0); },
+        ];
+      })(),
+    },
+    { // E: stacking
+      rule: "renderLayers draws its layers in order, later ones on top, puts a layer with no matrix where it is, blurs a sprite before the matrix moves it, and returns the frame it drew on",
+      probes: (() => {
+        const art = () => { const f = MS.createFrame(7, 5); MS.fillRect(f, 2, 1, 3, 3, [255, 160, 40]); return f; };
+        const m = () => MS.multiply(MS.translate(3, 2), MS.scale(1.5));
+        const ref = fn => { const f = filled(16, 12, [10, 10, 30]); fn(f); return f; };
         return [
           () => sameFrame(MS.renderLayers(filled(16, 12, [10, 10, 30]), [{ sprite: art(), matrix: m(), blur: 1.2 }]), ref(f => MS.drawTransformed(f, MS.blur(art(), 1.2), m()))),
-          () => sameFrame(MS.renderLayers(filled(16, 12, [10, 10, 30]), [{ sprite: art(), matrix: m(), opacity: 0.6 }]), ref(f => MS.drawTransformed(f, art(), m(), 0.6))),
+          () => sameFrame(MS.renderLayers(filled(16, 12, [10, 10, 30]), [{ sprite: art(), matrix: MS.scale(2), blur: 0.7 }]), ref(f => MS.drawTransformed(f, MS.blur(art(), 0.7), MS.scale(2)))),
           () => sameFrame(MS.renderLayers(filled(16, 12, [10, 10, 30]), [{ sprite: art() }, { sprite: filled(2, 2, [0, 255, 0]), matrix: MS.translate(3, 2) }]),
             ref(f => { MS.drawTransformed(f, art(), [1, 0, 0, 1, 0, 0]); MS.drawTransformed(f, filled(2, 2, [0, 255, 0]), MS.translate(3, 2)); })),
-          () => sameFrame(MS.renderLayers(filled(16, 12, [10, 10, 30]), [{ sprite: art(), matrix: m(), opacity: 0 }]), filled(16, 12, [10, 10, 30])),
-          () => { const f = MS.renderLayers(filled(10, 6, [0, 0, 0]), [{ sprite: filled(10, 6, [255, 255, 255]), clip: { x: 2, y: 1, width: 4, height: 3 } }]);
-            return samePixel(MS.getPixel(f, 2, 1), [255, 255, 255, 255]) && samePixel(MS.getPixel(f, 5, 3), [255, 255, 255, 255]) &&
-              samePixel(MS.getPixel(f, 1, 1), [0, 0, 0, 255], 0) && samePixel(MS.getPixel(f, 6, 2), [0, 0, 0, 255], 0) && samePixel(MS.getPixel(f, 3, 4), [0, 0, 0, 255], 0); },
+          () => { const f = MS.renderLayers(filled(4, 4, [0, 0, 0]), [{ sprite: filled(4, 4, [255, 0, 0]) }, { sprite: filled(4, 4, [0, 0, 255]) }, { sprite: filled(2, 2, [0, 255, 0]), matrix: MS.translate(1, 1) }]);
+            return samePixel(MS.getPixel(f, 0, 0), [0, 0, 255, 255], 0) && samePixel(MS.getPixel(f, 2, 2), [0, 255, 0, 255], 0); },
           () => { const f = filled(4, 4, [0, 0, 0]); return MS.renderLayers(f, []) === f; },
+          () => { const f = filled(4, 4, [0, 0, 0]); return MS.renderLayers(f, [{ sprite: filled(1, 1, [9, 9, 9]) }]) === f; },
         ];
       })(),
     },
@@ -4603,7 +4624,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   Object.assign(MS, { translate, scale, rotate, multiply, transformPoint, invert, drawTransformed, boxBlur, blur });
 })(globalThis.MS = globalThis.MS || {});
 </script>
-<script type="text/plain" id="stub-08">// Layer 08 · Scenes — real fonts, sequences, a camera, masks, seeded randomness.
+<script type="text/plain" id="stub-08">// Layer 08 · Scenes — real fonts, sequences, a camera, layers and masks.
 // Read the chapter first (docs/08-scenes.md). Each comment below is a spec; the tests check it.
 (function (MS) {
   // Text options, used by both text functions:
@@ -4689,34 +4710,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     throw MS.todo("renderLayers");
   }
 
-  /**
-   * mulberry32, one step, exactly as Remotion does it. All of it is 32-bit
-   * integer math: "×" is Math.imul (a 32-bit multiply), ^ | >>> are JavaScript's
-   * bit operators.
-   *   t = a + 0x6D2B79F5
-   *   t = (t ^ (t >>> 15)) × (t | 1)
-   *   t = t ^ (t + (t ^ (t >>> 7)) × (t | 61))
-   *   return ((t ^ (t >>> 14)) >>> 0) ÷ 4294967296      (a number from 0 up to 1)
-   */
-  function mulberry32(a) {
-    throw MS.todo("mulberry32");
-  }
-
-  /**
-   * Remotion's random(seed): the same seed always gives the same number from
-   * 0 up to 1.
-   * - a string: hash it (below), then return mulberry32(hash);
-   * - a number: return mulberry32(seed × 10000000000);
-   * - null: return Math.random() (really random: avoid it in a video);
-   * - anything else: throw an Error.
-   * The hash (Java's String.hashCode): start at 0; for each character,
-   *   hash = (hash × 31 + its char code), kept to a 32-bit integer with | 0.
-   */
-  function random(seed) {
-    throw MS.todo("random");
-  }
-
-  Object.assign(MS, { drawTextCanvas, textSprite, sequence, series, camera, renderLayers, mulberry32, random });
+  Object.assign(MS, { drawTextCanvas, textSprite, sequence, series, camera, renderLayers });
 })(globalThis.MS = globalThis.MS || {});
 </script>
 <script type="text/plain" id="stub-09">// Layer 09 · KineticIntro — the recreation.
@@ -6218,30 +6212,6 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     for (const [x, y] of [[9, 9], [6, 10], [3, 3], [12, 16]]) t.deep(MS.getPixel(got, x, y), MS.getPixel(want, x, y), `pixel (${x}, ${y})`);
   });
 
-  MS.test(L, "mulberry32 turns a whole number into a number from 0 up to 1, the same one every time", t => {
-    t.eq(MS.mulberry32(1), 0.6270739405881613, "seed 1");
-    t.eq(MS.mulberry32(42), 0.6011037519201636, "seed 42");
-    t.eq(MS.mulberry32(-7), 0.43306733411736786, "seed −7");
-    t.eq(MS.mulberry32(42), MS.mulberry32(42), "the same seed again");
-  });
-
-  MS.test(L, "random gives Remotion's numbers for string and number seeds", t => {
-    t.eq(MS.random("hello"), 0.41293257870711386, "random(\"hello\")");
-    t.eq(MS.random("xy"), 0.02979057002812624, "random(\"xy\")");
-    t.eq(MS.random(1), 0.07301638228818774, "random(1)");
-    t.eq(MS.random(0.5), 0.030728988582268357, "random(0.5)");
-    t.eq(MS.random("motion-from-scratch"), 0.9684063496533781, "a long seed: the hash has to stay a 32-bit integer all the way");
-  });
-
-  MS.test(L, "random(null) is truly random; other seeds are mistakes", t => {
-    const r = [1, 2, 3, 4, 5].map(() => MS.random(null));
-    t.ok(r.every(v => typeof v === "number" && v >= 0 && v < 1), "random(null) should be a number from 0 up to 1, got " + r.join(", "));
-    t.ok(new Set(r).size > 1, "five calls to random(null) should not all give the same number");
-    let threw = false;
-    try { MS.random({ seed: 1 }); } catch (e) { threw = true; }
-    t.ok(threw, "random({ seed: 1 }) should throw");
-  });
-
   // ---- pictures ----
   const BG = [11, 13, 18], INK = [234, 240, 250, 255], BLUE = [91, 140, 255, 255], DIM = [60, 70, 90, 255];
 
@@ -6260,13 +6230,18 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
     return f;
   });
 
-  MS.visual(L, "300 dots placed with random(\"x\" + i) and random(\"y\" + i): the same picture every time", () => {
-    const f = MS.createFrame(160, 60);
+  MS.visual(L, "One sprite as three layers: faded, blurred before it's scaled up, and seen through a window", () => {
+    const s = MS.textSprite("Hi", { size: 18, weight: 900, family: "Inter", color: INK, pad: 8 });
+    const f = MS.createFrame(3 * (2 * s.width + 8), 2 * s.height + 8);
     MS.clearFrame(f, BG);
-    for (let i = 0; i < 300; i++) {
-      const c = MS.interpolateColors(MS.random("c" + i), [0, 1], [BLUE, INK]);
-      MS.fillRect(f, Math.floor(MS.random("x" + i) * 160), Math.floor(MS.random("y" + i) * 60), 1, 1, c);
-    }
+    const at = (k, m) => MS.multiply(MS.translate(4 + k * (2 * s.width + 8), 4), m);
+    const X = 4 + 2 * (2 * s.width + 8);   // the third panel: a window over the lower half, like a word rising out of a slot
+    MS.renderLayers(f, [
+      { sprite: s, matrix: at(0, MS.scale(2)), opacity: 0.35 },
+      { sprite: s, matrix: at(1, MS.scale(2)), blur: 1.5 },
+      { sprite: s, matrix: at(2, MS.scale(2)), clip: { x: X, y: 4 + s.height, width: 2 * s.width, height: s.height } },
+    ]);
+    MS.fillRect(f, X, 4 + s.height, 2 * s.width, 1, DIM);
     return f;
   });
 
@@ -6281,7 +6256,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
         MS.clearFrame(frame, BG);
         const cam = MS.camera({ x: n * 0.6, y: 0, zoom: 1 + n * 0.002, rotation: Math.sin(n / 30) * 0.05 }, W, H);
         const layers = [];
-        for (let i = 0; i < 60; i++) layers.push({ sprite: star, matrix: MS.multiply(cam, MS.translate(MS.random("sx" + i) * 260 - 80, MS.random("sy" + i) * 90 - 45)), opacity: 0.3 + 0.7 * MS.random("so" + i) });
+        for (let i = 0; i < 60; i++) layers.push({ sprite: star, matrix: MS.multiply(cam, MS.translate(((i * 97) % 260) - 80, ((i * 61) % 90) - 45)), opacity: 0.3 + 0.7 * (((i * 37) % 10) / 10) });
         parts.forEach(({ from, durationInFrames }, i) => {
           const local = MS.sequence(n, from, durationInFrames);
           if (local === null) return;
@@ -6618,7 +6593,7 @@ ${report.mystery.hints.map(x => `<p style="color:#c93636">→ ${esc(x)}</p>`).jo
   // ---- pictures ----
   const KINDS = [["ftyp", [255, 92, 138]], ["mdat", [91, 140, 255]], ["moov", [120, 130, 150]], ["stbl", [234, 240, 250]], ["stsd", [250, 200, 80]]];
   MS.visual(L, "Every byte of a small MP4 as one pixel: ftyp (pink), mdat (blue), moov (grey), the sample tables (white) and the decoder setup (yellow); white dots mark where key frames start", () => {
-    const chunks = fake(48, { size: i => (i % 12 === 0 ? 140 : 18 + Math.floor(MS.random("size" + i) * 30)), keyEvery: 12 });
+    const chunks = fake(48, { size: i => (i % 12 === 0 ? 140 : 18 + ((i * 17) % 30)), keyEvery: 12 });
     const f = MS.mp4(chunks, { width: 216, height: 384, description: AVCC }), tree = MS.parseMP4(f);
     const W = 96, H = Math.ceil(f.length / W), pic = MS.createFrame(W + 4, H + 4);
     MS.clearFrame(pic, [11, 13, 18]);

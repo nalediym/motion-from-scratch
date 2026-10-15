@@ -194,30 +194,6 @@
     for (const [x, y] of [[9, 9], [6, 10], [3, 3], [12, 16]]) t.deep(MS.getPixel(got, x, y), MS.getPixel(want, x, y), `pixel (${x}, ${y})`);
   });
 
-  MS.test(L, "mulberry32 turns a whole number into a number from 0 up to 1, the same one every time", t => {
-    t.eq(MS.mulberry32(1), 0.6270739405881613, "seed 1");
-    t.eq(MS.mulberry32(42), 0.6011037519201636, "seed 42");
-    t.eq(MS.mulberry32(-7), 0.43306733411736786, "seed −7");
-    t.eq(MS.mulberry32(42), MS.mulberry32(42), "the same seed again");
-  });
-
-  MS.test(L, "random gives Remotion's numbers for string and number seeds", t => {
-    t.eq(MS.random("hello"), 0.41293257870711386, "random(\"hello\")");
-    t.eq(MS.random("xy"), 0.02979057002812624, "random(\"xy\")");
-    t.eq(MS.random(1), 0.07301638228818774, "random(1)");
-    t.eq(MS.random(0.5), 0.030728988582268357, "random(0.5)");
-    t.eq(MS.random("motion-from-scratch"), 0.9684063496533781, "a long seed: the hash has to stay a 32-bit integer all the way");
-  });
-
-  MS.test(L, "random(null) is truly random; other seeds are mistakes", t => {
-    const r = [1, 2, 3, 4, 5].map(() => MS.random(null));
-    t.ok(r.every(v => typeof v === "number" && v >= 0 && v < 1), "random(null) should be a number from 0 up to 1, got " + r.join(", "));
-    t.ok(new Set(r).size > 1, "five calls to random(null) should not all give the same number");
-    let threw = false;
-    try { MS.random({ seed: 1 }); } catch (e) { threw = true; }
-    t.ok(threw, "random({ seed: 1 }) should throw");
-  });
-
   // ---- pictures ----
   const BG = [11, 13, 18], INK = [234, 240, 250, 255], BLUE = [91, 140, 255, 255], DIM = [60, 70, 90, 255];
 
@@ -236,13 +212,18 @@
     return f;
   });
 
-  MS.visual(L, "300 dots placed with random(\"x\" + i) and random(\"y\" + i): the same picture every time", () => {
-    const f = MS.createFrame(160, 60);
+  MS.visual(L, "One sprite as three layers: faded, blurred before it's scaled up, and seen through a window", () => {
+    const s = MS.textSprite("Hi", { size: 18, weight: 900, family: "Inter", color: INK, pad: 8 });
+    const f = MS.createFrame(3 * (2 * s.width + 8), 2 * s.height + 8);
     MS.clearFrame(f, BG);
-    for (let i = 0; i < 300; i++) {
-      const c = MS.interpolateColors(MS.random("c" + i), [0, 1], [BLUE, INK]);
-      MS.fillRect(f, Math.floor(MS.random("x" + i) * 160), Math.floor(MS.random("y" + i) * 60), 1, 1, c);
-    }
+    const at = (k, m) => MS.multiply(MS.translate(4 + k * (2 * s.width + 8), 4), m);
+    const X = 4 + 2 * (2 * s.width + 8);   // the third panel: a window over the lower half, like a word rising out of a slot
+    MS.renderLayers(f, [
+      { sprite: s, matrix: at(0, MS.scale(2)), opacity: 0.35 },
+      { sprite: s, matrix: at(1, MS.scale(2)), blur: 1.5 },
+      { sprite: s, matrix: at(2, MS.scale(2)), clip: { x: X, y: 4 + s.height, width: 2 * s.width, height: s.height } },
+    ]);
+    MS.fillRect(f, X, 4 + s.height, 2 * s.width, 1, DIM);
     return f;
   });
 
@@ -257,7 +238,7 @@
         MS.clearFrame(frame, BG);
         const cam = MS.camera({ x: n * 0.6, y: 0, zoom: 1 + n * 0.002, rotation: Math.sin(n / 30) * 0.05 }, W, H);
         const layers = [];
-        for (let i = 0; i < 60; i++) layers.push({ sprite: star, matrix: MS.multiply(cam, MS.translate(MS.random("sx" + i) * 260 - 80, MS.random("sy" + i) * 90 - 45)), opacity: 0.3 + 0.7 * MS.random("so" + i) });
+        for (let i = 0; i < 60; i++) layers.push({ sprite: star, matrix: MS.multiply(cam, MS.translate(((i * 97) % 260) - 80, ((i * 61) % 90) - 45)), opacity: 0.3 + 0.7 * (((i * 37) % 10) / 10) });
         parts.forEach(({ from, durationInFrames }, i) => {
           const local = MS.sequence(n, from, durationInFrames);
           if (local === null) return;
