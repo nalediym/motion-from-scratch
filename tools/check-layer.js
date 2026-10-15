@@ -101,7 +101,7 @@ function checkLayer(MS, layer, kit) {
   failing.length ? bad(`the solution fails: ${failing.map(r => `"${r.name}": ${r.message}`).join("; ")}`) : ok(`the solution passes all ${n} tests`);
   for (const v of k.MS.visuals.filter(v => v.layer === layer.id)) {
     try {
-      if (v.kind === "animation") { const c = v.fn(); k.MS.renderFrame(c, 0); k.MS.renderFrame(c, c.durationInFrames - 1); } else v.fn();
+      if (k.MS.moves(v)) { const c = v.fn(); k.MS.renderFrame(c, 0); k.MS.renderFrame(c, c.durationInFrames - 1); } else v.fn();
     } catch (e) { bad(`picture "${v.name}" throws: ${e.message}`); }
   }
   info("Predict values with the solution (check them against the chapter's Answers):");

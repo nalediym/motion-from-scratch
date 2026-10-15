@@ -4,7 +4,7 @@ For maintainers adding or revising a layer. Learners don't need this file.
 
 ## The private kit
 
-Solutions and checkpoint answers never go in this repo. Keep them in a folder outside it:
+Solutions and checkpoint answers are never committed to this repo. Keep them in a `kit/` folder inside your checkout: `.gitignore` leaves it out, and it can be its own private git repository. The Guard workflow fails any push that tracks a kit file or starter code that passes a test.
 
 ```text
 kit/
@@ -14,7 +14,7 @@ kit/
   answers.json             { "00": { "q1": 172, ... }, "01": { ... } }
 ```
 
-Every tool that needs it takes `--kit path/to/kit`. The repo only ever holds fingerprints of the answers (`lib/checkpoint-data.js`).
+Every tool that needs it takes `--kit kit` (or any other path). The repo only ever holds fingerprints of the answers (`lib/checkpoint-data.js`).
 
 ## What a layer is
 
@@ -30,11 +30,11 @@ Every tool that needs it takes `--kit path/to/kit`. The repo only ever holds fin
 ## Workflow
 
 ```bash
-node tools/new-layer.js 03 --kit ../kit        # files from tools/templates/
+node tools/new-layer.js 03 --kit kit           # files from tools/templates/
 # write the solution, tests and starter code; then the chapter, mystery and questions
 # set ready: true in lib/course.js
-node tools/checkpoint-data.js --kit ../kit     # fingerprints
-node tools/check-layer.js 03 --kit ../kit      # repeat until ✓ all good
+node tools/checkpoint-data.js --kit kit        # fingerprints
+node tools/check-layer.js 03 --kit kit         # repeat until ✓ all good
 node tools/build.js                            # guide, notebooks, checkpoint files, study-buddy links
 ```
 
@@ -70,7 +70,7 @@ Sections, in this order (the checker enforces it): Under the hood, Your turn, Pr
 
 ## Before it ships
 
-1. `node tools/check-layer.js --all --kit ../kit` is all ✓.
+1. `node tools/check-layer.js --all --kit kit` is all ✓.
 2. Review with fresh eyes, each lens separately: the writing (redundancy, spoilers, voice), the pages at desktop and phone width, light and dark, and a first-time learner's walk through the layer.
 3. `node tests/run.js` on the starter code says "not written yet" everywhere and exits non-zero.
 4. Commit. CI checks the generated files are up to date, then publishes the site.

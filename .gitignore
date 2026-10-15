@@ -2,3 +2,7 @@ node_modules/
 .DS_Store
 out/
 notebooks/.observable/
+
+# The private authoring kit (solutions, answers, maintainer tools). See AUTHORING.md.
+# It is its own private repository and must never be committed here.
+kit/

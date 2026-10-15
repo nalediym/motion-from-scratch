@@ -7,15 +7,15 @@ No libraries. No install. Just a browser, a text editor, and (if you like) an AI
 ```text
   10  Export          frames → MP4, then map it all to Remotion
   09  KineticIntro    the recreation
-  08  Scenes          sequences, camera, masks, seeded randomness
-  07  Canvas          transforms + blur by hand, then real fonts
+  08  Scenes          real fonts, sequences, a camera, layers, masks
+  07  Transforms      matrices, resampling and blur, by hand
   06  Springs         physics stepping and stability
   05  Easing          a cubic-Bézier solver
   04  Interpolate     lerp, clamp, ranges, extrapolation
   03  Time            frame = f(n), a player that keeps time
-  02  Glyphs          text from a hand-made bitmap font        ◄ available now
-  01  Shapes          rectangles, circles, alpha, gradients    ◄ available now
-  00  Pixels          a framebuffer: memory you can see        ◄ available now
+  02  Glyphs          text from a hand-made bitmap font
+  01  Shapes          rectangles, circles, alpha, gradients
+  00  Pixels          a framebuffer: memory you can see
       ▲ each layer is built only from the layers below it
 ```
 
