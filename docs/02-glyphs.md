@@ -25,15 +25,16 @@ You're building a bitmap font renderer because it shows the whole pipeline with 
 `lib/font5x7.js` is the font. Every glyph is 7 rows of 5 cells:
 
 ```text
-   MS.FONT_5x7.N  =               drawn at scale 3:
-   [ "#...#",                     ■■■         ■■■
-     "##..#",                     ■■■■■■      ■■■
-     "#.#.#",                     ■■■   ■■■   ■■■
-     "#..##",          ──►        ■■■      ■■■■■■
-     "#...#",                     ■■■         ■■■
-     "#...#",                     ■■■         ■■■
-     "#...#" ]                    ■■■         ■■■
-                                  (each # becomes a 3 × 3 block)
+   MS.FONT_5x7.N  =     drawn at scale 3:
+   [ "#...#",           ■■■         ■■■
+     "##..#",           ■■■■■■      ■■■
+     "#.#.#",           ■■■   ■■■   ■■■
+     "#..##",   ──►     ■■■      ■■■■■■
+     "#...#",           ■■■         ■■■
+     "#...#",           ■■■         ■■■
+     "#...#" ]          ■■■         ■■■
+                        (each # becomes
+                         a 3 × 3 block)
 ```
 
 Reading it is a nested loop: for each row `r`, for each column `c`, if the cell is `#`, fill a `scale × scale` square at `(x + c × scale, y + r × scale)`. Scaling by repeating each pixel as a block like this is called **[nearest-neighbor](https://en.wikipedia.org/wiki/Nearest-neighbor_interpolation)** scaling. It's why pixel art stays crisp.
@@ -43,12 +44,17 @@ Reading it is a nested loop: for each row `r`, for each column `c`, if the cell 
 Text layout is the job of deciding where each glyph goes. Ours is the simplest possible version:
 
 ```text
-   x                                                    one glyph = 5 cells
-   │◄─ 5 ─►│◄1►│◄─ 5 ─►│◄1►│◄─ 5 ─►│                    tracking  = gap between glyphs
+   x
+   │◄─ 5 ─►│◄1►│◄─ 5 ─►│◄1►│◄─ 5 ─►│
    ┌───────┐   ┌───────┐   ┌───────┐
-   │   H   │   │   I   │   │   !   │                    width = 3 × 5 + 2 × 1 = 17 cells
-   └───────┘   └───────┘   └───────┘                          (× scale for pixels)
-   ◄──────────── measureText = 17 ───────────►
+   │   H   │   │   I   │   │   !   │
+   └───────┘   └───────┘   └───────┘
+   ◄─────── measureText = 17 ──────►
+
+   one glyph = 5 cells
+   tracking  = gap between glyphs
+   width     = 3 × 5 + 2 × 1 = 17 cells
+             (× scale for pixels)
 ```
 
 - **Advance** is how far you move right after each glyph: its width plus the tracking.

@@ -113,11 +113,14 @@ body { padding-block: 24px 80px; }
 .tab.soon { opacity: 0.45; }
 .tab[aria-current="true"] { border-color: var(--key); }
 .chapter { max-width: 1240px; margin: 0 auto 72px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 470px); gap: 36px; align-items: start; scroll-margin-top: 12px; }
-.read { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.read { display: flex; flex-direction: column; gap: 16px; min-width: 0; container-type: inline-size; }
 .read h3 { font-size: 1.4rem; margin-top: 18px; }
 .read h4 { font-family: var(--display); font-stretch: 112%; font-size: 1.05rem; margin: 6px 0 0; }
 .read ul, .read ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; max-width: 66ch; }
-.read pre.diagram { background: transparent; border: 1px dashed var(--line); color: var(--ink); }
+.read pre.diagram { background: transparent; border: 1px dashed var(--line); color: var(--ink); --px: 16px; padding-inline: var(--px);
+  /* Shrink a wide diagram until its widest line fits the column (monospace characters are about 0.6em wide), never above 13px. */
+  font-size: clamp(9px, calc((100cqi - 2 * var(--px) - 2px) / (var(--cols, 40) * 0.61)), 13px); }
+@media (max-width: 480px) { .read pre.diagram { --px: 10px; } }
 .read details { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; background: var(--paper); max-width: 66ch; }
 .read details > summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .read details[open] > summary { margin-bottom: 10px; }
@@ -222,13 +225,15 @@ body { padding-block: 24px 80px; }
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="a-pixel-is-three-or-four-numbers">A pixel is three or four numbers</h4>
 <p>Your screen is a grid of tiny lights. Each one mixes red, green and blue light, and how bright each color glows is a number from 0 (off) to 255 (full). Why 255? Each channel gets one <strong><a href="https://en.wikipedia.org/wiki/Byte" target="_blank" rel="noopener">byte</a></strong>: 8 bits, which can hold 2⁸ = 256 different values, 0 through 255.</p>
-<pre class="diagram"><code>  [255,   0,   0]  red          [  0,   0,   0]  black (all off)
-  [255, 255, 255]  white        [ 91, 140, 255]  Motion Studio's blue</code></pre>
+<pre class="diagram" style="--cols:39"><code>  [255,   0,   0]  red
+  [  0,   0,   0]  black (all off)
+  [255, 255, 255]  white
+  [ 91, 140, 255]  Motion Studio's blue</code></pre>
 <p>A fourth number, <strong><a href="https://en.wikipedia.org/wiki/Alpha_compositing" target="_blank" rel="noopener">alpha</a></strong>, says how opaque the pixel is: 255 is solid, 0 is invisible. Alpha doesn't matter yet, but layer 01 is all about it. So one pixel is 4 bytes: <strong>R, G, B, A</strong>.</p>
 <h4 data-anchor="memory-is-one-long-line">Memory is one long line</h4>
 <p>A picture is 2-D, but computer memory is a single long row of bytes. So you have to decide how to lay the grid out in a line. Nearly everything (browsers, image files, GPUs) uses the same answer: <strong>row by row, left to right</strong>, 4 bytes per pixel.</p>
 <p>Here's a frame 4 pixels wide and 3 tall, with each cell showing where that pixel starts in the line:</p>
-<pre class="diagram"><code>            x = 0   x = 1   x = 2   x = 3
+<pre class="diagram" style="--cols:43"><code>            x = 0   x = 1   x = 2   x = 3
           ┌───────┬───────┬───────┬───────┐
   y = 0   │   0   │   4   │   8   │  12   │
           ├───────┼───────┼───────┼───────┤
@@ -237,9 +242,14 @@ body { padding-block: 24px 80px; }
   y = 2   │  32   │  36   │  40   │  44   │
           └───────┴───────┴───────┴───────┘
 
-  data: [ R G B A  R G B A  R G B A  R G B A | R G B A ... ]
-          └ (0,0) ┘└ (1,0) ┘└ (2,0) ┘└ (3,0) ┘ └ (0,1) ...
-          index 0   index 4   index 8   index 12  index 16</code></pre>
+  data (one long line, folded to fit):
+
+  [ R G B A  R G B A  R G B A  R G B A
+    └(0,0)┘  └(1,0)┘  └(2,0)┘  └(3,0)┘
+    index 0  index 4  index 8  index 12
+  | R G B A ... ]
+    └(0,1)┘
+    index 16</code></pre>
 <p>Look at the numbers for a while before writing <code>pixelIndex</code>. Going one step right adds the same amount each time. Going one step down adds a different, bigger amount. What is each amount, and why? If you can say that out loud, the formula writes itself.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Don't give me code. Ask me questions until I can explain what pixelIndex multiplies y by, and why there's a × 4." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Don%27t%20give%20me%20code.%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20pixelIndex%20multiplies%20y%20by%2C%20and%20why%20there%27s%20a%20%C3%97%204." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Don%27t%20give%20me%20code.%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20pixelIndex%20multiplies%20y%20by%2C%20and%20why%20there%27s%20a%20%C3%97%204." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="why-a-uint8clampedarray">Why a Uint8ClampedArray</h4>
@@ -249,20 +259,33 @@ body { padding-block: 24px 80px; }
 <blockquote class="ask"><strong>Study buddy:</strong> "Quiz me on Uint8ClampedArray versus Uint8Array with three predict-the-output questions." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Quiz%20me%20on%20Uint8ClampedArray%20versus%20Uint8Array%20with%20three%20predict-the-output%20questions." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2000%20%28Pixels%29%3A%20a%20framebuffer%3A%20memory%20you%20can%20see.%20Here%27s%20what%20I%20want%20help%20with%3A%20Quiz%20me%20on%20Uint8ClampedArray%20versus%20Uint8Array%20with%20three%20predict-the-output%20questions." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="the-edge-of-the-world">The edge of the world</h4>
 <p>What should happen if someone calls <code>setPixel(frame, 4, 0, ...)</code> on a frame that's 4 pixels wide? There is no column 4. But the index formula will still happily compute a number, and that number lands somewhere real:</p>
-<pre class="diagram"><code>  setPixel(frame, x = 4, y = 0)  on a 4-wide frame
+<pre class="diagram" style="--cols:44"><code>  setPixel(frame, x = 4, y = 0)
+  on a 4-wide frame
 
-          x = 0   x = 1   x = 2   x = 3   (x = 4?)
-  y = 0   ░░░░░░  ░░░░░░  ░░░░░░  ░░░░░░  ← you meant here
-  y = 1   ██████  ░░░░░░  ░░░░░░  ░░░░░░
-          └─ but the formula points here: (0, 1)</code></pre>
+          x = 0  x = 1  x = 2  x = 3  x = 4?
+  y = 0   ░░░░░  ░░░░░  ░░░░░  ░░░░░    ?
+  y = 1   █████  ░░░░░  ░░░░░  ░░░░░    ▲
+          │                             │
+          │          you meant here ────┘
+          └─ but the formula points here:
+             (0, 1)</code></pre>
 <p>This wrap-around bug is real: shapes that hang off the right edge reappear on the left, one row down. <code>setPixel</code> must check bounds itself, and later layers slide things off-screen all the time.</p>
 <h4 data-anchor="getting-it-on-screen">Getting it on screen</h4>
 <p>Your frame is just numbers in memory. To see it, <code>lib/present.js</code> (provided) wraps them in an <a href="https://developer.mozilla.org/en-US/docs/Web/API/ImageData" target="_blank" rel="noopener"><code>ImageData</code></a> and copies them into a <a href="https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API" target="_blank" rel="noopener"><code>&lt;canvas&gt;</code></a> with <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/putImageData" target="_blank" rel="noopener"><code>putImageData</code></a>:</p>
-<pre class="diagram"><code>  your frame.data ──► new ImageData(data, w, h) ──► ctx.putImageData(...)
-        (CPU memory)        (browser wrapper)          │
-                                                       ▼
-                     display ◄── GPU ◄── compositor ◄── canvas
-               (refreshes ~60 times a second)</code></pre>
+<pre class="diagram" style="--cols:43"><code>  your frame.data
+    (CPU memory)
+        │
+        ▼
+  new ImageData(data, w, h)
+    (browser wrapper)
+        │
+        ▼
+  ctx.putImageData(...)
+        │
+        └───────────────────────────────┐
+                                        ▼
+  display ◄── GPU ◄── compositor ◄── canvas
+    (refreshes ~60 times a second)</code></pre>
 <p>You don't need to write that part. The important idea is that the screen only ever shows what's in memory, and drawing just means changing numbers.</p>
 <h3 data-anchor="your-turn">Your turn</h3>
 <p>Work through <code>src/00-pixels.js</code> top to bottom. Each function's comment is its spec. Some questions to guide you, in order:</p>
@@ -402,58 +425,84 @@ MS.answers("00", {
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="colors-as-text-hex">Colors as text: hex</h4>
 <p>Designers write colors like <code>#5B8CFF</code> (the CSS <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/hex-color" target="_blank" rel="noopener">hex color</a> notation). That's three bytes written in base 16 (<a href="https://en.wikipedia.org/wiki/Hexadecimal" target="_blank" rel="noopener">hexadecimal</a>), two digits each:</p>
-<pre class="diagram"><code>   #  5B   8C   FF
-      │    │    └─ blue  = 0xFF = 15×16 + 15 = 255
-      │    └────── green = 0x8C =  8×16 + 12 = 140
-      └─────────── red   = 0x5B =  5×16 + 11 =  91</code></pre>
+<pre class="diagram" style="--cols:44"><code>  # 5B 8C FF
+    │  │  └─ blue  = 0xFF = 15×16 + 15 = 255
+    │  └──── green = 0x8C =  8×16 + 12 = 140
+    └─────── red   = 0x5B =  5×16 + 11 =  91</code></pre>
 <p>JavaScript can read base-16 text for you (look up <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt" target="_blank" rel="noopener"><code>parseInt</code></a>'s second argument, the radix). There are two common approaches: cut the string into three 2-character pieces, or read all six digits as one number and pull bytes out of it with bit shifts (<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift" target="_blank" rel="noopener"><code>&gt;&gt;</code></a>) and masks (<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND" target="_blank" rel="noopener"><code>&amp; 255</code></a>). Either is fine. The second shows you how colors are often packed in memory.</p>
 <h4 data-anchor="rasterizing-which-pixels-does-a-shape-cover">Rasterizing: which pixels does a shape cover?</h4>
 <p>A rectangle from x = 2 to x = 6 is an idea with perfect edges. The screen only has whole pixels. Turning shapes into pixels is called <strong><a href="https://en.wikipedia.org/wiki/Rasterisation" target="_blank" rel="noopener">rasterization</a></strong>, and the rule almost every renderer uses is: <em>a pixel belongs to the shape if its <strong>center</strong> is inside.</em></p>
-<pre class="diagram"><code>        0     1     2     3     4     5     6     7
-     ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
-     │  ·  │  ·  │  ■  │  ■  │  ■  │  ■  │  ·  │  ·  │   rect x = 2 .. 6
-     └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
-                 ↑ centers at 2.5, 3.5, 4.5, 5.5 are inside
-                                         ↑ 6.5 is not</code></pre>
+<pre class="diagram" style="--cols:35"><code>  rect x = 2 .. 6
+
+    0   1   2   3   4   5   6   7
+  ┌───┬───┬───┬───┬───┬───┬───┬───┐
+  │ · │ · │ ■ │ ■ │ ■ │ ■ │ · │ · │
+  └───┴───┴───┴───┴───┴───┴───┴───┘
+            ↑   ↑   ↑   ↑   ↑
+  centers  2.5 3.5 4.5 5.5 6.5
+           └─── inside ──┘ not</code></pre>
 <p>For rectangles, testing centers is the same as rounding the edges, which is what the spec asks for.</p>
 <p>The right edge is <strong>exclusive</strong> (6 is out). This "half-open" rule means two rectangles that share an edge (one from 2 to 6, the next from 6 to 9) meet perfectly, with no gap and no pixel painted twice. You'll see why that matters in <strong>Break it</strong>.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me to predict which pixels fillRect(1.5, 0, 2, 1) covers, then tell me whether my reasoning (not just my answer) was right." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20to%20predict%20which%20pixels%20fillRect%281.5%2C%200%2C%202%2C%201%29%20covers%2C%20then%20tell%20me%20whether%20my%20reasoning%20%28not%20just%20my%20answer%29%20was%20right." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20to%20predict%20which%20pixels%20fillRect%281.5%2C%200%2C%202%2C%201%29%20covers%2C%20then%20tell%20me%20whether%20my%20reasoning%20%28not%20just%20my%20answer%29%20was%20right." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="circles-distance-from-the-center">Circles: distance from the center</h4>
 <p>A pixel is inside a circle if its center is no farther than <code>r</code> from the circle's center. That's Pythagoras: <code>dx² + dy² ≤ r²</code>. (You can skip the square root by comparing squared distances. Why does that give the same answer?)</p>
-<pre class="diagram"><code>          · · · · · · · · ·
-          · · · ■ ■ ■ · · ·         every ■ passes  dx² + dy² ≤ r²
-          · · ■ ■ ■ ■ ■ · ·
-          · · ■ ■ ● ■ ■ · ·         ● = center
-          · · ■ ■ ■ ■ ■ · ·
-          · · · ■ ■ ■ · · ·         ┌─────────┐  only test pixels
-          · · · · · · · · ·         └─────────┘  inside this box</code></pre>
+<pre class="diagram" style="--cols:32"><code>  · · · · · · · · ·
+  · · · ■ ■ ■ · · ·
+  · · ■ ■ ■ ■ ■ · ·
+  · · ■ ■ ● ■ ■ · ·
+  · · ■ ■ ■ ■ ■ · ·
+  · · · ■ ■ ■ · · ·
+  · · · · · · · · ·
+
+  every ■ passes  dx² + dy² ≤ r²
+  ● = center
+  ┌─────────┐  only test pixels
+  └─────────┘  inside this box</code></pre>
 <p>You <em>could</em> test every pixel in the frame. For a small circle on a 1080 × 1920 frame that's 2 million tests to draw maybe 300 pixels. Instead, only visit the circle's <strong>bounding box</strong>: from <code>cx − r</code> to <code>cx + r</code> in each direction.</p>
 <p>Jagged edges like these are called <strong>aliasing</strong>. Real renderers soften them with <strong><a href="https://en.wikipedia.org/wiki/Spatial_anti-aliasing" target="_blank" rel="noopener">antialiasing</a></strong>: a pixel that's 40% covered gets 40% of the color. See <strong>Going further</strong>.</p>
 <h4 data-anchor="alpha-blending-painting-with-see-through-paint">Alpha blending: painting with see-through paint</h4>
 <p>Here's the big one. When you paint a half-transparent red over a blue pixel, the result is a mix. When you paint it over an empty, fully transparent pixel, it should still be red, just see-through.</p>
 <p>This was worked out in 1984 by Thomas Porter and Tom Duff at Lucasfilm, in a paper called <a href="https://keithp.com/~keithp/porterduff/p253-porter.pdf" target="_blank" rel="noopener">"Compositing Digital Images"</a> (SIGGRAPH '84, PDF). It's how film effects layered spaceships over backgrounds, and how every browser layers one element over another. Their "over" operation, with alphas written as 0 to 1:</p>
-<pre class="diagram"><code>  a = alpha of the new color (source)     b = alpha of the existing pixel (destination)
+<pre class="diagram" style="--cols:42"><code>  a = alpha of the new color (source)
+  b = alpha of the old pixel (destination)
 
   outAlpha = a + b × (1 − a)
-  outRGB   = ( newRGB × a  +  oldRGB × b × (1 − a) ) / outAlpha</code></pre>
+  outRGB   = ( newRGB × a
+               + oldRGB × b × (1 − a) )
+             / outAlpha</code></pre>
 <p>Read it as coverage. The new paint covers fraction <code>a</code> of the pixel. Of what's left, <code>(1 − a)</code>, the old pixel covers fraction <code>b</code>. The color is the average of the two, weighted by how much each one covers. The <strong>divide by outAlpha</strong> turns "amount of light" back into "color".</p>
-<pre class="diagram"><code>  50% red over opaque blue:              50% red over nothing:
-  outAlpha = 0.5 + 1 × 0.5 = 1           outAlpha = 0.5 + 0 = 0.5
-  red  = (255×0.5 + 0) / 1   ≈ 128       red  = (255×0.5) / 0.5 = 255   ← still pure red
-  blue = (0 + 255×1×0.5) / 1 ≈ 127       alpha = 0.5 → 128</code></pre>
+<pre class="diagram" style="--cols:44"><code>  50% red over opaque blue:
+  outAlpha = 0.5 + 1 × 0.5 = 1
+  red  = (255×0.5 + 0) / 1   ≈ 128
+  blue = (0 + 255×1×0.5) / 1 ≈ 127
+
+  50% red over nothing:
+  outAlpha = 0.5 + 0 = 0.5
+  red  = (255×0.5) / 0.5 = 255
+                            ↑ still pure red
+  alpha = 0.5 → 128</code></pre>
 <p>Colors stored this way are called <strong>straight alpha</strong>. Many renderers store colors already multiplied by alpha instead (<strong>premultiplied alpha</strong>), because then the formula needs no division. Porter and Duff wrote "over" for premultiplied colors in the paper; the formula above is the same equation with the division put back so it works on straight colors. Browsers follow the <a href="https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcover" target="_blank" rel="noopener">W3C Compositing and Blending spec</a>, which names this operator <strong>source-over</strong>.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Without giving me code, walk me through Porter–Duff 'over' with three cases I can check by hand, then explain straight versus premultiplied alpha with an analogy." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20Without%20giving%20me%20code%2C%20walk%20me%20through%20Porter%E2%80%93Duff%20%27over%27%20with%20three%20cases%20I%20can%20check%20by%20hand%2C%20then%20explain%20straight%20versus%20premultiplied%20alpha%20with%20an%20analogy." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2001%20%28Shapes%20%26%20blending%29%3A%20rectangles%2C%20circles%2C%20alpha%2C%20gradients.%20Here%27s%20what%20I%20want%20help%20with%3A%20Without%20giving%20me%20code%2C%20walk%20me%20through%20Porter%E2%80%93Duff%20%27over%27%20with%20three%20cases%20I%20can%20check%20by%20hand%2C%20then%20explain%20straight%20versus%20premultiplied%20alpha%20with%20an%20analogy." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="gradients-one-color-per-position">Gradients: one color per position</h4>
 <p>A gradient answers one question per pixel: <em>how far along am I, from 0 to 1?</em> Then it mixes the two colors by that amount:</p>
-<pre class="diagram"><code>  mixColor(a, b, t) = a + (b − a) × t      (for each of R, G, B and A)
+<pre class="diagram" style="--cols:37"><code>  mixColor(a, b, t) = a + (b − a) × t
+  (for each of R, G, B and A)
 
-  t = 0          t = 0.25        t = 0.5         t = 0.75        t = 1
-  ██ a           ██              ██ halfway      ██              ██ b</code></pre>
+  t = 0      ██ a
+  t = 0.25   ██
+  t = 0.5    ██ halfway
+  t = 0.75   ██
+  t = 1      ██ b</code></pre>
 <p>A vertical gradient gets <code>t</code> from the row. A radial gradient gets <code>t</code> from distance to a center point. Dividing each axis by its own radius (<code>rx</code>, <code>ry</code>) stretches the circle into an ellipse.</p>
 <p>That's exactly what CSS does: <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/gradient/radial-gradient" target="_blank" rel="noopener"><code>radial-gradient()</code></a>, defined in the <a href="https://www.w3.org/TR/css-images-3/#radial-gradients" target="_blank" rel="noopener">CSS Images spec</a>, which says the first size is the horizontal radius and the second the vertical, each as a percentage of the box. KineticIntro's background is written in CSS as:</p>
-<pre class="diagram"><code>  radial-gradient(70% 60% at 50% 38%, #1A2740, #0B0D12)
-                  └rx  ry┘   └cx  cy┘   inner     outer
-  on a 1080 × 1920 frame:  rx = 756   ry = 1152   cx = 540   cy = 729.6</code></pre>
+<pre class="diagram" style="--cols:37"><code>  radial-gradient(70% 60% at 50% 38%,
+                  └rx ry┘    └cx cy┘
+                  #1A2740, #0B0D12)
+                  └inner┘  └outer┘
+
+  on a 1080 × 1920 frame:
+    rx = 756    ry = 1152
+    cx = 540    cy = 729.6</code></pre>
 <h3 data-anchor="your-turn">Your turn</h3>
 <ol><li><strong>hex.</strong> What should happen with <code>"#FFF"</code>, <code>"blue"</code>, or <code>"#12345G"</code>? A <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions" target="_blank" rel="noopener">regular expression</a> like <code>/^#?[0-9a-f]{6}$/i</code> is one way to check. Can you explain each part of it?</li><li><strong>blendPixel.</strong> Turn both alphas into 0–1 first. Handle the case where <code>outAlpha</code> is 0. What would dividing by 0 put in the pixel?</li><li><strong>fillRect.</strong> Round the four edges, then clip them to the frame <em>before</em> looping. Why is clipping first better than letting <code>blendPixel</code> ignore off-screen pixels?</li><li><strong>fillCircle.</strong> What does your bounding box look like when the circle hangs off the frame?</li><li><strong>mixColor, fillVerticalGradient, fillRadialGradient.</strong> Where is the middle of row <code>y</code>? Why sample there instead of at its top edge?</li></ol>
 <p>Once it works, the test pictures show overlapping blended shapes and KineticIntro's exact background: the first real piece of the recreation.</p>
@@ -609,24 +658,30 @@ MS.answers("01", {
 <blockquote class="ask"><strong>Study buddy:</strong> "Explain how outline fonts get rasterized, connecting it to the pixel-center rule I learned in layer 01." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Explain%20how%20outline%20fonts%20get%20rasterized%2C%20connecting%20it%20to%20the%20pixel-center%20rule%20I%20learned%20in%20layer%2001." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Explain%20how%20outline%20fonts%20get%20rasterized%2C%20connecting%20it%20to%20the%20pixel-center%20rule%20I%20learned%20in%20layer%2001." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="the-font-file">The font file</h4>
 <p><code>lib/font5x7.js</code> is the font. Every glyph is 7 rows of 5 cells:</p>
-<pre class="diagram"><code>   MS.FONT_5x7.N  =               drawn at scale 3:
-   [ "#...#",                     ■■■         ■■■
-     "##..#",                     ■■■■■■      ■■■
-     "#.#.#",                     ■■■   ■■■   ■■■
-     "#..##",          ──►        ■■■      ■■■■■■
-     "#...#",                     ■■■         ■■■
-     "#...#",                     ■■■         ■■■
-     "#...#" ]                    ■■■         ■■■
-                                  (each # becomes a 3 × 3 block)</code></pre>
+<pre class="diagram" style="--cols:41"><code>   MS.FONT_5x7.N  =     drawn at scale 3:
+   [ "#...#",           ■■■         ■■■
+     "##..#",           ■■■■■■      ■■■
+     "#.#.#",           ■■■   ■■■   ■■■
+     "#..##",   ──►     ■■■      ■■■■■■
+     "#...#",           ■■■         ■■■
+     "#...#",           ■■■         ■■■
+     "#...#" ]          ■■■         ■■■
+                        (each # becomes
+                         a 3 × 3 block)</code></pre>
 <p>Reading it is a nested loop: for each row <code>r</code>, for each column <code>c</code>, if the cell is <code>#</code>, fill a <code>scale × scale</code> square at <code>(x + c × scale, y + r × scale)</code>. Scaling by repeating each pixel as a block like this is called <strong><a href="https://en.wikipedia.org/wiki/Nearest-neighbor_interpolation" target="_blank" rel="noopener">nearest-neighbor</a></strong> scaling. It's why pixel art stays crisp.</p>
 <h4 data-anchor="laying-out-a-line">Laying out a line</h4>
 <p>Text layout is the job of deciding where each glyph goes. Ours is the simplest possible version:</p>
-<pre class="diagram"><code>   x                                                    one glyph = 5 cells
-   │◄─ 5 ─►│◄1►│◄─ 5 ─►│◄1►│◄─ 5 ─►│                    tracking  = gap between glyphs
+<pre class="diagram" style="--cols:39"><code>   x
+   │◄─ 5 ─►│◄1►│◄─ 5 ─►│◄1►│◄─ 5 ─►│
    ┌───────┐   ┌───────┐   ┌───────┐
-   │   H   │   │   I   │   │   !   │                    width = 3 × 5 + 2 × 1 = 17 cells
-   └───────┘   └───────┘   └───────┘                          (× scale for pixels)
-   ◄──────────── measureText = 17 ───────────►</code></pre>
+   │   H   │   │   I   │   │   !   │
+   └───────┘   └───────┘   └───────┘
+   ◄─────── measureText = 17 ──────►
+
+   one glyph = 5 cells
+   tracking  = gap between glyphs
+   width     = 3 × 5 + 2 × 1 = 17 cells
+             (× scale for pixels)</code></pre>
 <ul><li><strong>Advance</strong> is how far you move right after each glyph: its width plus the tracking.</li><li><strong>Tracking</strong> is uniform extra space <em>between</em> glyphs, so none after the last one (CSS calls it <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/letter-spacing" target="_blank" rel="noopener"><code>letter-spacing</code></a>). <a href="https://en.wikipedia.org/wiki/Kerning" target="_blank" rel="noopener">Kerning</a>, which tightens specific pairs like "AV", is different; our font skips it.</li></ul>
 <p class="meta"><strong>Alignment needs measuring first.</strong> To center text on <code>x</code>, you need its total width before drawing the first glyph, so the left edge is <code>x − width / 2</code>. Real layout engines work in the same two passes: measure everything, then place everything. KineticIntro centers every word, so you'll use this constantly.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain the difference between advance, tracking and kerning. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20the%20difference%20between%20advance%2C%20tracking%20and%20kerning.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2002%20%28Glyphs%29%3A%20text%20from%20a%20hand-made%20bitmap%20font.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20the%20difference%20between%20advance%2C%20tracking%20and%20kerning.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
@@ -774,14 +829,20 @@ MS.answers("02", {
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="motion-is-still-pictures-fast">Motion is still pictures, fast</h4>
 <p>Show still pictures quickly enough and your eye reads them as movement. Film shows 24 a second, most web video 30 or 60. That rate is the <strong>frame rate</strong>, in frames per second (fps). Frame <code>n</code> is on screen from <code>n / fps</code> seconds until the next frame starts:</p>
-<pre class="diagram"><code>  time (ms)   0          33.3        66.7        100
-              │ frame 0   │ frame 1   │ frame 2   │ frame 3 …     at 30 fps
-              └─ 1000 ÷ 30 = 33.3 ms ─┘</code></pre>
+<pre class="diagram" style="--cols:43"><code>  time (ms), at 30 fps
+  0        33.3      66.7      100
+  │ frame 0 │ frame 1 │ frame 2 │ frame 3 …
+  └────┬────┘
+       └─ 1000 ÷ 30 = 33.3 ms</code></pre>
 <p>So converting is multiplying or dividing by fps: 1.5 seconds at 30 fps is 45 frames, and 45 frames is 1.5 seconds. Only one direction needs rounding, because a clip can't last half a frame.</p>
 <h4 data-anchor="frame-f-n">frame = f(n)</h4>
 <p>There are two ways to make a ball move. One keeps state and changes it on every tick: <code>x = x + 2</code>. The other computes the picture straight from the frame number: <code>x = 2 × n</code>.</p>
-<pre class="diagram"><code>  by mutation:   tick → x += 2 → draw      frame 40 depends on frames 0–39 having run, in order
-  by f(n):       n    → x = 2n → draw      frame 40 depends only on 40</code></pre>
+<pre class="diagram" style="--cols:44"><code>  by mutation:   tick → x += 2 → draw
+                 frame 40 depends on frames
+                 0–39 having run, in order
+
+  by f(n):       n    → x = 2n → draw
+                 frame 40 depends only on 40</code></pre>
 <p>The second way wins everywhere that matters. A timeline can jump to frame 140 without playing 0–139. Frames can render out of order, or in parallel: Remotion splits a long video across many CPU cores or cloud machines. And the same <code>n</code> always gives the same picture, so a frame can be tested like any other function.</p>
 <p>A <strong>composition</strong> packages that function with what a player needs to know: <code>width</code>, <code>height</code>, <code>fps</code>, <code>durationInFrames</code>, and <code>render(frame, n)</code>. Those are the same props as Remotion's <a href="https://www.remotion.dev/docs/composition" target="_blank" rel="noopener"><code>&lt;Composition&gt;</code></a>. KineticIntro's are 1080 × 1920, 30 fps, 180 frames. <code>renderFrame</code> gives <code>render</code> a brand-new, empty frame every time, so a frame can't depend on what was drawn before it.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain why describing frame n as a function of n beats moving things a little on every tick. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2003%20%28Time%29%3A%20frame%20%3D%20f%28n%29%20and%20a%20player%20that%20keeps%20time.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20describing%20frame%20n%20as%20a%20function%20of%20n%20beats%20moving%20things%20a%20little%20on%20every%20tick.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2003%20%28Time%29%3A%20frame%20%3D%20f%28n%29%20and%20a%20player%20that%20keeps%20time.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20describing%20frame%20n%20as%20a%20function%20of%20n%20beats%20moving%20things%20a%20little%20on%20every%20tick.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
@@ -789,9 +850,12 @@ MS.answers("02", {
 <p>Video editors label frames with <a href="https://en.wikipedia.org/wiki/SMPTE_timecode" target="_blank" rel="noopener">SMPTE timecode</a>: <code>HH:MM:SS:FF</code>, hours, minutes, seconds, then the frame within the current second. The last field counts up to <code>fps − 1</code>, not 99. At 24 fps, frame 100 is 4 seconds and 4 frames: <code>00:00:04:04</code>.</p>
 <h4 data-anchor="a-player-keeps-time">A player keeps time</h4>
 <p>To play a composition, a browser page asks for <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame" target="_blank" rel="noopener"><code>requestAnimationFrame</code></a> callbacks. The browser calls back before each screen refresh, 60 or 120 times a second depending on the screen, with a timestamp. The player turns the time that has passed into a frame number:</p>
-<pre class="diagram"><code>  screen refreshes (60 Hz):   │  │  │  │  │  │  │  │  │      every 16.7 ms
-  video frames (30 fps):      │  0  │  1  │  2  │  3  │      every 33.3 ms
-                                → each frame is shown on two refreshes</code></pre>
+<pre class="diagram" style="--cols:43"><code>  screen (60 Hz)  │  │  │  │  │  │  │  │  │
+  video (30 fps)  │  0  │  1  │  2  │  3  │
+
+  screen: a refresh every 16.7 ms
+  video:  a frame every 33.3 ms
+  → each frame is shown on two refreshes</code></pre>
 <p>A frame stays on screen until the next one has <em>started</em>, so the player counts whole frames and never rounds up. If drawing a frame takes too long, the player doesn't fall behind: on the next refresh it shows whatever frame the clock says, skipping the ones in between. That's a <strong>dropped frame</strong>. An animation built on <code>x += 2</code> would slow down instead. Past the end, a looping player starts again from 0; the <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Remainder" target="_blank" rel="noopener">remainder operator</a> <code>%</code> does exactly that wrap-around.</p>
 <p>From this layer on, the test pictures move. The page plays them with <code>lib/present.js</code>, which uses <em>your</em> <code>frameAt</code> and <code>renderFrame</code> to decide what to show.</p>
 <h3 data-anchor="your-turn">Your turn</h3>
@@ -929,50 +993,61 @@ MS.answers("03", {
     </header>
     <p class="meta"><strong>You'll write:</strong> <code>lerp</code>, <code>inverseLerp</code>, <code>clamp</code>, <code>interpolate</code>, <code>interpolateColors</code> in <code>src/04-interpolate.js</code><br><strong>Builds on:</strong> layers 00–03</p>
 <p>Layer 03 gave every frame a number. Now each frame needs to know where things are: how faded a word is at frame 12, how far the light sweep has traveled by frame 150. KineticIntro answers every one of those questions with a single function from Remotion, <code>interpolate</code>. Here's its light sweep:</p>
-<pre class=""><code>interpolate(frame, [140, 172], [-20, 130], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })</code></pre>
+<pre><code>interpolate(frame, [140, 172], [-20, 130], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })</code></pre>
 <p>Between frames 140 and 172, the sweep travels from −20% to 130% of the way across the logo, and before and after that it stays put. By the end of this layer you'll have written <code>interpolate</code> yourself, options and all, plus a version for colors.</p>
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="keyframes-and-in-betweens">Keyframes and in-betweens</h4>
 <p>In hand-drawn animation, a lead animator drew the <strong>keyframes</strong>, the poses that matter, and assistants called <a href="https://en.wikipedia.org/wiki/Inbetweening" target="_blank" rel="noopener">in-betweeners</a> drew every frame between them. Software took over that job, now called <em>tweening</em>: you say where something is at a few moments, and the computer fills in the rest.</p>
 <p>The simplest way to fill in is a straight line. <strong>lerp</strong>, short for <em>linear interpolation</em>, walks a fraction <code>t</code> of the way from <code>a</code> to <code>b</code>:</p>
-<pre class="diagram"><code>  lerp(a, b, t) = a + (b − a) × t
+<pre class="diagram" style="--cols:43"><code>  lerp(a, b, t) = a + (b − a) × t
 
-  t:   0          0.25       0.5                   1          1.5
-       40 ─────── 50 ─────── 60 ────────────────── 80 · · · · 100
-       a                                           b</code></pre>
+  t: 0     0.25  0.5         1          1.5
+     40 ── 50 ── 60 ──────── 80 · · · · 100
+     a                       b</code></pre>
 <p><code>t</code> is a fraction, not a frame: 0 is the start, 1 is the end, 0.5 is halfway. Nothing stops it going past 1 or below 0; the line just keeps going. You've already written one: layer 01's <code>mixColor</code> is a lerp on four channels at once.</p>
 <h4 data-anchor="map-don-t-move">Map, don't move</h4>
 <p><code>inverseLerp</code> runs lerp backwards: given a value, which <code>t</code> gives it? Put the two together and you can map any range onto any other. Say a word fades in between frames 30 and 50, and you want its opacity at frame 35:</p>
-<pre class="diagram"><code>  frames    30 ────●─────────── 50      inverseLerp(30, 50, 35) = 0.25
+<pre class="diagram" style="--cols:41"><code>  frames    30 ────●─────────── 50
                   35
-  opacity    0 ────●───────────  1      lerp(0, 1, 0.25) = 0.25</code></pre>
+  opacity    0 ────●───────────  1
+
+  frames:  inverseLerp(30, 50, 35) = 0.25
+  opacity: lerp(0, 1, 0.25)        = 0.25</code></pre>
 <p>First turn the input into a fraction of its range, then turn that fraction into a point in the output range. For two keyframes, that's all <code>interpolate</code> does. Notice what's missing: nothing is stored between frames. The opacity at frame 35 comes from 35 alone, which is exactly what layer 03's frame = f(n) asked for.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain why interpolate is inverseLerp followed by lerp, using a fade-out as the example. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2004%20%28Interpolate%29%3A%20lerp%2C%20clamp%2C%20ranges%2C%20extrapolation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20interpolate%20is%20inverseLerp%20followed%20by%20lerp%2C%20using%20a%20fade-out%20as%20the%20example.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2004%20%28Interpolate%29%3A%20lerp%2C%20clamp%2C%20ranges%2C%20extrapolation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20interpolate%20is%20inverseLerp%20followed%20by%20lerp%2C%20using%20a%20fade-out%20as%20the%20example.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="many-keyframes">Many keyframes</h4>
 <p>With more than two keyframes, the ranges become a chain of <strong>segments</strong>. Find the segment the input falls in, then map within that segment alone:</p>
-<pre class="diagram"><code>  inputRange    0 ──────────── 30 ────── 50 ──────────────── 90
-  outputRange   0              100       60                  60
-                └──── seg 0 ────┘└ seg 1 ─┘└────── seg 2 ─────┘
+<pre class="diagram" style="--cols:43"><code>  inputRange  0 ────── 30 ── 50 ──────── 90
+  outputRange 0        100   60          60
+  segment     └─── 0 ───┘└ 1 ─┘└──── 2 ───┘
 
-  input 40 falls in segment 1:   t = (40 − 30) / (50 − 30) = 0.5
-                                 output = lerp(100, 60, 0.5) = 80</code></pre>
+  input 40 falls in segment 1:
+    t = (40 − 30) / (50 − 30) = 0.5
+    output = lerp(100, 60, 0.5) = 80</code></pre>
 <p>Keyframes don't have to be evenly spaced, and in real animation they rarely are: each word in KineticIntro takes 26 frames to come in and 22 to leave. What <code>interpolate</code> does insist on is that the inputs are <strong>strictly increasing</strong>. If they weren't, one input could sit inside two segments at once, and there'd be no single right answer. The outputs can go up, down, or both.</p>
 <h4 data-anchor="past-the-ends">Past the ends</h4>
 <p>Before the first keyframe and after the last, <code>interpolate</code> has to make something up. That's <strong>extrapolation</strong>. Say a word scales up from 0.8 to 1 between frames 0 and 10 (KineticIntro's words start at 80% size). What's its scale at frame 20?</p>
-<pre class="diagram"><code>  scale
-   1.2 ┤                    ·      "extend" keeps going along the end segment's line
+<pre class="diagram" style="--cols:40"><code>  scale
+   1.2 ┤                    ·   "extend"
    1.1 ┤               ·
-   1.0 ┤          ●━━━━━━━━━━━━    "clamp" holds the end value
+   1.0 ┤          ●━━━━━━━━━━━━ "clamp"
    0.9 ┤     ·
-   0.8 ┤●                          ● a keyframe
+   0.8 ┤●
        └┬─────────┬─────────┬──▶ frame
-        0        10        20</code></pre>
+        0        10        20
+
+  ●        a keyframe
+  "extend" keeps going along the end
+           segment's line
+  "clamp"  holds the end value</code></pre>
 <ul><li><strong>"extend"</strong>, Remotion's default, keeps going along the end segment's line: 1.2, and still growing. With several keyframes, "the end segment" means the <strong>first</strong> segment before the first keyframe and the <strong>last</strong> one after the last keyframe.</li><li><strong>"clamp"</strong> holds the end value: 1.</li><li><strong>"identity"</strong> returns the input itself: 20. It only makes sense when input and output measure the same thing.</li></ul>
 <p><code>extrapolateLeft</code> and <code>extrapolateRight</code> choose separately for each end. "extend" is the honest mathematical continuation, but anything with a natural limit, like opacity, a progress bar or a fade, needs "clamp". KineticIntro clamps every single call.</p>
 <h4 data-anchor="easing-plugs-in-at-t">Easing plugs in at t</h4>
 <p>One more option, <code>easing</code>, is a function that reshapes <code>t</code> before it's mapped to the output. It takes the progress through the segment and returns a new progress:</p>
-<pre class="diagram"><code>  t → t         ●────●────●────●────●────●────●────●────●      even steps
-  t → t × t     ●●─●──●───●─────●──────●───────●────────●      slow start, fast finish</code></pre>
+<pre class="diagram" style="--cols:43"><code>  t → t        even steps
+  ●────●────●────●────●────●────●────●────●
+  ●●─●──●───●─────●──────●───────●────────●
+  t → t × t    slow start, fast finish</code></pre>
 <p>Each dot is where the value is after another eighth of the time. Because easing works on <code>t</code>, the start and end don't move: <code>t</code> = 0 still gives the first output and <code>t</code> = 1 the last. Easing only changes <em>when</em> the value gets there. With several keyframes, every segment gets its own trip from 0 to 1, so the easing starts over at each keyframe. Past the ends, with "extend", <code>t</code> goes below 0 or above 1, and the easing is applied to it there too: with <code>t × t</code>, the extension curves instead of running straight. Layer 05 builds real easing curves; this layer just calls whatever function it's given.</p>
 <h4 data-anchor="colors-are-four-numbers">Colors are four numbers</h4>
 <p><code>interpolateColors</code> blends colors one channel at a time: red with red, green with green, blue with blue, alpha with alpha, each its own interpolation over the same input range. Two things differ from plain numbers:</p>
@@ -1120,29 +1195,49 @@ MS.answers("04", {
 <p>CSS describes that shape with a <a href="https://www.w3.org/TR/css-easing-1/#cubic-bezier-easing-functions" target="_blank" rel="noopener">cubic Bézier curve</a> and two control points, P1 = (x1, y1) and P2 = (x2, y2). Its keywords are just named curves: <code>ease</code> is <code>cubic-bezier(0.25, 0.1, 0.25, 1)</code>, <code>ease-in</code> is <code>(0.42, 0, 1, 1)</code>, <code>ease-out</code> is <code>(0, 0, 0.58, 1)</code>.</p>
 <h4 data-anchor="a-b-zier-curve-is-lerps-of-lerps">A Bézier curve is lerps of lerps</h4>
 <p>In 1959, Paul de Casteljau, a mathematician at Citroën, found a way to describe smooth car-body curves to a computer; Pierre Bézier at Renault published the same curves a few years later, and they took his name. De Casteljau's way of computing a point on the curve uses nothing but layer 04's <code>lerp</code>. For an easing curve, the four control values along one axis are 0, <code>p1</code>, <code>p2</code> and 1:</p>
-<pre class="diagram"><code>  control values:   0           p1           p2           1
-                          ●            ●            ●             each ● is u of the way from
-                                 ●            ●                   the value on its left to the
-                                      B(u)                        value on its right, one row up</code></pre>
+<pre class="diagram" style="--cols:40"><code>  control values:
+  0         p1         p2         1
+       ●          ●          ●
+             ●         ●
+                B(u)
+
+  each ● is u of the way from the value
+  on its left to the value on its right,
+  one row up</code></pre>
 <p>Run it once with the x values and once with the y values, and you get the point (x, y) on the curve at parameter <code>u</code>. Multiply the lerps out and you get a cubic polynomial in <code>u</code> instead, which is how browsers write it. Either way works. <code>bezierSlope</code> is that polynomial's derivative: how fast the curve moves along one axis as <code>u</code> grows.</p>
 <h4 data-anchor="the-catch-u-isn-t-time">The catch: u isn't time</h4>
 <p>As <code>u</code> runs from 0 to 1, the point travels along the curve, but <code>x</code> and <code>y</code> <em>both</em> depend on <code>u</code>. An easing function is asked a different question: at time <code>x</code>, what's <code>y</code>? To answer it, first find the <code>u</code> where the curve's x equals the time you were given, then read the curve's y at that <code>u</code>:</p>
-<pre class="diagram"><code>  x (time) ──solve──▶ u ──bezierPoint(y1, y2, u)──▶ y (progress)</code></pre>
+<pre class="diagram" style="--cols:26"><code>  x (time)
+  │ solve
+  ▼
+  u
+  │ bezierPoint(y1, y2, u)
+  ▼
+  y (progress)</code></pre>
 <p>There's no tidy formula for that first arrow. (Cubic equations do have a formula, but it's fussy and loses precision.) So browsers find <code>u</code> numerically.</p>
 <h4 data-anchor="newton-s-method">Newton's method</h4>
 <p>Guess a <code>u</code>, see how far its x is from the target, then use the slope to jump to where a straight line would hit the target: <code>u ← u − error ÷ slope</code>. Here's ease-in (x1 = 0.42, x2 = 1) looking for x = 0.6, starting from the guess <code>u</code> = 0.6:</p>
-<pre class="diagram"><code>  step   u          x at u       error        slope   next u = u − error ÷ slope
-  0      0.6        0.76896      +0.169       1.037   0.4370
-  1      0.4370     0.58058      −0.0194      1.256   0.4525
-  2      0.4525     0.59988      −0.00012     1.240   0.452605
-  3      0.452605   0.60000000   −0.000000005    close enough</code></pre>
+<pre class="diagram" style="--cols:44"><code>  step  u          x at u       error
+  0     0.6        0.76896      +0.169
+  1     0.4370     0.58058      −0.0194
+  2     0.4525     0.59988      −0.00012
+  3     0.452605   0.60000000   −0.000000005
+
+  step  slope   next u = u − error ÷ slope
+  0     1.037   0.4370
+  1     1.256   0.4525
+  2     1.240   0.452605
+  3             close enough</code></pre>
 <p>The error goes 0.17, 0.02, 0.0001, 0.000000005: each step roughly doubles the number of correct digits. That's <a href="https://en.wikipedia.org/wiki/Newton%27s_method" target="_blank" rel="noopener">Newton's method</a>, and it's usually done in three or four steps.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain why Newton's method divides by the slope, and what goes wrong when the slope is nearly zero. Use a curve that isn't an easing curve. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2005%20%28Easing%29%3A%20a%20cubic-B%C3%A9zier%20solver.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20Newton%27s%20method%20divides%20by%20the%20slope%2C%20and%20what%20goes%20wrong%20when%20the%20slope%20is%20nearly%20zero.%20Use%20a%20curve%20that%20isn%27t%20an%20easing%20curve.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2005%20%28Easing%29%3A%20a%20cubic-B%C3%A9zier%20solver.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20Newton%27s%20method%20divides%20by%20the%20slope%2C%20and%20what%20goes%20wrong%20when%20the%20slope%20is%20nearly%20zero.%20Use%20a%20curve%20that%20isn%27t%20an%20easing%20curve.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="bisection-the-safety-net">Bisection, the safety net</h4>
 <p>Newton's method has a weak spot: where the curve goes flat, the slope is near zero, and dividing by it flings <code>u</code> far away. <strong>Bisection</strong> can't fail. The curve's x only ever increases, so the answer is always inside a known gap, starting with 0 to 1. Check the middle: if its x is too big, the answer is in the left half; otherwise it's in the right half. Each check halves the gap:</p>
-<pre class="diagram"><code>  [0 ─────────────────────────────── 1]    x at 0.5 too big?   keep the left half
-  [0 ─────────────── 0.5]                  x at 0.25 too small? keep the right half
-          [0.25 ──── 0.5]                  … until the x at the middle is within 1e-7</code></pre>
+<pre class="diagram" style="--cols:44"><code>  [0 ─────────────────────────────── 1]
+  x at 0.5 too big?    keep the left half
+  [0 ─────────────── 0.5]
+  x at 0.25 too small? keep the right half
+          [0.25 ──── 0.5]
+  … until the x at the middle is within 1e-7</code></pre>
 <p>The gap is in <code>u</code>, but the spec's 1e-7 is about <code>x</code>, and an easing curve's x can change up to 3 times faster than <code>u</code>, so it can take about 25 halvings. It's slow but sure, so real solvers use both. <a href="https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h" target="_blank" rel="noopener">WebKit's <code>UnitBezier</code></a>, the code behind Safari's CSS animations, takes a first guess from a table of 11 samples, tries up to 4 Newton steps, and bisects if they don't get close enough.</p>
 <h4 data-anchor="only-x-has-to-behave">Only x has to behave</h4>
 <p>CSS insists that x1 and x2 stay between 0 and 1, and it rejects the curve otherwise. Outside that range the curve's x can turn around and run backwards, which would mean time running backwards: one moment <code>x</code> would have three different <code>u</code>s and no single answer. That's the same reason layer 04 insisted on increasing keyframes.</p>
@@ -1284,18 +1379,26 @@ MS.answers("05", {
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="a-spring-is-a-rule-not-a-curve">A spring is a rule, not a curve</h4>
 <p>Picture a weight on a spring, lying on a slippery table. Pull it and let go. Two forces act on it. The spring pulls it back toward where it wants to rest, harder the further away it is: that's <a href="https://en.wikipedia.org/wiki/Hooke%27s_law" target="_blank" rel="noopener">Hooke's law</a>. Friction, called <strong>damping</strong>, pushes against the motion, harder the faster it moves:</p>
-<pre class="diagram"><code>  force = −stiffness × (position − target)  −  damping × velocity
-          └──── the spring pulls it back ──┘   └─ friction slows it ─┘
+<pre class="diagram" style="--cols:42"><code>              the spring pulls it back
+          ┌──────────────┴───────────────┐
+  force = −stiffness × (position − target)
+        − damping × velocity
+          └───────┬────────┘
+          friction slows it
 
   acceleration = force ÷ mass</code></pre>
 <p>That's the whole description, and it only says what happens <em>next</em>: given where the weight is and how fast it's moving, here's how its speed is changing. To find out where it is at frame 30, you have to play time forward from the start.</p>
 <h4 data-anchor="stepping-through-time">Stepping through time</h4>
 <p>Playing time forward means taking small steps of <code>dt</code> seconds. Each step uses the force to update the velocity, and the velocity to update the position. The order matters more than it looks:</p>
-<pre class="diagram"><code>  explicit Euler:        position += velocity × dt      (the old velocity)
-                         velocity += acceleration × dt
+<pre class="diagram" style="--cols:35"><code>  explicit Euler:
+    position += velocity × dt
+                └─ the old velocity
+    velocity += acceleration × dt
 
-  semi-implicit Euler:   velocity += acceleration × dt
-                         position += velocity × dt      (the new velocity)</code></pre>
+  semi-implicit Euler:
+    velocity += acceleration × dt
+    position += velocity × dt
+                └─ the new velocity</code></pre>
 <p>Both look reasonable, and over one step they barely differ. Over thousands of steps, explicit Euler quietly adds energy every time: a spring with no friction swings a little wider each second, forever. <a href="https://en.wikipedia.org/wiki/Semi-implicit_Euler_method" target="_blank" rel="noopener">Semi-implicit Euler</a> keeps the swing the same size, which is why physics engines use it. It costs nothing extra; it's just the right order.</p>
 <h4 data-anchor="how-small-is-small-enough">How small is small enough?</h4>
 <p>Each step pretends the force stays the same for <code>dt</code> seconds. That's fine while <code>dt</code> is short compared with how fast the spring swings. A spring's natural speed is <code>ω = √(stiffness ÷ mass)</code>, in radians per second, and semi-implicit Euler stays stable only while <code>ω × dt</code> is below 2. Past that, every step overshoots a little more than the last, and the numbers explode.</p>
@@ -1303,11 +1406,17 @@ MS.answers("05", {
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain why updating the velocity before the position keeps a frictionless spring from gaining energy. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20updating%20the%20velocity%20before%20the%20position%20keeps%20a%20frictionless%20spring%20from%20gaining%20energy.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2006%20%28Springs%29%3A%20physics%20stepping%20and%20stability.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20updating%20the%20velocity%20before%20the%20position%20keeps%20a%20frictionless%20spring%20from%20gaining%20energy.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="the-damping-ratio">The damping ratio</h4>
 <p>Three numbers describe a spring, but its character comes down to one, the <strong>damping ratio</strong>:</p>
-<pre class="diagram"><code>  ζ = damping ÷ (2 × √(stiffness × mass))
+<pre class="diagram" style="--cols:41"><code>  ζ = damping ÷ (2 × √(stiffness × mass))
 
-  ζ below 1   underdamped         overshoots, bounces, then settles
-  ζ = 1       critically damped   arrives as fast as possible, never overshoots
-  ζ above 1   overdamped          creeps in slowly, never overshoots</code></pre>
+  ζ below 1   underdamped
+    overshoots, bounces, then settles
+
+  ζ = 1       critically damped
+    arrives as fast as possible,
+    never overshoots
+
+  ζ above 1   overdamped
+    creeps in slowly, never overshoots</code></pre>
 <p>Remotion's default spring is stiffness 100, damping 10, mass 1, so ζ = 10 ÷ (2 × 10) = 0.5: a little bouncy.</p>
 <h4 data-anchor="when-is-it-done">When is it done?</h4>
 <p>A spring never quite arrives. Each bounce is smaller than the last, but it never reaches exactly zero. So "done" needs a definition: the spring has <strong>settled</strong> at the first frame from which it stays within some small distance of its target for good. Remotion's <a href="https://www.remotion.dev/docs/measure-spring" target="_blank" rel="noopener"><code>measureSpring()</code></a> uses half a percent of the distance from <code>from</code> to <code>to</code>, and so does <code>settleFrame</code>. "Stays" matters: a bouncy spring can pass through the target zone on its way back out.</p>
@@ -1445,67 +1554,95 @@ MS.answers("06", {
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="six-numbers-move-everything">Six numbers move everything</h4>
 <p>Moving, scaling, rotating and slanting are all the same kind of operation, an <strong>affine transform</strong>, and six numbers describe any of them. The <a href="https://html.spec.whatwg.org/multipage/canvas.html#transformations" target="_blank" rel="noopener">HTML canvas standard</a> and CSS's <a href="https://www.w3.org/TR/css-transforms-1/#funcdef-transform-matrix" target="_blank" rel="noopener"><code>matrix()</code></a> both write them as <code>a, b, c, d, e, f</code>:</p>
-<pre class="diagram"><code>  ┌ a  c  e ┐   ┌ x ┐        x' = a·x + c·y + e
-  │ b  d  f │ × │ y │        y' = b·x + d·y + f
+<pre class="diagram" style="--cols:44"><code>  ┌ a  c  e ┐   ┌ x ┐     x' = a·x + c·y + e
+  │ b  d  f │ × │ y │     y' = b·x + d·y + f
   └ 0  0  1 ┘   └ 1 ┘</code></pre>
 <p>The six numbers are easier to read as three arrows. <code>(e, f)</code> is where the origin <code>(0, 0)</code> lands. <code>(a, b)</code> is where one step along x, the point <code>(1, 0)</code>, lands, measured from there; <code>(c, d)</code> is the same for one step along y. Draw those three things and you've drawn the whole transform: every other point follows from them.</p>
-<pre class="diagram"><code>  scale(2, 0.5)                       a slant: c = 0.5, the rest as in scale(1)
-  (1, 0) → (2, 0)                     (1, 0) → (1, 0)
-  (0, 1) → (0, 0.5)                   (0, 1) → (0.5, 1)
+<pre class="diagram" style="--cols:44"><code>  scale(2, 0.5)
+  (1, 0) → (2, 0)
+  (0, 1) → (0, 0.5)
 
-  ┌────┐                              ┌────┐          ┌────┐
-  │    │    →    ┌────────┐           │    │    →      ╲    ╲
-  │    │         └────────┘           │    │            ╲    ╲
-  └────┘                              └────┘             └────┘
-                                      (y points down, so the bottom moves right)</code></pre>
+  ┌────┐
+  │    │    →    ┌────────┐
+  │    │         └────────┘
+  └────┘
+
+  a slant: c = 0.5, the rest as in scale(1)
+  (1, 0) → (1, 0)
+  (0, 1) → (0.5, 1)
+
+  ┌────┐          ┌────┐
+  │    │    →      ╲    ╲
+  │    │            ╲    ╲
+  └────┘             └────┘
+  (y points down, so the bottom moves right)</code></pre>
 <p>On a screen, y points <strong>down</strong>. A rotation that turns +x toward +y therefore looks clockwise, the opposite of the math textbook picture. Canvas and CSS both work this way.</p>
 <h4 data-anchor="order-matters">Order matters</h4>
 <p>A transform made of steps is one matrix: <strong>multiplying</strong> two matrices gives a single matrix that does both. But which one happens first changes the result. Take the point <code>x = 3</code>:</p>
-<pre class="diagram"><code>  scale by 2, then move right 4:    3 → 6 → 10
-  move right 4, then scale by 2:    3 → 7 → 14</code></pre>
+<pre class="diagram" style="--cols:44"><code>  scale by 2, then move right 4:  3 → 6 → 10
+  move right 4, then scale by 2:  3 → 7 → 14</code></pre>
 <p>In <code>multiply(m, n)</code>, <code>n</code> happens first. That reads backwards at first, but it's the same order as function calls: in <code>m(n(p))</code>, n runs first.</p>
 <p>Order is also how you scale around a point other than the origin. <code>scale(1.04)</code> on its own grows everything away from <code>(0, 0)</code>, the top-left corner, so a word in the middle of the screen would drift down and to the right. To grow around the middle, three steps: move the middle to the origin, scale, move it back.</p>
 <h4 data-anchor="drawing-backwards">Drawing backwards</h4>
 <p>To draw a picture through a matrix, the obvious plan is to take every source pixel, move it, and paint it where it lands. Try that with a 3× zoom: neighboring source pixels land 3 pixels apart, and the pixels in between are never painted.</p>
-<pre class="diagram"><code>  forward: each source pixel goes somewhere     backward: each destination pixel asks
-                                                "where did I come from?"
-  █ █ █      →     █ · · █ · · █                █ █ █      ←     █ █ █ █ █ █ █ █ █
-                   · · · · · · ·                                  (every pixel is filled)
-                   holes</code></pre>
+<pre class="diagram" style="--cols:43"><code>  forward: each source pixel goes somewhere
+  █ █ █      →     █ · · █ · · █
+                   · · · · · · ·
+                   holes
+
+  backward: each destination pixel asks
+  "where did I come from?"
+  █ █ █      ←     █ █ █ █ █ █ █ █ █
+                   (every pixel is filled)</code></pre>
 <p>So renderers work <strong>backwards</strong>: for each pixel of the destination, find the point in the source that lands on it, and take the color from there. That needs the matrix that undoes <code>m</code>, its <strong>inverse</strong>. Not every matrix has one. The number <code>a·d − b·c</code> (the <strong>determinant</strong>) says how much the matrix scales areas. (A negative one means it also mirrors; only 0 can't be undone.) When it's 0, the matrix squashes everything onto a line or a point, and there's no way back: many source points land on the same spot.</p>
 <h4 data-anchor="between-the-pixels">Between the pixels</h4>
 <p>The point you find in the source is almost never exactly on a pixel. Pixel <code>(x, y)</code> is a little square from <code>(x, y)</code> to <code>(x + 1, y + 1)</code>, so its center is <code>(x + 0.5, y + 0.5)</code>. A point between centers takes a little of each of the four nearest pixels, more from the nearer ones. That's <strong>bilinear sampling</strong>: blend along x, then along y.</p>
-<pre class="diagram"><code>     center (3.5, 0.5)                  center (4.5, 0.5)
-            ●──────────×──────────────────────●
-                       ↑ the sample (×), 30% of the way from left to right,
-                         gets 70% of the left pixel and 30% of the right</code></pre>
+<pre class="diagram" style="--cols:43"><code>  center (3.5, 0.5)   center (4.5, 0.5)
+         ●─────×─────────────●
+               ↑ the sample (×), 30% of the
+                 way from left to right,
+                 gets 70% of the left pixel
+                 and 30% of the right</code></pre>
 <p>Nearest-neighbor sampling (just take the closest pixel) is faster, but edges turn into stairs as a picture rotates, and a slow move jumps a whole pixel at a time. Bilinear sampling lets a picture move by a fraction of a pixel, which matters for slow motion like KineticIntro's 4% push.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain why drawing through a matrix works backwards, from destination pixels to source points, and what the determinant has to do with it. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2007%20%28Transforms%20%26%20blur%29%3A%20matrices%2C%20resampling%20and%20blur.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20drawing%20through%20a%20matrix%20works%20backwards%2C%20from%20destination%20pixels%20to%20source%20points%2C%20and%20what%20the%20determinant%20has%20to%20do%20with%20it.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2007%20%28Transforms%20%26%20blur%29%3A%20matrices%2C%20resampling%20and%20blur.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20why%20drawing%20through%20a%20matrix%20works%20backwards%2C%20from%20destination%20pixels%20to%20source%20points%2C%20and%20what%20the%20determinant%20has%20to%20do%20with%20it.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="edges-without-dark-fringes">Edges without dark fringes</h4>
 <p>Bilinear sampling at the edge of a picture mixes a pixel of the picture with a transparent pixel outside it. Layer 01 showed that a transparent pixel is stored as <code>[0, 0, 0, 0]</code>: "black, invisible". Average a white pixel with it channel by channel, and you get <code>[128, 128, 128, 128]</code>, a half-transparent <strong>grey</strong>. The black that was never visible has leaked in, and every edge gets a dark fringe.</p>
-<pre class="diagram"><code>  straight average                 premultiplied average
-  [255,255,255,255]                color × alpha:  255·255 and 0·0
-  [  0,  0,  0,  0]                alpha:          255 and 0
-  ────────────────── ÷ 2           ─────────────────────────────────────────────
-  [128,128,128,128]  grey          alpha: (255 + 0) ÷ 2 = 128
-                                   color: total color ÷ total alpha
-                                          = (255·255 + 0) ÷ (255 + 0) = 255: still white</code></pre>
+<pre class="diagram" style="--cols:39"><code>  straight average
+  [255,255,255,255]
+  [  0,  0,  0,  0]
+  ────────────────── ÷ 2
+  [128,128,128,128]  grey
+
+  premultiplied average
+  color × alpha:  255·255 and 0·0
+  alpha:          255 and 0
+  ─────────────────────────────────────
+  alpha: (255 + 0) ÷ 2 = 128
+  color: total color ÷ total alpha
+         = (255·255 + 0) ÷ (255 + 0)
+         = 255: still white</code></pre>
 <p>The fix is to average <strong>premultiplied</strong> colors: weight each pixel's color by its alpha, so a transparent pixel adds nothing to the color, only to the alpha. Divide by the total alpha at the end to get a plain color back. Browsers keep pixels premultiplied inside, partly for this reason.</p>
 <h4 data-anchor="a-blur-that-doesn-t-care-how-big-it-is">A blur that doesn't care how big it is</h4>
 <p>The simplest blur is a <strong>box blur</strong>: each pixel becomes the average of the pixels in a box around it. A box of radius <code>r</code> is <code>2r + 1</code> pixels wide. Two tricks make it fast:</p>
-<pre class="diagram"><code>  1. rows, then columns:  blurring every row, then every column, gives the same
-                          result as averaging the whole square, but each pixel
-                          adds up 2·(2r + 1) values instead of (2r + 1)².
+<pre class="diagram" style="--cols:44"><code>  1. rows, then columns:
+     blurring every row, then every column,
+     gives the same result as averaging the
+     whole square, but each pixel adds up
+     2·(2r + 1) values instead of (2r + 1)².
 
-  2. a running sum:       moving the box one pixel right changes only its two ends.
-                          ┌───────────┐
-                          │ a b c d e │ f        sum(b…f) = sum(a…e) − a + f
-                          └───────────┘
-                          Two operations per pixel, whether r is 1 or 100.</code></pre>
+  2. a running sum:
+     moving the box one pixel right changes
+     only its two ends.
+     ┌───────────┐
+     │ a b c d e │ f
+     └───────────┘
+     sum(b…f) = sum(a…e) − a + f
+     Two operations per pixel,
+     whether r is 1 or 100.</code></pre>
 <p>Pixels outside the frame count as transparent, so a blur fades a picture out at its edges instead of smearing the edge pixels outward. Average premultiplied, for the same reason as above.</p>
 <h4 data-anchor="three-boxes-make-a-bell">Three boxes make a bell</h4>
 <p>A box blur looks boxy: a single bright dot becomes a flat square. Box-blur that square again and the profile becomes a triangle; a third time and it's a smooth bell, very close to a <strong>Gaussian</strong>. That's the <a href="https://en.wikipedia.org/wiki/Central_limit_theorem" target="_blank" rel="noopener">central limit theorem</a> at work: adding up a few independent random amounts quickly gives a bell curve.</p>
-<pre class="diagram"><code>  one box        two boxes        three boxes
+<pre class="diagram" style="--cols:45"><code>  one box        two boxes        three boxes
   ▁▁███▁▁        ▁▃▆█▆▃▁          ▁▂▅█▅▂▁</code></pre>
 <p>A Gaussian blur's size is its <strong>standard deviation</strong>, σ (sigma), in pixels, and that's what CSS's <a href="https://www.w3.org/TR/filter-effects-1/#funcdef-filter-blur" target="_blank" rel="noopener"><code>blur()</code></a> takes: <code>blur(14px)</code> means σ = 14. To pick <code>r</code> for three boxes, match the spread. A box of radius <code>r</code> has a variance (σ²) of <code>r(r + 1) ÷ 3</code>, and variances add up when blurs are stacked, so three boxes give <code>r(r + 1)</code>. Setting that equal to σ² and solving gives the radius in the comment above <code>blur</code> in <code>src/07-transforms.js</code>. For σ = 5 it's <code>round((√101 − 1) ÷ 2)</code> = round(4.525) = 5.</p>
 <h3 data-anchor="your-turn">Your turn</h3>
@@ -1660,27 +1797,42 @@ MS.answers("07", {
 <p>Layer 02's bitmap font had one size and no curves. Real fonts are outlines, and the browser's text engine turns an outline into pixels, with smooth edges, at any size. You ask for it through a canvas: set <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/font" target="_blank" rel="noopener"><code>ctx.font</code></a>, then call <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/fillText" target="_blank" rel="noopener"><code>fillText</code></a>. The font is a string in the same order as CSS's <a href="https://www.w3.org/TR/css-fonts-4/#font-prop" target="_blank" rel="noopener"><code>font</code> shorthand</a>: weight, then size, then family, like <code>"900 150px Inter"</code>.</p>
 <p>Two things fail silently. A font string the canvas can't parse is simply ignored, as <a href="https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-font" target="_blank" rel="noopener">the HTML standard</a> requires, so <code>"150px 900 Inter"</code> leaves you drawing in whatever font was there before, often <code>10px sans-serif</code>. And fonts load in the background: until Inter has arrived, the canvas quietly draws with a fallback font. The course pages ask the browser to load Inter when they open, and draw their pictures again once it's in.</p>
 <p>To make a picture that fits the text, you measure first. <a href="https://developer.mozilla.org/en-US/docs/Web/API/TextMetrics" target="_blank" rel="noopener"><code>measureText</code></a> returns the text's advance width and the font's own ascent and descent:</p>
-<pre class="diagram"><code>   ┌─────────────────────────────┐  ┐
-   │                             │  │
-   │   D E S I G N .             │  │ fontBoundingBoxAscent
-   ├─────────────────────────────┤  ┘ ◄── the baseline: letters sit on it
-   │                             │  ┐ fontBoundingBoxDescent (room for g, p, y)
-   └─────────────────────────────┘  ┘
-   ◄────────── width ───────────►</code></pre>
+<pre class="diagram" style="--cols:44"><code> ┌───────────────┐  ┐
+ │               │  │
+ │ D E S I G N . │  │ fontBoundingBoxAscent
+ ├───────────────┤  ┘ ◄── the baseline
+ │               │  ┐ fontBoundingBoxDescent
+ └───────────────┘  ┘ (room for g, p, y)
+ ◄──── width ────►
+
+ the baseline: letters sit on it</code></pre>
 <p><code>measureText</code> also reports <code>actualBoundingBoxAscent</code> and <code>actualBoundingBoxDescent</code>: the ink of this particular word. "ace" has less ink above its baseline than "Hid", so boxes cut to the ink would put their baselines at different heights. The font's ascent and descent are the same for every word in that font and size, so "DESIGN." and "ANIMATE." get boxes of the same height with their baselines at the same place, and they line up. The pixels come back from <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/getImageData" target="_blank" rel="noopener"><code>getImageData</code></a> as straight (not premultiplied) RGBA bytes, row by row: exactly the layout your frames have used since layer 00.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain what a font's ascent, descent and baseline are, and why sprites for two different words should use the font's ascent rather than each word's own ink. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2008%20%28Scenes%29%3A%20real%20fonts%2C%20sequences%2C%20a%20camera%2C%20layers%20and%20masks.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20font%27s%20ascent%2C%20descent%20and%20baseline%20are%2C%20and%20why%20sprites%20for%20two%20different%20words%20should%20use%20the%20font%27s%20ascent%20rather%20than%20each%20word%27s%20own%20ink.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="every-layer-has-its-own-clock">Every layer has its own clock</h4>
 <p>A scene doesn't care what time the video says it is. It cares how long it has been running. Remotion's <a href="https://www.remotion.dev/docs/sequence" target="_blank" rel="noopener"><code>&lt;Sequence&gt;</code></a> gives each part of a video its own frame counter: inside <code>&lt;Sequence from={30} durationInFrames={20}&gt;</code>, video frame 30 is frame 0, and outside frames 30–49 the sequence isn't drawn at all.</p>
-<pre class="diagram"><code>  video frame:   0 ··· 29  30  31  ···  49  50 ···
-  sequence:      (not on)   0   1  ···  19  (not on)</code></pre>
+<pre class="diagram" style="--cols:44"><code> video frame: 0 ··· 29 30 31 ··· 49 50 ···
+ sequence:    (not on)  0  1 ··· 19 (not on)</code></pre>
 <p><a href="https://www.remotion.dev/docs/series" target="_blank" rel="noopener"><code>&lt;Series&gt;</code></a> works out the <code>from</code>s for you by putting sequences back to back. An <strong>offset</strong> moves a sequence earlier (negative) or later (positive), and since each sequence starts where the one before it ends, everything after it moves too.</p>
 <h4 data-anchor="a-camera-is-the-world-moving-the-other-way">A camera is the world moving the other way</h4>
 <p>Pan a camera to the right and everything on screen slides left. Turn it clockwise and the world turns counterclockwise. A camera is the opposite of an object: an object's matrix moves it into the world, and a camera's matrix moves the world into the camera's view. Whatever the camera does, the world does the reverse, and the point it looks at has to end up in the middle of the screen. Every layer's own matrix gets multiplied by the camera's, so one camera move moves the whole scene.</p>
 <h4 data-anchor="layers-masks-and-the-order-of-effects">Layers, masks, and the order of effects</h4>
 <p>A scene is drawn like a painting: background first, each layer on top of the ones before. That's the <a href="https://en.wikipedia.org/wiki/Painter%27s_algorithm" target="_blank" rel="noopener">painter's algorithm</a>. Each layer is a sprite plus instructions: where it goes, how see-through it is, how blurred, and which part of the screen it may touch.</p>
-<pre class="diagram"><code>  sprite ──► blur ──► matrix ──► opacity ──► clip ──► onto the frame
-          (in the sprite's       (fade)     (only inside
-           own pixels)                        a rectangle)</code></pre>
+<pre class="diagram" style="--cols:39"><code>  sprite
+  │
+  ▼
+  blur     (in the sprite's own pixels)
+  │
+  ▼
+  matrix
+  │
+  ▼
+  opacity  (fade)
+  │
+  ▼
+  clip     (only inside a rectangle)
+  │
+  ▼
+  onto the frame</code></pre>
 <p>Order matters, and CSS has an answer. The <a href="https://www.w3.org/TR/filter-effects-1/#FilterProperty" target="_blank" rel="noopener">Filter Effects spec</a> applies an element's filters "in the element's local coordinate system", before its transform moves it to the screen. So a word with <code>filter: blur(10px)</code> and <code>transform: scale(2)</code> gets a blur twice as wide. Blurring the sprite first, then transforming it, gives the same result.</p>
 <p>A <strong>clip</strong> is the simplest mask: a rectangle the layer can't paint outside. CSS's <code>overflow: hidden</code> is one, and KineticIntro uses it to make each word rise out of an invisible slot.</p>
 <h3 data-anchor="your-turn">Your turn</h3>
@@ -1826,40 +1978,64 @@ MS.answers("08", {
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="reading-a-component-as-math">Reading a component as math</h4>
 <p>KineticIntro wraps each word in a <code>Scene</code> component. Stripped of React, a Scene is a handful of <code>interpolate</code> calls on the frame number, and three numbers that come out of them: how big, how see-through and how blurred.</p>
-<pre class="diagram"><code>  word 2, "ANIMATE.": a = 40, b = 88       (not to scale)
-  frame:     38  40                        66                      88  90
-  enter:         0 ── APPLE, 26 frames ───►1
-  exit:                                    0 ─ SMOOTH, 22 frames ─►1
-  push:          1 ───────────────────────────────────────────────►1.04
-  visible:   ◄──────────────────────────────────────────────────────────►</code></pre>
+<pre class="diagram" style="--cols:44"><code>  word 2, "ANIMATE.": a = 40, b = 88
+  (not to scale)
+  frame:   38 40           66         88 90
+  enter:      0 ──────────►1
+              APPLE, 26 frames
+  exit:                    0 ────────►1
+                           SMOOTH, 22 frames
+  push:       1 ─────────────────────►1.04
+  visible: ◄──────────────────────────────►</code></pre>
 <p><code>scale</code> multiplies three things: growing from <code>enterFrom</code> while it enters, the slow push, and growing toward <code>exitTo</code> while it leaves. <code>opacity</code> is the smaller of "how far in" and "how far from out". The blur is the leftover of the entrance plus the start of the exit. A blur below 0.15 px is invisible, so KineticIntro turns it off, and that saves Chrome a filter pass on most frames.</p>
 <p>Notice what isn't there: no state, no "previous frame". Each number is a function of n. That's layer 03's frame = f(n), all the way up.</p>
 <h4 data-anchor="a-mask-is-a-window">A mask is a window</h4>
 <p>Inside each Scene, a <code>MaskUp</code> holds the word in a box with <code>overflow: hidden</code>, and slides the word up from 110% of its own height below the box to its place. The box is a window: you only see the part of the word that's inside it.</p>
-<pre class="diagram"><code>   frame 42 (start)         frame 44               frame 64 (home)
-   ┌────────────────┐       ┌────────────────┐      ┌────────────────┐
-   │                │       │ ▄▄  ▄  ▄ ▄ ▄▄▄ │      │ █▀█ █▄ █ █ █▀▄ │
-   └────────────────┘       └────────────────┘      └────────────────┘
-     ANIMATE.  (hidden,       ▀▀  ▀  ▀ ▀ ▀▀▀
-     below the window)        (the rest still hidden)</code></pre>
+<pre class="diagram" style="--cols:42"><code>  frame 42 (start)      frame 44
+  ┌────────────────┐    ┌────────────────┐
+  │                │    │ ▄▄  ▄  ▄ ▄ ▄▄▄ │
+  └────────────────┘    └────────────────┘
+    ANIMATE.  (hidden,    ▀▀  ▀  ▀ ▀ ▀▀▀
+    below the window)     (the rest still
+                          hidden)
+
+  frame 64 (home)
+  ┌────────────────┐
+  │ █▀█ █▄ █ █ █▀▄ │
+  └────────────────┘</code></pre>
 <p>The order of effects matters again. The window is inside the Scene, and the Scene's blur applies to everything in it, so the word is cut by the window first and blurred afterwards: the cut edge goes soft. That's why the window belongs in the sprite, before <code>renderLayers</code> blurs it. The sprite needs empty padding around the window, too, or the blur would have nowhere to spread.</p>
 <h4 data-anchor="where-css-puts-a-gradient">Where CSS puts a gradient</h4>
 <p>The light sweep is a <code>linear-gradient(100deg, …)</code>. <a href="https://www.w3.org/TR/css-images-3/#linear-gradients" target="_blank" rel="noopener">CSS Images</a> defines exactly where such a gradient runs. <code>0deg</code> points up and angles turn clockwise, so <code>90deg</code> points right and <code>100deg</code> points right and a little down. The <strong>gradient line</strong> goes through the middle of the box in that direction, and its length is chosen so that the lines of equal color through two opposite corners land exactly on 0% and 100%:</p>
-<pre class="diagram"><code>   0%  ┊                          ┊  100%      ┊ lines of equal color, at right
-       ┊┌────────────────────────┐┊               angles to the gradient line
-       ┊│                        │┊
-   ────●┼────────── ● ───────────┼●────►       the line runs through the middle;
-       ┊│        middle          │┊           its ends are where the color lines
-       ┊└────────────────────────┘┊           through two opposite corners cross it
-       drawn at 90deg. At 100deg everything tilts 10° clockwise, and the
-       line grows to |W·sin A| + |H·cos A| so its ends still meet the corners' lines</code></pre>
+<pre class="diagram" style="--cols:44"><code>  0%  ┊                    ┊  100%
+      ┊┌──────────────────┐┊
+      ┊│                  │┊
+  ────●┼─────── ● ────────┼●────►
+      ┊│     middle       │┊
+      ┊└──────────────────┘┊
+
+  ┊  lines of equal color, at right angles
+     to the gradient line
+  ─► the line runs through the middle; its
+     ends are where the color lines through
+     two opposite corners cross it
+
+  drawn at 90deg. At 100deg everything tilts
+  10° clockwise, and the line grows to
+  |W·sin A| + |H·cos A| so its ends still
+  meet the corners' lines</code></pre>
 <p>A point's position along the gradient is how far along that line its shadow falls. The background's <code>radial-gradient(70% 60% at 50% 38%, …)</code> is simpler: an ellipse with radii of 70% of the width and 60% of the height, centered half way across and 38% down, which your <code>fillRadialGradient</code> can draw once you turn the percentages into pixels. A stop like <code>transparent 60%</code> ends the gradient early: past 60% of the way out, it's transparent. CSS mixes gradient colors premultiplied, so fading to <code>transparent</code> (which is black at alpha 0) never darkens anything, as you saw in layer 07.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Give me a box, a gradient angle and a point, and ask me to sketch where the gradient line goes and roughly what percentage the point is at. Then ask me whether the line is longer at 45deg or at 90deg, for a square box, and whether that's always so. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20whether%20the%20line%20is%20longer%20at%2045deg%20or%20at%2090deg%2C%20for%20a%20square%20box%2C%20and%20whether%20that%27s%20always%20so.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2009%20%28KineticIntro%29%3A%20the%20recreation.%20Here%27s%20what%20I%20want%20help%20with%3A%20Give%20me%20a%20box%2C%20a%20gradient%20angle%20and%20a%20point%2C%20and%20ask%20me%20to%20sketch%20where%20the%20gradient%20line%20goes%20and%20roughly%20what%20percentage%20the%20point%20is%20at.%20Then%20ask%20me%20whether%20the%20line%20is%20longer%20at%2045deg%20or%20at%2090deg%2C%20for%20a%20square%20box%2C%20and%20whether%20that%27s%20always%20so.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="blend-modes-changing-what-over-means">Blend modes: changing what "over" means</h4>
 <p>Layer 01's blend put the new color over the old one. CSS's <a href="https://www.w3.org/TR/compositing-1/#mix-blend-mode" target="_blank" rel="noopener"><code>mix-blend-mode</code></a> keeps that recipe but changes one ingredient: where the two colors overlap, the result is <code>B(backdrop, source)</code> instead of just the source. The <a href="https://www.w3.org/TR/compositing-1/#generalformula" target="_blank" rel="noopener">general formula</a> mixes three parts, by how much each color covers:</p>
-<pre class="diagram"><code>  only the source shows:     (1 − αb) × αs × Cs
-  both overlap:              αb × αs × B(Cb, Cs)       ← the blend mode lives here
-  only the backdrop shows:   (1 − αs) × αb × Cb</code></pre>
+<pre class="diagram" style="--cols:41"><code>  only the source shows:
+    (1 − αb) × αs × Cs
+
+  both overlap:
+    αb × αs × B(Cb, Cs)
+              ↑ the blend mode lives here
+
+  only the backdrop shows:
+    (1 − αs) × αb × Cb</code></pre>
 <p>With <code>B(Cb, Cs) = Cs</code> that's exactly your <code>blendPixel</code>. KineticIntro's sweep uses <a href="https://www.w3.org/TR/compositing-1/#blendingoverlay" target="_blank" rel="noopener">overlay</a>: where the backdrop is dark it multiplies, which makes dark darker; where it's light it "screens", which makes light lighter. So white pushes every channel toward white, by how much depending on the backdrop: a dark channel at most doubles, a light one goes all the way. KineticIntro's letters are already nearly white, so the sweep shows most on the blue dot, and on the empty space around the letters (next paragraph).</p>
 <p>Which backdrop, though? A blend mode only blends with the content of its own <strong>stacking context</strong>, and the Scene's <code>transform</code> (and its <code>will-change</code>) make it one. So the sweep never touches the page's background: it blends with the lockup's own pixels, and where those are transparent, it's an ordinary half-white blend. That's why <code>lockupLayer</code> blends the sweep into its sprite, not into the frame.</p>
 <h4 data-anchor="a-shadow-is-a-blur">A shadow is a blur</h4>
@@ -2006,45 +2182,77 @@ MS.answers("09", {
 <h3 data-anchor="under-the-hood">Under the hood</h3>
 <h4 data-anchor="codec-and-container">Codec and container</h4>
 <p>An MP4 is a <strong>container</strong>: a box of boxes that holds the frames, plus a table of contents. The frames inside are compressed by a <strong>codec</strong>, here H.264, the most widely played video format there is. The two are separate: the same H.264 frames could go in a different container, and an MP4 can hold other codecs.</p>
-<pre class="diagram"><code>  your frames ──► encoder (H.264, by WebCodecs) ──► chunks ──► container (MP4, by you) ──► file
-  RGBA pixels      compresses each frame              one per     where and when each
-  (~330 KB each                                       frame,      chunk is, so a player
-   at 216 × 384)                                      a few KB    can find and time it</code></pre>
+<pre class="diagram" style="--cols:43"><code>  your frames       RGBA pixels (~330 KB
+    │               each at 216 × 384)
+    ▼
+  encoder (H.264,   compresses each frame
+  by WebCodecs)
+    │
+    ▼
+  chunks            one per frame, a few KB
+    │
+    ▼
+  container (MP4,   where and when each
+  by you)           chunk is, so a player
+    │               can find and time it
+    ▼
+  file</code></pre>
 <p>H.264 frames can be laid out two ways. Live streams use "Annex B", with a start code between the pieces of each frame. MP4 wants each piece prefixed with its length instead, and the encoder's setup (its SPS and PPS) stored once, in an <code>avcC</code> record. The provided encoder asks WebCodecs for exactly that layout; Annex B bytes in an MP4 won't play.</p>
 <h4 data-anchor="boxes-all-the-way-down">Boxes all the way down</h4>
 <p>The format comes from Apple's QuickTime and is standardized as the <a href="https://www.iso.org/standard/83102.html" target="_blank" rel="noopener">ISO base media file format</a> (ISO/IEC 14496-12). It's built from one idea: a <strong>box</strong> (QuickTime calls it an atom) is 4 bytes of size, 4 letters of type, and then its contents, which can be more boxes.</p>
-<pre class="diagram"><code>  ┌──────────────┬────────────────┬──────────────────────────────┐
-  │ size (u32)   │ type (4 ASCII) │ contents: data or more boxes │
-  │ 00 00 00 08  │ f  r  e  e     │ (none: an empty box)         │
-  └──────────────┴────────────────┴──────────────────────────────┘
-     the size counts the whole box, these 8 header bytes included</code></pre>
+<pre class="diagram" style="--cols:44"><code>  ┌─────────────┬────────────┬─────────────┐
+  │ size (u32)  │ type       │ contents:   │
+  │             │ (4 ASCII)  │ data or     │
+  │             │            │ more boxes  │
+  ├─────────────┼────────────┼─────────────┤
+  │ 00 00 00 08 │ f  r  e  e │ (none: an   │
+  │             │            │ empty box)  │
+  └─────────────┴────────────┴─────────────┘
+     the size counts the whole box,
+     these 8 header bytes included</code></pre>
 <p>A program that doesn't know a box type can still skip it: read the size, jump ahead. It's one reason the format has lasted since QuickTime's first release in 1991. Many boxes are <strong>full boxes</strong>, whose contents start with a version byte and 3 bytes of flags, so the format can change without breaking old readers.</p>
 <h4 data-anchor="biggest-byte-first">Biggest byte first</h4>
 <p>Every number is <strong>big-endian</strong>: the most significant byte comes first, the way you write digits. 300 as a u32 is <code>00 00 01 2C</code>. Your computer's processor is almost certainly little-endian and would store it backwards, which is why <code>u32</code> builds the bytes by hand with shifts and masks instead of copying memory. Network protocols use big-endian too; it's often called "network byte order".</p>
 <h4 data-anchor="the-tree">The tree</h4>
 <p>Here's the whole file, with the header boxes (<code>mvhd</code>, <code>tkhd</code>, <code>mdhd</code>, <code>hdlr</code>, <code>vmhd</code>, <code>dinf</code>) left out:</p>
-<pre class="diagram"><code>  ftyp                      which specs the file follows
-  mdat                      the media data: every chunk's bytes, back to back
-  moov                      the movie: the table of contents
-  └ trak                    one track (we have one: video)
+<pre class="diagram" style="--cols:43"><code>  ftyp     which specs the file follows
+  mdat     the media data: every chunk's
+           bytes, back to back
+  moov     the movie: the table of contents
+  └ trak   one track (we have one: video)
     └ mdia
       └ minf
-        └ stbl              the sample table: where and when every frame is
-          ├ stsd            how to decode them: "avc1", with the encoder's setup (avcC)
-          ├ stts            how long each one lasts
-          ├ stsc            which chunk each sample is in
-          ├ stsz            how many bytes each one is
-          ├ stco            where each chunk starts in the file
-          └ stss            which ones are key frames</code></pre>
+        └ stbl   the sample table (below)</code></pre>
+<pre class="diagram" style="--cols:43"><code>  stbl     the sample table: where and when
+  │        every frame is
+  ├ stsd   how to decode them: "avc1",
+  │        with the encoder's setup (avcC)
+  ├ stts   how long each one lasts
+  ├ stsc   which chunk each sample is in
+  ├ stsz   how many bytes each one is
+  ├ stco   where each chunk starts
+  │        in the file
+  └ stss   which ones are key frames</code></pre>
 <p><code>lib/mp4.js</code> builds the boilerplate boxes (headers full of zeros and fixed numbers) using your <code>box</code>, <code>fullBox</code>, <code>u16</code> and <code>u32</code>. Read it: every field is named. The sample table is yours.</p>
 <blockquote class="ask"><strong>Study buddy:</strong> "Ask me questions until I can explain what a box's size counts, why the numbers are big-endian, and how a program can skip a box it doesn't understand. No code." <a href="https://claude.ai/new?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2010%20%28Export%29%3A%20frames%20to%20MP4%2C%20then%20map%20it%20to%20Remotion.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20box%27s%20size%20counts%2C%20why%20the%20numbers%20are%20big-endian%2C%20and%20how%20a%20program%20can%20skip%20a%20box%20it%20doesn%27t%20understand.%20No%20code." target="_blank" rel="noopener">Ask Claude</a> · <a href="https://chatgpt.com/?q=You%27re%20my%20study%20buddy%20for%20Motion%20from%20Scratch%20%28github.com%2Fnalediym%2Fmotion-from-scratch%29%2C%20a%20course%20where%20I%20build%20a%20video%20engine%20from%20single%20pixels%20up%20in%20JavaScript.%20Rules%3A%20never%20write%2C%20finish%20or%20fix%20my%20code%2C%20even%20if%20I%20ask.%20Never%20give%2C%20confirm%20or%20rule%20out%20checkpoint%20answers.%20Ask%20me%20questions%20first.%20If%20I%27m%20still%20stuck%2C%20climb%20this%20hint%20ladder%20one%20rung%20at%20a%20time%2C%20never%20past%20the%20top%3A%201%29%20ask%20what%20I%20expected%2C%20what%20happened%20and%20what%20I%27ve%20tried%3B%202%29%20point%20at%20a%20failing%20test%27s%20expected%20vs%20actual%20values%3B%203%29%20ask%20a%20concept%20question%20and%20point%20to%20the%20chapter%20section%3B%204%29%20explain%20with%20an%20analogy%20or%20ASCII%20diagram%2C%20using%20different%20numbers%3B%205%29%20point%20at%20the%20line%20to%20look%20at%20and%20ask%20about%20it.%20Explain%20what%27s%20happening%20under%20the%20hood%20%28bytes%2C%20rounding%2C%20math%2C%20how%20browsers%20do%20it%29.%20I%27m%20on%20layer%2010%20%28Export%29%3A%20frames%20to%20MP4%2C%20then%20map%20it%20to%20Remotion.%20Here%27s%20what%20I%20want%20help%20with%3A%20Ask%20me%20questions%20until%20I%20can%20explain%20what%20a%20box%27s%20size%20counts%2C%20why%20the%20numbers%20are%20big-endian%2C%20and%20how%20a%20program%20can%20skip%20a%20box%20it%20doesn%27t%20understand.%20No%20code." target="_blank" rel="noopener">Ask ChatGPT</a></blockquote>
 <h4 data-anchor="where-sizes-and-offsets">Where: sizes and offsets</h4>
 <p>To show frame 90, a player needs its bytes. <code>stsz</code> gives every frame's size and <code>stco</code> gives where each <strong>chunk</strong> starts in the file (a chunk is a run of samples stored together; here every frame is its own chunk, which keeps <code>stsc</code> a one-liner). The offsets count from the very first byte of the file, so they have to skip the <code>ftyp</code>, then the <code>mdat</code>'s own 8-byte header, then every chunk before it.</p>
-<pre class="diagram"><code>  byte 0     end of ftyp + 8
-  ┌──────────┬───────────┬─────────────┬────────┬────────┬─ ─ ─┬──────────┐
-  │ ftyp     │ mdat hdr  │ chunk 1     │ chunk 2│ chunk 3│     │ moov     │
-  └──────────┴───────────┴─────────────┴────────┴────────┴─ ─ ─┴──────────┘
-                         ▲ offset 1    ▲ offset 2 = offset 1 + size 1</code></pre>
+<pre class="diagram" style="--cols:43"><code>  ┌──────────┐ ◄ byte 0
+  │ ftyp     │
+  ├──────────┤
+  │ mdat hdr │
+  ├──────────┤ ◄ offset 1 = end of ftyp + 8
+  │ chunk 1  │
+  │          │
+  ├──────────┤ ◄ offset 2 =
+  │ chunk 2  │   offset 1 + size 1
+  ├──────────┤
+  │ chunk 3  │
+  ├──────────┤
+  │  · · ·   │
+  ├──────────┤
+  │ moov     │
+  └──────────┘</code></pre>
 <h4 data-anchor="when-timescales-and-runs">When: timescales and runs</h4>
 <p>MP4 counts time in whole ticks of a <strong>timescale</strong>: ticks per second. This file's media uses 90000, a habit from MPEG broadcasting, because it divides evenly by 24, 25, 30, 50 and 60, so common frame rates get whole-number frame durations. At 30 fps, every frame lasts 3000 ticks. <code>stts</code> stores durations as runs, "180 samples of 3000", so a constant frame rate costs 8 bytes no matter how long the video is. That's <a href="https://en.wikipedia.org/wiki/Run-length_encoding" target="_blank" rel="noopener">run-length encoding</a>, the same trick as "A × 3" instead of "AAA".</p>
 <p>The movie header (<code>mvhd</code>) has its own clock too. This file sets it to milliseconds (timescale 1000), and the track header (<code>tkhd</code>) gives the track's length on that clock.</p>

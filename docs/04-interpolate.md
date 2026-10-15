@@ -25,9 +25,9 @@ The simplest way to fill in is a straight line. **lerp**, short for *linear inte
 ```text
   lerp(a, b, t) = a + (b − a) × t
 
-  t:   0          0.25       0.5                   1          1.5
-       40 ─────── 50 ─────── 60 ────────────────── 80 · · · · 100
-       a                                           b
+  t: 0     0.25  0.5         1          1.5
+     40 ── 50 ── 60 ──────── 80 · · · · 100
+     a                       b
 ```
 
 `t` is a fraction, not a frame: 0 is the start, 1 is the end, 0.5 is halfway. Nothing stops it going past 1 or below 0; the line just keeps going. You've already written one: layer 01's `mixColor` is a lerp on four channels at once.
@@ -37,9 +37,12 @@ The simplest way to fill in is a straight line. **lerp**, short for *linear inte
 `inverseLerp` runs lerp backwards: given a value, which `t` gives it? Put the two together and you can map any range onto any other. Say a word fades in between frames 30 and 50, and you want its opacity at frame 35:
 
 ```text
-  frames    30 ────●─────────── 50      inverseLerp(30, 50, 35) = 0.25
+  frames    30 ────●─────────── 50
                   35
-  opacity    0 ────●───────────  1      lerp(0, 1, 0.25) = 0.25
+  opacity    0 ────●───────────  1
+
+  frames:  inverseLerp(30, 50, 35) = 0.25
+  opacity: lerp(0, 1, 0.25)        = 0.25
 ```
 
 First turn the input into a fraction of its range, then turn that fraction into a point in the output range. For two keyframes, that's all `interpolate` does. Notice what's missing: nothing is stored between frames. The opacity at frame 35 comes from 35 alone, which is exactly what layer 03's frame = f(n) asked for.
@@ -51,12 +54,13 @@ First turn the input into a fraction of its range, then turn that fraction into 
 With more than two keyframes, the ranges become a chain of **segments**. Find the segment the input falls in, then map within that segment alone:
 
 ```text
-  inputRange    0 ──────────── 30 ────── 50 ──────────────── 90
-  outputRange   0              100       60                  60
-                └──── seg 0 ────┘└ seg 1 ─┘└────── seg 2 ─────┘
+  inputRange  0 ────── 30 ── 50 ──────── 90
+  outputRange 0        100   60          60
+  segment     └─── 0 ───┘└ 1 ─┘└──── 2 ───┘
 
-  input 40 falls in segment 1:   t = (40 − 30) / (50 − 30) = 0.5
-                                 output = lerp(100, 60, 0.5) = 80
+  input 40 falls in segment 1:
+    t = (40 − 30) / (50 − 30) = 0.5
+    output = lerp(100, 60, 0.5) = 80
 ```
 
 Keyframes don't have to be evenly spaced, and in real animation they rarely are: each word in KineticIntro takes 26 frames to come in and 22 to leave. What `interpolate` does insist on is that the inputs are **strictly increasing**. If they weren't, one input could sit inside two segments at once, and there'd be no single right answer. The outputs can go up, down, or both.
@@ -67,13 +71,18 @@ Before the first keyframe and after the last, `interpolate` has to make somethin
 
 ```text
   scale
-   1.2 ┤                    ·      "extend" keeps going along the end segment's line
+   1.2 ┤                    ·   "extend"
    1.1 ┤               ·
-   1.0 ┤          ●━━━━━━━━━━━━    "clamp" holds the end value
+   1.0 ┤          ●━━━━━━━━━━━━ "clamp"
    0.9 ┤     ·
-   0.8 ┤●                          ● a keyframe
+   0.8 ┤●
        └┬─────────┬─────────┬──▶ frame
         0        10        20
+
+  ●        a keyframe
+  "extend" keeps going along the end
+           segment's line
+  "clamp"  holds the end value
 ```
 
 - **"extend"**, Remotion's default, keeps going along the end segment's line: 1.2, and still growing. With several keyframes, "the end segment" means the **first** segment before the first keyframe and the **last** one after the last keyframe.
@@ -87,8 +96,10 @@ Before the first keyframe and after the last, `interpolate` has to make somethin
 One more option, `easing`, is a function that reshapes `t` before it's mapped to the output. It takes the progress through the segment and returns a new progress:
 
 ```text
-  t → t         ●────●────●────●────●────●────●────●────●      even steps
-  t → t × t     ●●─●──●───●─────●──────●───────●────────●      slow start, fast finish
+  t → t        even steps
+  ●────●────●────●────●────●────●────●────●
+  ●●─●──●───●─────●──────●───────●────────●
+  t → t × t    slow start, fast finish
 ```
 
 Each dot is where the value is after another eighth of the time. Because easing works on `t`, the start and end don't move: `t` = 0 still gives the first output and `t` = 1 the last. Easing only changes *when* the value gets there. With several keyframes, every segment gets its own trip from 0 to 1, so the easing starts over at each keyframe. Past the ends, with "extend", `t` goes below 0 or above 1, and the easing is applied to it there too: with `t × t`, the extension curves instead of running straight. Layer 05 builds real easing curves; this layer just calls whatever function it's given.

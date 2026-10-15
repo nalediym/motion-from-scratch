@@ -15,10 +15,10 @@ KineticIntro has a glowing radial background, words that fade in and out, and a 
 Designers write colors like `#5B8CFF` (the CSS [hex color](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/hex-color) notation). That's three bytes written in base 16 ([hexadecimal](https://en.wikipedia.org/wiki/Hexadecimal)), two digits each:
 
 ```text
-   #  5B   8C   FF
-      │    │    └─ blue  = 0xFF = 15×16 + 15 = 255
-      │    └────── green = 0x8C =  8×16 + 12 = 140
-      └─────────── red   = 0x5B =  5×16 + 11 =  91
+  # 5B 8C FF
+    │  │  └─ blue  = 0xFF = 15×16 + 15 = 255
+    │  └──── green = 0x8C =  8×16 + 12 = 140
+    └─────── red   = 0x5B =  5×16 + 11 =  91
 ```
 
 JavaScript can read base-16 text for you (look up [`parseInt`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt)'s second argument, the radix). There are two common approaches: cut the string into three 2-character pieces, or read all six digits as one number and pull bytes out of it with bit shifts ([`>>`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift)) and masks ([`& 255`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND)). Either is fine. The second shows you how colors are often packed in memory.
@@ -28,12 +28,15 @@ JavaScript can read base-16 text for you (look up [`parseInt`](https://developer
 A rectangle from x = 2 to x = 6 is an idea with perfect edges. The screen only has whole pixels. Turning shapes into pixels is called **[rasterization](https://en.wikipedia.org/wiki/Rasterisation)**, and the rule almost every renderer uses is: _a pixel belongs to the shape if its **center** is inside._
 
 ```text
-        0     1     2     3     4     5     6     7
-     ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
-     │  ·  │  ·  │  ■  │  ■  │  ■  │  ■  │  ·  │  ·  │   rect x = 2 .. 6
-     └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
-                 ↑ centers at 2.5, 3.5, 4.5, 5.5 are inside
-                                         ↑ 6.5 is not
+  rect x = 2 .. 6
+
+    0   1   2   3   4   5   6   7
+  ┌───┬───┬───┬───┬───┬───┬───┬───┐
+  │ · │ · │ ■ │ ■ │ ■ │ ■ │ · │ · │
+  └───┴───┴───┴───┴───┴───┴───┴───┘
+            ↑   ↑   ↑   ↑   ↑
+  centers  2.5 3.5 4.5 5.5 6.5
+           └─── inside ──┘ not
 ```
 
 For rectangles, testing centers is the same as rounding the edges, which is what the spec asks for.
@@ -47,13 +50,18 @@ The right edge is **exclusive** (6 is out). This "half-open" rule means two rect
 A pixel is inside a circle if its center is no farther than `r` from the circle's center. That's Pythagoras: `dx² + dy² ≤ r²`. (You can skip the square root by comparing squared distances. Why does that give the same answer?)
 
 ```text
-          · · · · · · · · ·
-          · · · ■ ■ ■ · · ·         every ■ passes  dx² + dy² ≤ r²
-          · · ■ ■ ■ ■ ■ · ·
-          · · ■ ■ ● ■ ■ · ·         ● = center
-          · · ■ ■ ■ ■ ■ · ·
-          · · · ■ ■ ■ · · ·         ┌─────────┐  only test pixels
-          · · · · · · · · ·         └─────────┘  inside this box
+  · · · · · · · · ·
+  · · · ■ ■ ■ · · ·
+  · · ■ ■ ■ ■ ■ · ·
+  · · ■ ■ ● ■ ■ · ·
+  · · ■ ■ ■ ■ ■ · ·
+  · · · ■ ■ ■ · · ·
+  · · · · · · · · ·
+
+  every ■ passes  dx² + dy² ≤ r²
+  ● = center
+  ┌─────────┐  only test pixels
+  └─────────┘  inside this box
 ```
 
 You *could* test every pixel in the frame. For a small circle on a 1080 × 1920 frame that's 2 million tests to draw maybe 300 pixels. Instead, only visit the circle's **bounding box**: from `cx − r` to `cx + r` in each direction.
@@ -67,19 +75,28 @@ Here's the big one. When you paint a half-transparent red over a blue pixel, the
 This was worked out in 1984 by Thomas Porter and Tom Duff at Lucasfilm, in a paper called ["Compositing Digital Images"](https://keithp.com/~keithp/porterduff/p253-porter.pdf) (SIGGRAPH '84, PDF). It's how film effects layered spaceships over backgrounds, and how every browser layers one element over another. Their "over" operation, with alphas written as 0 to 1:
 
 ```text
-  a = alpha of the new color (source)     b = alpha of the existing pixel (destination)
+  a = alpha of the new color (source)
+  b = alpha of the old pixel (destination)
 
   outAlpha = a + b × (1 − a)
-  outRGB   = ( newRGB × a  +  oldRGB × b × (1 − a) ) / outAlpha
+  outRGB   = ( newRGB × a
+               + oldRGB × b × (1 − a) )
+             / outAlpha
 ```
 
 Read it as coverage. The new paint covers fraction `a` of the pixel. Of what's left, `(1 − a)`, the old pixel covers fraction `b`. The color is the average of the two, weighted by how much each one covers. The **divide by outAlpha** turns "amount of light" back into "color".
 
 ```text
-  50% red over opaque blue:              50% red over nothing:
-  outAlpha = 0.5 + 1 × 0.5 = 1           outAlpha = 0.5 + 0 = 0.5
-  red  = (255×0.5 + 0) / 1   ≈ 128       red  = (255×0.5) / 0.5 = 255   ← still pure red
-  blue = (0 + 255×1×0.5) / 1 ≈ 127       alpha = 0.5 → 128
+  50% red over opaque blue:
+  outAlpha = 0.5 + 1 × 0.5 = 1
+  red  = (255×0.5 + 0) / 1   ≈ 128
+  blue = (0 + 255×1×0.5) / 1 ≈ 127
+
+  50% red over nothing:
+  outAlpha = 0.5 + 0 = 0.5
+  red  = (255×0.5) / 0.5 = 255
+                            ↑ still pure red
+  alpha = 0.5 → 128
 ```
 
 Colors stored this way are called **straight alpha**. Many renderers store colors already multiplied by alpha instead (**premultiplied alpha**), because then the formula needs no division. Porter and Duff wrote "over" for premultiplied colors in the paper; the formula above is the same equation with the division put back so it works on straight colors. Browsers follow the [W3C Compositing and Blending spec](https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcover), which names this operator **source-over**.
@@ -91,10 +108,14 @@ Colors stored this way are called **straight alpha**. Many renderers store color
 A gradient answers one question per pixel: _how far along am I, from 0 to 1?_ Then it mixes the two colors by that amount:
 
 ```text
-  mixColor(a, b, t) = a + (b − a) × t      (for each of R, G, B and A)
+  mixColor(a, b, t) = a + (b − a) × t
+  (for each of R, G, B and A)
 
-  t = 0          t = 0.25        t = 0.5         t = 0.75        t = 1
-  ██ a           ██              ██ halfway      ██              ██ b
+  t = 0      ██ a
+  t = 0.25   ██
+  t = 0.5    ██ halfway
+  t = 0.75   ██
+  t = 1      ██ b
 ```
 
 A vertical gradient gets `t` from the row. A radial gradient gets `t` from distance to a center point. Dividing each axis by its own radius (`rx`, `ry`) stretches the circle into an ellipse.
@@ -102,9 +123,14 @@ A vertical gradient gets `t` from the row. A radial gradient gets `t` from dista
 That's exactly what CSS does: [`radial-gradient()`](https://developer.mozilla.org/en-US/docs/Web/CSS/gradient/radial-gradient), defined in the [CSS Images spec](https://www.w3.org/TR/css-images-3/#radial-gradients), which says the first size is the horizontal radius and the second the vertical, each as a percentage of the box. KineticIntro's background is written in CSS as:
 
 ```text
-  radial-gradient(70% 60% at 50% 38%, #1A2740, #0B0D12)
-                  └rx  ry┘   └cx  cy┘   inner     outer
-  on a 1080 × 1920 frame:  rx = 756   ry = 1152   cx = 540   cy = 729.6
+  radial-gradient(70% 60% at 50% 38%,
+                  └rx ry┘    └cx cy┘
+                  #1A2740, #0B0D12)
+                  └inner┘  └outer┘
+
+  on a 1080 × 1920 frame:
+    rx = 756    ry = 1152
+    cx = 540    cy = 729.6
 ```
 
 ## Your turn

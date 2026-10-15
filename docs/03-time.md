@@ -15,9 +15,11 @@ Everything so far draws one picture. KineticIntro is 180 of them, shown 30 a sec
 Show still pictures quickly enough and your eye reads them as movement. Film shows 24 a second, most web video 30 or 60. That rate is the **frame rate**, in frames per second (fps). Frame `n` is on screen from `n / fps` seconds until the next frame starts:
 
 ```text
-  time (ms)   0          33.3        66.7        100
-              │ frame 0   │ frame 1   │ frame 2   │ frame 3 …     at 30 fps
-              └─ 1000 ÷ 30 = 33.3 ms ─┘
+  time (ms), at 30 fps
+  0        33.3      66.7      100
+  │ frame 0 │ frame 1 │ frame 2 │ frame 3 …
+  └────┬────┘
+       └─ 1000 ÷ 30 = 33.3 ms
 ```
 
 So converting is multiplying or dividing by fps: 1.5 seconds at 30 fps is 45 frames, and 45 frames is 1.5 seconds. Only one direction needs rounding, because a clip can't last half a frame.
@@ -27,8 +29,12 @@ So converting is multiplying or dividing by fps: 1.5 seconds at 30 fps is 45 fra
 There are two ways to make a ball move. One keeps state and changes it on every tick: `x = x + 2`. The other computes the picture straight from the frame number: `x = 2 × n`.
 
 ```text
-  by mutation:   tick → x += 2 → draw      frame 40 depends on frames 0–39 having run, in order
-  by f(n):       n    → x = 2n → draw      frame 40 depends only on 40
+  by mutation:   tick → x += 2 → draw
+                 frame 40 depends on frames
+                 0–39 having run, in order
+
+  by f(n):       n    → x = 2n → draw
+                 frame 40 depends only on 40
 ```
 
 The second way wins everywhere that matters. A timeline can jump to frame 140 without playing 0–139. Frames can render out of order, or in parallel: Remotion splits a long video across many CPU cores or cloud machines. And the same `n` always gives the same picture, so a frame can be tested like any other function.
@@ -46,9 +52,12 @@ Video editors label frames with [SMPTE timecode](https://en.wikipedia.org/wiki/S
 To play a composition, a browser page asks for [`requestAnimationFrame`](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame) callbacks. The browser calls back before each screen refresh, 60 or 120 times a second depending on the screen, with a timestamp. The player turns the time that has passed into a frame number:
 
 ```text
-  screen refreshes (60 Hz):   │  │  │  │  │  │  │  │  │      every 16.7 ms
-  video frames (30 fps):      │  0  │  1  │  2  │  3  │      every 33.3 ms
-                                → each frame is shown on two refreshes
+  screen (60 Hz)  │  │  │  │  │  │  │  │  │
+  video (30 fps)  │  0  │  1  │  2  │  3  │
+
+  screen: a refresh every 16.7 ms
+  video:  a frame every 33.3 ms
+  → each frame is shown on two refreshes
 ```
 
 A frame stays on screen until the next one has *started*, so the player counts whole frames and never rounds up. If drawing a frame takes too long, the player doesn't fall behind: on the next refresh it shows whatever frame the clock says, skipping the ones in between. That's a **dropped frame**. An animation built on `x += 2` would slow down instead. Past the end, a looping player starts again from 0; the [remainder operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Remainder) `%` does exactly that wrap-around.

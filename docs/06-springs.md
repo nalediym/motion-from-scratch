@@ -15,8 +15,12 @@ Easing curves are drawn by hand: someone picks four numbers and the motion follo
 Picture a weight on a spring, lying on a slippery table. Pull it and let go. Two forces act on it. The spring pulls it back toward where it wants to rest, harder the further away it is: that's [Hooke's law](https://en.wikipedia.org/wiki/Hooke%27s_law). Friction, called **damping**, pushes against the motion, harder the faster it moves:
 
 ```text
-  force = −stiffness × (position − target)  −  damping × velocity
-          └──── the spring pulls it back ──┘   └─ friction slows it ─┘
+              the spring pulls it back
+          ┌──────────────┴───────────────┐
+  force = −stiffness × (position − target)
+        − damping × velocity
+          └───────┬────────┘
+          friction slows it
 
   acceleration = force ÷ mass
 ```
@@ -28,11 +32,15 @@ That's the whole description, and it only says what happens *next*: given where 
 Playing time forward means taking small steps of `dt` seconds. Each step uses the force to update the velocity, and the velocity to update the position. The order matters more than it looks:
 
 ```text
-  explicit Euler:        position += velocity × dt      (the old velocity)
-                         velocity += acceleration × dt
+  explicit Euler:
+    position += velocity × dt
+                └─ the old velocity
+    velocity += acceleration × dt
 
-  semi-implicit Euler:   velocity += acceleration × dt
-                         position += velocity × dt      (the new velocity)
+  semi-implicit Euler:
+    velocity += acceleration × dt
+    position += velocity × dt
+                └─ the new velocity
 ```
 
 Both look reasonable, and over one step they barely differ. Over thousands of steps, explicit Euler quietly adds energy every time: a spring with no friction swings a little wider each second, forever. [Semi-implicit Euler](https://en.wikipedia.org/wiki/Semi-implicit_Euler_method) keeps the swing the same size, which is why physics engines use it. It costs nothing extra; it's just the right order.
@@ -52,9 +60,15 @@ Three numbers describe a spring, but its character comes down to one, the **damp
 ```text
   ζ = damping ÷ (2 × √(stiffness × mass))
 
-  ζ below 1   underdamped         overshoots, bounces, then settles
-  ζ = 1       critically damped   arrives as fast as possible, never overshoots
-  ζ above 1   overdamped          creeps in slowly, never overshoots
+  ζ below 1   underdamped
+    overshoots, bounces, then settles
+
+  ζ = 1       critically damped
+    arrives as fast as possible,
+    never overshoots
+
+  ζ above 1   overdamped
+    creeps in slowly, never overshoots
 ```
 
 Remotion's default spring is stiffness 100, damping 10, mass 1, so ζ = 10 ÷ (2 × 10) = 0.5: a little bouncy.

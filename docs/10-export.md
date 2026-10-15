@@ -15,10 +15,21 @@ Your KineticIntro plays in a browser tab. To post it, send it or drop it into an
 An MP4 is a **container**: a box of boxes that holds the frames, plus a table of contents. The frames inside are compressed by a **codec**, here H.264, the most widely played video format there is. The two are separate: the same H.264 frames could go in a different container, and an MP4 can hold other codecs.
 
 ```text
-  your frames ──► encoder (H.264, by WebCodecs) ──► chunks ──► container (MP4, by you) ──► file
-  RGBA pixels      compresses each frame              one per     where and when each
-  (~330 KB each                                       frame,      chunk is, so a player
-   at 216 × 384)                                      a few KB    can find and time it
+  your frames       RGBA pixels (~330 KB
+    │               each at 216 × 384)
+    ▼
+  encoder (H.264,   compresses each frame
+  by WebCodecs)
+    │
+    ▼
+  chunks            one per frame, a few KB
+    │
+    ▼
+  container (MP4,   where and when each
+  by you)           chunk is, so a player
+    │               can find and time it
+    ▼
+  file
 ```
 
 H.264 frames can be laid out two ways. Live streams use "Annex B", with a start code between the pieces of each frame. MP4 wants each piece prefixed with its length instead, and the encoder's setup (its SPS and PPS) stored once, in an `avcC` record. The provided encoder asks WebCodecs for exactly that layout; Annex B bytes in an MP4 won't play.
@@ -28,11 +39,16 @@ H.264 frames can be laid out two ways. Live streams use "Annex B", with a start 
 The format comes from Apple's QuickTime and is standardized as the [ISO base media file format](https://www.iso.org/standard/83102.html) (ISO/IEC 14496-12). It's built from one idea: a **box** (QuickTime calls it an atom) is 4 bytes of size, 4 letters of type, and then its contents, which can be more boxes.
 
 ```text
-  ┌──────────────┬────────────────┬──────────────────────────────┐
-  │ size (u32)   │ type (4 ASCII) │ contents: data or more boxes │
-  │ 00 00 00 08  │ f  r  e  e     │ (none: an empty box)         │
-  └──────────────┴────────────────┴──────────────────────────────┘
-     the size counts the whole box, these 8 header bytes included
+  ┌─────────────┬────────────┬─────────────┐
+  │ size (u32)  │ type       │ contents:   │
+  │             │ (4 ASCII)  │ data or     │
+  │             │            │ more boxes  │
+  ├─────────────┼────────────┼─────────────┤
+  │ 00 00 00 08 │ f  r  e  e │ (none: an   │
+  │             │            │ empty box)  │
+  └─────────────┴────────────┴─────────────┘
+     the size counts the whole box,
+     these 8 header bytes included
 ```
 
 A program that doesn't know a box type can still skip it: read the size, jump ahead. It's one reason the format has lasted since QuickTime's first release in 1991. Many boxes are **full boxes**, whose contents start with a version byte and 3 bytes of flags, so the format can change without breaking old readers.
@@ -46,19 +62,27 @@ Every number is **big-endian**: the most significant byte comes first, the way y
 Here's the whole file, with the header boxes (`mvhd`, `tkhd`, `mdhd`, `hdlr`, `vmhd`, `dinf`) left out:
 
 ```text
-  ftyp                      which specs the file follows
-  mdat                      the media data: every chunk's bytes, back to back
-  moov                      the movie: the table of contents
-  └ trak                    one track (we have one: video)
+  ftyp     which specs the file follows
+  mdat     the media data: every chunk's
+           bytes, back to back
+  moov     the movie: the table of contents
+  └ trak   one track (we have one: video)
     └ mdia
       └ minf
-        └ stbl              the sample table: where and when every frame is
-          ├ stsd            how to decode them: "avc1", with the encoder's setup (avcC)
-          ├ stts            how long each one lasts
-          ├ stsc            which chunk each sample is in
-          ├ stsz            how many bytes each one is
-          ├ stco            where each chunk starts in the file
-          └ stss            which ones are key frames
+        └ stbl   the sample table (below)
+```
+
+```text
+  stbl     the sample table: where and when
+  │        every frame is
+  ├ stsd   how to decode them: "avc1",
+  │        with the encoder's setup (avcC)
+  ├ stts   how long each one lasts
+  ├ stsc   which chunk each sample is in
+  ├ stsz   how many bytes each one is
+  ├ stco   where each chunk starts
+  │        in the file
+  └ stss   which ones are key frames
 ```
 
 `lib/mp4.js` builds the boilerplate boxes (headers full of zeros and fixed numbers) using your `box`, `fullBox`, `u16` and `u32`. Read it: every field is named. The sample table is yours.
@@ -70,11 +94,22 @@ Here's the whole file, with the header boxes (`mvhd`, `tkhd`, `mdhd`, `hdlr`, `v
 To show frame 90, a player needs its bytes. `stsz` gives every frame's size and `stco` gives where each **chunk** starts in the file (a chunk is a run of samples stored together; here every frame is its own chunk, which keeps `stsc` a one-liner). The offsets count from the very first byte of the file, so they have to skip the `ftyp`, then the `mdat`'s own 8-byte header, then every chunk before it.
 
 ```text
-  byte 0     end of ftyp + 8
-  ┌──────────┬───────────┬─────────────┬────────┬────────┬─ ─ ─┬──────────┐
-  │ ftyp     │ mdat hdr  │ chunk 1     │ chunk 2│ chunk 3│     │ moov     │
-  └──────────┴───────────┴─────────────┴────────┴────────┴─ ─ ─┴──────────┘
-                         ▲ offset 1    ▲ offset 2 = offset 1 + size 1
+  ┌──────────┐ ◄ byte 0
+  │ ftyp     │
+  ├──────────┤
+  │ mdat hdr │
+  ├──────────┤ ◄ offset 1 = end of ftyp + 8
+  │ chunk 1  │
+  │          │
+  ├──────────┤ ◄ offset 2 =
+  │ chunk 2  │   offset 1 + size 1
+  ├──────────┤
+  │ chunk 3  │
+  ├──────────┤
+  │  · · ·   │
+  ├──────────┤
+  │ moov     │
+  └──────────┘
 ```
 
 ### When: timescales and runs

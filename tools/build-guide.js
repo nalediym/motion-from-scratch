@@ -71,7 +71,9 @@ function markdown(md, l) {
         const kind = lang === "js predict" ? "predict" : "experiment";
         out.push(tryCell(l, kind === "predict" ? "predict" : "break", ++count[kind], body.join("\n")));
       } else {
-        out.push(`<pre class="${lang === "text" ? "diagram" : ""}"><code>${esc(body.join("\n"))}</code></pre>`);
+        // A diagram knows how many characters wide it is, so narrow screens can shrink it to fit (see pre.diagram).
+        const cols = Math.max(1, ...body.map(b => [...b].length));
+        out.push(lang === "text" ? `<pre class="diagram" style="--cols:${cols}"><code>${esc(body.join("\n"))}</code></pre>` : `<pre><code>${esc(body.join("\n"))}</code></pre>`);
       }
       continue;
     }
@@ -192,11 +194,14 @@ body { padding-block: 24px 80px; }
 .tab.soon { opacity: 0.45; }
 .tab[aria-current="true"] { border-color: var(--key); }
 .chapter { max-width: 1240px; margin: 0 auto 72px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 470px); gap: 36px; align-items: start; scroll-margin-top: 12px; }
-.read { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.read { display: flex; flex-direction: column; gap: 16px; min-width: 0; container-type: inline-size; }
 .read h3 { font-size: 1.4rem; margin-top: 18px; }
 .read h4 { font-family: var(--display); font-stretch: 112%; font-size: 1.05rem; margin: 6px 0 0; }
 .read ul, .read ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; max-width: 66ch; }
-.read pre.diagram { background: transparent; border: 1px dashed var(--line); color: var(--ink); }
+.read pre.diagram { background: transparent; border: 1px dashed var(--line); color: var(--ink); --px: 16px; padding-inline: var(--px);
+  /* Shrink a wide diagram until its widest line fits the column (monospace characters are about 0.6em wide), never above 13px. */
+  font-size: clamp(9px, calc((100cqi - 2 * var(--px) - 2px) / (var(--cols, 40) * 0.61)), 13px); }
+@media (max-width: 480px) { .read pre.diagram { --px: 10px; } }
 .read details { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; background: var(--paper); max-width: 66ch; }
 .read details > summary { cursor: pointer; font-weight: 700; color: var(--pencil); }
 .read details[open] > summary { margin-bottom: 10px; }
