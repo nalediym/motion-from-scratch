@@ -15,23 +15,32 @@ Each word in KineticIntro arrives the same way: it grows from 80% to full size w
 Moving, scaling, rotating and slanting are all the same kind of operation, an **affine transform**, and six numbers describe any of them. The [HTML canvas standard](https://html.spec.whatwg.org/multipage/canvas.html#transformations) and CSS's [`matrix()`](https://www.w3.org/TR/css-transforms-1/#funcdef-transform-matrix) both write them as `a, b, c, d, e, f`:
 
 ```text
-  ┌ a  c  e ┐   ┌ x ┐        x' = a·x + c·y + e
-  │ b  d  f │ × │ y │        y' = b·x + d·y + f
+  ┌ a  c  e ┐   ┌ x ┐     x' = a·x + c·y + e
+  │ b  d  f │ × │ y │     y' = b·x + d·y + f
   └ 0  0  1 ┘   └ 1 ┘
 ```
 
 The six numbers are easier to read as three arrows. `(e, f)` is where the origin `(0, 0)` lands. `(a, b)` is where one step along x, the point `(1, 0)`, lands, measured from there; `(c, d)` is the same for one step along y. Draw those three things and you've drawn the whole transform: every other point follows from them.
 
 ```text
-  scale(2, 0.5)                       a slant: c = 0.5, the rest as in scale(1)
-  (1, 0) → (2, 0)                     (1, 0) → (1, 0)
-  (0, 1) → (0, 0.5)                   (0, 1) → (0.5, 1)
+  scale(2, 0.5)
+  (1, 0) → (2, 0)
+  (0, 1) → (0, 0.5)
 
-  ┌────┐                              ┌────┐          ┌────┐
-  │    │    →    ┌────────┐           │    │    →      ╲    ╲
-  │    │         └────────┘           │    │            ╲    ╲
-  └────┘                              └────┘             └────┘
-                                      (y points down, so the bottom moves right)
+  ┌────┐
+  │    │    →    ┌────────┐
+  │    │         └────────┘
+  └────┘
+
+  a slant: c = 0.5, the rest as in scale(1)
+  (1, 0) → (1, 0)
+  (0, 1) → (0.5, 1)
+
+  ┌────┐          ┌────┐
+  │    │    →      ╲    ╲
+  │    │            ╲    ╲
+  └────┘             └────┘
+  (y points down, so the bottom moves right)
 ```
 
 On a screen, y points **down**. A rotation that turns +x toward +y therefore looks clockwise, the opposite of the math textbook picture. Canvas and CSS both work this way.
@@ -41,8 +50,8 @@ On a screen, y points **down**. A rotation that turns +x toward +y therefore loo
 A transform made of steps is one matrix: **multiplying** two matrices gives a single matrix that does both. But which one happens first changes the result. Take the point `x = 3`:
 
 ```text
-  scale by 2, then move right 4:    3 → 6 → 10
-  move right 4, then scale by 2:    3 → 7 → 14
+  scale by 2, then move right 4:  3 → 6 → 10
+  move right 4, then scale by 2:  3 → 7 → 14
 ```
 
 In `multiply(m, n)`, `n` happens first. That reads backwards at first, but it's the same order as function calls: in `m(n(p))`, n runs first.
@@ -54,11 +63,15 @@ Order is also how you scale around a point other than the origin. `scale(1.04)` 
 To draw a picture through a matrix, the obvious plan is to take every source pixel, move it, and paint it where it lands. Try that with a 3× zoom: neighboring source pixels land 3 pixels apart, and the pixels in between are never painted.
 
 ```text
-  forward: each source pixel goes somewhere     backward: each destination pixel asks
-                                                "where did I come from?"
-  █ █ █      →     █ · · █ · · █                █ █ █      ←     █ █ █ █ █ █ █ █ █
-                   · · · · · · ·                                  (every pixel is filled)
+  forward: each source pixel goes somewhere
+  █ █ █      →     █ · · █ · · █
+                   · · · · · · ·
                    holes
+
+  backward: each destination pixel asks
+  "where did I come from?"
+  █ █ █      ←     █ █ █ █ █ █ █ █ █
+                   (every pixel is filled)
 ```
 
 So renderers work **backwards**: for each pixel of the destination, find the point in the source that lands on it, and take the color from there. That needs the matrix that undoes `m`, its **inverse**. Not every matrix has one. The number `a·d − b·c` (the **determinant**) says how much the matrix scales areas. (A negative one means it also mirrors; only 0 can't be undone.) When it's 0, the matrix squashes everything onto a line or a point, and there's no way back: many source points land on the same spot.
@@ -68,10 +81,12 @@ So renderers work **backwards**: for each pixel of the destination, find the poi
 The point you find in the source is almost never exactly on a pixel. Pixel `(x, y)` is a little square from `(x, y)` to `(x + 1, y + 1)`, so its center is `(x + 0.5, y + 0.5)`. A point between centers takes a little of each of the four nearest pixels, more from the nearer ones. That's **bilinear sampling**: blend along x, then along y.
 
 ```text
-     center (3.5, 0.5)                  center (4.5, 0.5)
-            ●──────────×──────────────────────●
-                       ↑ the sample (×), 30% of the way from left to right,
-                         gets 70% of the left pixel and 30% of the right
+  center (3.5, 0.5)   center (4.5, 0.5)
+         ●─────×─────────────●
+               ↑ the sample (×), 30% of the
+                 way from left to right,
+                 gets 70% of the left pixel
+                 and 30% of the right
 ```
 
 Nearest-neighbor sampling (just take the closest pixel) is faster, but edges turn into stairs as a picture rotates, and a slow move jumps a whole pixel at a time. Bilinear sampling lets a picture move by a fraction of a pixel, which matters for slow motion like KineticIntro's 4% push.
@@ -83,13 +98,20 @@ Nearest-neighbor sampling (just take the closest pixel) is faster, but edges tur
 Bilinear sampling at the edge of a picture mixes a pixel of the picture with a transparent pixel outside it. Layer 01 showed that a transparent pixel is stored as `[0, 0, 0, 0]`: "black, invisible". Average a white pixel with it channel by channel, and you get `[128, 128, 128, 128]`, a half-transparent **grey**. The black that was never visible has leaked in, and every edge gets a dark fringe.
 
 ```text
-  straight average                 premultiplied average
-  [255,255,255,255]                color × alpha:  255·255 and 0·0
-  [  0,  0,  0,  0]                alpha:          255 and 0
-  ────────────────── ÷ 2           ─────────────────────────────────────────────
-  [128,128,128,128]  grey          alpha: (255 + 0) ÷ 2 = 128
-                                   color: total color ÷ total alpha
-                                          = (255·255 + 0) ÷ (255 + 0) = 255: still white
+  straight average
+  [255,255,255,255]
+  [  0,  0,  0,  0]
+  ────────────────── ÷ 2
+  [128,128,128,128]  grey
+
+  premultiplied average
+  color × alpha:  255·255 and 0·0
+  alpha:          255 and 0
+  ─────────────────────────────────────
+  alpha: (255 + 0) ÷ 2 = 128
+  color: total color ÷ total alpha
+         = (255·255 + 0) ÷ (255 + 0)
+         = 255: still white
 ```
 
 The fix is to average **premultiplied** colors: weight each pixel's color by its alpha, so a transparent pixel adds nothing to the color, only to the alpha. Divide by the total alpha at the end to get a plain color back. Browsers keep pixels premultiplied inside, partly for this reason.
@@ -99,15 +121,21 @@ The fix is to average **premultiplied** colors: weight each pixel's color by its
 The simplest blur is a **box blur**: each pixel becomes the average of the pixels in a box around it. A box of radius `r` is `2r + 1` pixels wide. Two tricks make it fast:
 
 ```text
-  1. rows, then columns:  blurring every row, then every column, gives the same
-                          result as averaging the whole square, but each pixel
-                          adds up 2·(2r + 1) values instead of (2r + 1)².
+  1. rows, then columns:
+     blurring every row, then every column,
+     gives the same result as averaging the
+     whole square, but each pixel adds up
+     2·(2r + 1) values instead of (2r + 1)².
 
-  2. a running sum:       moving the box one pixel right changes only its two ends.
-                          ┌───────────┐
-                          │ a b c d e │ f        sum(b…f) = sum(a…e) − a + f
-                          └───────────┘
-                          Two operations per pixel, whether r is 1 or 100.
+  2. a running sum:
+     moving the box one pixel right changes
+     only its two ends.
+     ┌───────────┐
+     │ a b c d e │ f
+     └───────────┘
+     sum(b…f) = sum(a…e) − a + f
+     Two operations per pixel,
+     whether r is 1 or 100.
 ```
 
 Pixels outside the frame count as transparent, so a blur fades a picture out at its edges instead of smearing the edge pixels outward. Average premultiplied, for the same reason as above.

@@ -21,10 +21,15 @@ CSS describes that shape with a [cubic Bézier curve](https://www.w3.org/TR/css-
 In 1959, Paul de Casteljau, a mathematician at Citroën, found a way to describe smooth car-body curves to a computer; Pierre Bézier at Renault published the same curves a few years later, and they took his name. De Casteljau's way of computing a point on the curve uses nothing but layer 04's `lerp`. For an easing curve, the four control values along one axis are 0, `p1`, `p2` and 1:
 
 ```text
-  control values:   0           p1           p2           1
-                          ●            ●            ●             each ● is u of the way from
-                                 ●            ●                   the value on its left to the
-                                      B(u)                        value on its right, one row up
+  control values:
+  0         p1         p2         1
+       ●          ●          ●
+             ●         ●
+                B(u)
+
+  each ● is u of the way from the value
+  on its left to the value on its right,
+  one row up
 ```
 
 Run it once with the x values and once with the y values, and you get the point (x, y) on the curve at parameter `u`. Multiply the lerps out and you get a cubic polynomial in `u` instead, which is how browsers write it. Either way works. `bezierSlope` is that polynomial's derivative: how fast the curve moves along one axis as `u` grows.
@@ -34,7 +39,13 @@ Run it once with the x values and once with the y values, and you get the point 
 As `u` runs from 0 to 1, the point travels along the curve, but `x` and `y` *both* depend on `u`. An easing function is asked a different question: at time `x`, what's `y`? To answer it, first find the `u` where the curve's x equals the time you were given, then read the curve's y at that `u`:
 
 ```text
-  x (time) ──solve──▶ u ──bezierPoint(y1, y2, u)──▶ y (progress)
+  x (time)
+  │ solve
+  ▼
+  u
+  │ bezierPoint(y1, y2, u)
+  ▼
+  y (progress)
 ```
 
 There's no tidy formula for that first arrow. (Cubic equations do have a formula, but it's fussy and loses precision.) So browsers find `u` numerically.
@@ -44,11 +55,17 @@ There's no tidy formula for that first arrow. (Cubic equations do have a formula
 Guess a `u`, see how far its x is from the target, then use the slope to jump to where a straight line would hit the target: `u ← u − error ÷ slope`. Here's ease-in (x1 = 0.42, x2 = 1) looking for x = 0.6, starting from the guess `u` = 0.6:
 
 ```text
-  step   u          x at u       error        slope   next u = u − error ÷ slope
-  0      0.6        0.76896      +0.169       1.037   0.4370
-  1      0.4370     0.58058      −0.0194      1.256   0.4525
-  2      0.4525     0.59988      −0.00012     1.240   0.452605
-  3      0.452605   0.60000000   −0.000000005    close enough
+  step  u          x at u       error
+  0     0.6        0.76896      +0.169
+  1     0.4370     0.58058      −0.0194
+  2     0.4525     0.59988      −0.00012
+  3     0.452605   0.60000000   −0.000000005
+
+  step  slope   next u = u − error ÷ slope
+  0     1.037   0.4370
+  1     1.256   0.4525
+  2     1.240   0.452605
+  3             close enough
 ```
 
 The error goes 0.17, 0.02, 0.0001, 0.000000005: each step roughly doubles the number of correct digits. That's [Newton's method](https://en.wikipedia.org/wiki/Newton%27s_method), and it's usually done in three or four steps.
@@ -60,9 +77,12 @@ The error goes 0.17, 0.02, 0.0001, 0.000000005: each step roughly doubles the nu
 Newton's method has a weak spot: where the curve goes flat, the slope is near zero, and dividing by it flings `u` far away. **Bisection** can't fail. The curve's x only ever increases, so the answer is always inside a known gap, starting with 0 to 1. Check the middle: if its x is too big, the answer is in the left half; otherwise it's in the right half. Each check halves the gap:
 
 ```text
-  [0 ─────────────────────────────── 1]    x at 0.5 too big?   keep the left half
-  [0 ─────────────── 0.5]                  x at 0.25 too small? keep the right half
-          [0.25 ──── 0.5]                  … until the x at the middle is within 1e-7
+  [0 ─────────────────────────────── 1]
+  x at 0.5 too big?    keep the left half
+  [0 ─────────────── 0.5]
+  x at 0.25 too small? keep the right half
+          [0.25 ──── 0.5]
+  … until the x at the middle is within 1e-7
 ```
 
 The gap is in `u`, but the spec's 1e-7 is about `x`, and an easing curve's x can change up to 3 times faster than `u`, so it can take about 25 halvings. It's slow but sure, so real solvers use both. [WebKit's `UnitBezier`](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/graphics/UnitBezier.h), the code behind Safari's CSS animations, takes a first guess from a table of 11 samples, tries up to 4 Newton steps, and bisects if they don't get close enough.

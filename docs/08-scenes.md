@@ -19,13 +19,15 @@ Two things fail silently. A font string the canvas can't parse is simply ignored
 To make a picture that fits the text, you measure first. [`measureText`](https://developer.mozilla.org/en-US/docs/Web/API/TextMetrics) returns the text's advance width and the font's own ascent and descent:
 
 ```text
-   ┌─────────────────────────────┐  ┐
-   │                             │  │
-   │   D E S I G N .             │  │ fontBoundingBoxAscent
-   ├─────────────────────────────┤  ┘ ◄── the baseline: letters sit on it
-   │                             │  ┐ fontBoundingBoxDescent (room for g, p, y)
-   └─────────────────────────────┘  ┘
-   ◄────────── width ───────────►
+ ┌───────────────┐  ┐
+ │               │  │
+ │ D E S I G N . │  │ fontBoundingBoxAscent
+ ├───────────────┤  ┘ ◄── the baseline
+ │               │  ┐ fontBoundingBoxDescent
+ └───────────────┘  ┘ (room for g, p, y)
+ ◄──── width ────►
+
+ the baseline: letters sit on it
 ```
 
 `measureText` also reports `actualBoundingBoxAscent` and `actualBoundingBoxDescent`: the ink of this particular word. "ace" has less ink above its baseline than "Hid", so boxes cut to the ink would put their baselines at different heights. The font's ascent and descent are the same for every word in that font and size, so "DESIGN." and "ANIMATE." get boxes of the same height with their baselines at the same place, and they line up. The pixels come back from [`getImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/getImageData) as straight (not premultiplied) RGBA bytes, row by row: exactly the layout your frames have used since layer 00.
@@ -37,8 +39,8 @@ To make a picture that fits the text, you measure first. [`measureText`](https:/
 A scene doesn't care what time the video says it is. It cares how long it has been running. Remotion's [`<Sequence>`](https://www.remotion.dev/docs/sequence) gives each part of a video its own frame counter: inside `<Sequence from={30} durationInFrames={20}>`, video frame 30 is frame 0, and outside frames 30–49 the sequence isn't drawn at all.
 
 ```text
-  video frame:   0 ··· 29  30  31  ···  49  50 ···
-  sequence:      (not on)   0   1  ···  19  (not on)
+ video frame: 0 ··· 29 30 31 ··· 49 50 ···
+ sequence:    (not on)  0  1 ··· 19 (not on)
 ```
 
 [`<Series>`](https://www.remotion.dev/docs/series) works out the `from`s for you by putting sequences back to back. An **offset** moves a sequence earlier (negative) or later (positive), and since each sequence starts where the one before it ends, everything after it moves too.
@@ -52,9 +54,22 @@ Pan a camera to the right and everything on screen slides left. Turn it clockwis
 A scene is drawn like a painting: background first, each layer on top of the ones before. That's the [painter's algorithm](https://en.wikipedia.org/wiki/Painter%27s_algorithm). Each layer is a sprite plus instructions: where it goes, how see-through it is, how blurred, and which part of the screen it may touch.
 
 ```text
-  sprite ──► blur ──► matrix ──► opacity ──► clip ──► onto the frame
-          (in the sprite's       (fade)     (only inside
-           own pixels)                        a rectangle)
+  sprite
+  │
+  ▼
+  blur     (in the sprite's own pixels)
+  │
+  ▼
+  matrix
+  │
+  ▼
+  opacity  (fade)
+  │
+  ▼
+  clip     (only inside a rectangle)
+  │
+  ▼
+  onto the frame
 ```
 
 Order matters, and CSS has an answer. The [Filter Effects spec](https://www.w3.org/TR/filter-effects-1/#FilterProperty) applies an element's filters "in the element's local coordinate system", before its transform moves it to the screen. So a word with `filter: blur(10px)` and `transform: scale(2)` gets a blur twice as wide. Blurring the sprite first, then transforming it, gives the same result.

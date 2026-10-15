@@ -15,12 +15,15 @@ This is the layer the whole course has been heading for. KineticIntro, from [Cla
 KineticIntro wraps each word in a `Scene` component. Stripped of React, a Scene is a handful of `interpolate` calls on the frame number, and three numbers that come out of them: how big, how see-through and how blurred.
 
 ```text
-  word 2, "ANIMATE.": a = 40, b = 88       (not to scale)
-  frame:     38  40                        66                      88  90
-  enter:         0 ── APPLE, 26 frames ───►1
-  exit:                                    0 ─ SMOOTH, 22 frames ─►1
-  push:          1 ───────────────────────────────────────────────►1.04
-  visible:   ◄──────────────────────────────────────────────────────────►
+  word 2, "ANIMATE.": a = 40, b = 88
+  (not to scale)
+  frame:   38 40           66         88 90
+  enter:      0 ──────────►1
+              APPLE, 26 frames
+  exit:                    0 ────────►1
+                           SMOOTH, 22 frames
+  push:       1 ─────────────────────►1.04
+  visible: ◄──────────────────────────────►
 ```
 
 `scale` multiplies three things: growing from `enterFrom` while it enters, the slow push, and growing toward `exitTo` while it leaves. `opacity` is the smaller of "how far in" and "how far from out". The blur is the leftover of the entrance plus the start of the exit. A blur below 0.15 px is invisible, so KineticIntro turns it off, and that saves Chrome a filter pass on most frames.
@@ -32,12 +35,18 @@ Notice what isn't there: no state, no "previous frame". Each number is a functio
 Inside each Scene, a `MaskUp` holds the word in a box with `overflow: hidden`, and slides the word up from 110% of its own height below the box to its place. The box is a window: you only see the part of the word that's inside it.
 
 ```text
-   frame 42 (start)         frame 44               frame 64 (home)
-   ┌────────────────┐       ┌────────────────┐      ┌────────────────┐
-   │                │       │ ▄▄  ▄  ▄ ▄ ▄▄▄ │      │ █▀█ █▄ █ █ █▀▄ │
-   └────────────────┘       └────────────────┘      └────────────────┘
-     ANIMATE.  (hidden,       ▀▀  ▀  ▀ ▀ ▀▀▀
-     below the window)        (the rest still hidden)
+  frame 42 (start)      frame 44
+  ┌────────────────┐    ┌────────────────┐
+  │                │    │ ▄▄  ▄  ▄ ▄ ▄▄▄ │
+  └────────────────┘    └────────────────┘
+    ANIMATE.  (hidden,    ▀▀  ▀  ▀ ▀ ▀▀▀
+    below the window)     (the rest still
+                          hidden)
+
+  frame 64 (home)
+  ┌────────────────┐
+  │ █▀█ █▄ █ █ █▀▄ │
+  └────────────────┘
 ```
 
 The order of effects matters again. The window is inside the Scene, and the Scene's blur applies to everything in it, so the word is cut by the window first and blurred afterwards: the cut edge goes soft. That's why the window belongs in the sprite, before `renderLayers` blurs it. The sprite needs empty padding around the window, too, or the blur would have nowhere to spread.
@@ -47,14 +56,23 @@ The order of effects matters again. The window is inside the Scene, and the Scen
 The light sweep is a `linear-gradient(100deg, …)`. [CSS Images](https://www.w3.org/TR/css-images-3/#linear-gradients) defines exactly where such a gradient runs. `0deg` points up and angles turn clockwise, so `90deg` points right and `100deg` points right and a little down. The **gradient line** goes through the middle of the box in that direction, and its length is chosen so that the lines of equal color through two opposite corners land exactly on 0% and 100%:
 
 ```text
-   0%  ┊                          ┊  100%      ┊ lines of equal color, at right
-       ┊┌────────────────────────┐┊               angles to the gradient line
-       ┊│                        │┊
-   ────●┼────────── ● ───────────┼●────►       the line runs through the middle;
-       ┊│        middle          │┊           its ends are where the color lines
-       ┊└────────────────────────┘┊           through two opposite corners cross it
-       drawn at 90deg. At 100deg everything tilts 10° clockwise, and the
-       line grows to |W·sin A| + |H·cos A| so its ends still meet the corners' lines
+  0%  ┊                    ┊  100%
+      ┊┌──────────────────┐┊
+      ┊│                  │┊
+  ────●┼─────── ● ────────┼●────►
+      ┊│     middle       │┊
+      ┊└──────────────────┘┊
+
+  ┊  lines of equal color, at right angles
+     to the gradient line
+  ─► the line runs through the middle; its
+     ends are where the color lines through
+     two opposite corners cross it
+
+  drawn at 90deg. At 100deg everything tilts
+  10° clockwise, and the line grows to
+  |W·sin A| + |H·cos A| so its ends still
+  meet the corners' lines
 ```
 
 A point's position along the gradient is how far along that line its shadow falls. The background's `radial-gradient(70% 60% at 50% 38%, …)` is simpler: an ellipse with radii of 70% of the width and 60% of the height, centered half way across and 38% down, which your `fillRadialGradient` can draw once you turn the percentages into pixels. A stop like `transparent 60%` ends the gradient early: past 60% of the way out, it's transparent. CSS mixes gradient colors premultiplied, so fading to `transparent` (which is black at alpha 0) never darkens anything, as you saw in layer 07.
@@ -66,9 +84,15 @@ A point's position along the gradient is how far along that line its shadow fall
 Layer 01's blend put the new color over the old one. CSS's [`mix-blend-mode`](https://www.w3.org/TR/compositing-1/#mix-blend-mode) keeps that recipe but changes one ingredient: where the two colors overlap, the result is `B(backdrop, source)` instead of just the source. The [general formula](https://www.w3.org/TR/compositing-1/#generalformula) mixes three parts, by how much each color covers:
 
 ```text
-  only the source shows:     (1 − αb) × αs × Cs
-  both overlap:              αb × αs × B(Cb, Cs)       ← the blend mode lives here
-  only the backdrop shows:   (1 − αs) × αb × Cb
+  only the source shows:
+    (1 − αb) × αs × Cs
+
+  both overlap:
+    αb × αs × B(Cb, Cs)
+              ↑ the blend mode lives here
+
+  only the backdrop shows:
+    (1 − αs) × αb × Cb
 ```
 
 With `B(Cb, Cs) = Cs` that's exactly your `blendPixel`. KineticIntro's sweep uses [overlay](https://www.w3.org/TR/compositing-1/#blendingoverlay): where the backdrop is dark it multiplies, which makes dark darker; where it's light it "screens", which makes light lighter. So white pushes every channel toward white, by how much depending on the backdrop: a dark channel at most doubles, a light one goes all the way. KineticIntro's letters are already nearly white, so the sweep shows most on the blue dot, and on the empty space around the letters (next paragraph).

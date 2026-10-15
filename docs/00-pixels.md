@@ -14,8 +14,10 @@ Every frame of the KineticIntro you'll build in layer 09 is 1080 × 1920 pixels.
 Your screen is a grid of tiny lights. Each one mixes red, green and blue light, and how bright each color glows is a number from 0 (off) to 255 (full). Why 255? Each channel gets one **[byte](https://en.wikipedia.org/wiki/Byte)**: 8 bits, which can hold 2⁸ = 256 different values, 0 through 255.
 
 ```text
-  [255,   0,   0]  red          [  0,   0,   0]  black (all off)
-  [255, 255, 255]  white        [ 91, 140, 255]  Motion Studio's blue
+  [255,   0,   0]  red
+  [  0,   0,   0]  black (all off)
+  [255, 255, 255]  white
+  [ 91, 140, 255]  Motion Studio's blue
 ```
 
 A fourth number, **[alpha](https://en.wikipedia.org/wiki/Alpha_compositing)**, says how opaque the pixel is: 255 is solid, 0 is invisible. Alpha doesn't matter yet, but layer 01 is all about it. So one pixel is 4 bytes: **R, G, B, A**.
@@ -36,9 +38,14 @@ Here's a frame 4 pixels wide and 3 tall, with each cell showing where that pixel
   y = 2   │  32   │  36   │  40   │  44   │
           └───────┴───────┴───────┴───────┘
 
-  data: [ R G B A  R G B A  R G B A  R G B A | R G B A ... ]
-          └ (0,0) ┘└ (1,0) ┘└ (2,0) ┘└ (3,0) ┘ └ (0,1) ...
-          index 0   index 4   index 8   index 12  index 16
+  data (one long line, folded to fit):
+
+  [ R G B A  R G B A  R G B A  R G B A
+    └(0,0)┘  └(1,0)┘  └(2,0)┘  └(3,0)┘
+    index 0  index 4  index 8  index 12
+  | R G B A ... ]
+    └(0,1)┘
+    index 16
 ```
 
 Look at the numbers for a while before writing `pixelIndex`. Going one step right adds the same amount each time. Going one step down adds a different, bigger amount. What is each amount, and why? If you can say that out loud, the formula writes itself.
@@ -61,12 +68,16 @@ The browser uses this exact type for the pixels of a canvas ([`ImageData.data`](
 What should happen if someone calls `setPixel(frame, 4, 0, ...)` on a frame that's 4 pixels wide? There is no column 4. But the index formula will still happily compute a number, and that number lands somewhere real:
 
 ```text
-  setPixel(frame, x = 4, y = 0)  on a 4-wide frame
+  setPixel(frame, x = 4, y = 0)
+  on a 4-wide frame
 
-          x = 0   x = 1   x = 2   x = 3   (x = 4?)
-  y = 0   ░░░░░░  ░░░░░░  ░░░░░░  ░░░░░░  ← you meant here
-  y = 1   ██████  ░░░░░░  ░░░░░░  ░░░░░░
-          └─ but the formula points here: (0, 1)
+          x = 0  x = 1  x = 2  x = 3  x = 4?
+  y = 0   ░░░░░  ░░░░░  ░░░░░  ░░░░░    ?
+  y = 1   █████  ░░░░░  ░░░░░  ░░░░░    ▲
+          │                             │
+          │          you meant here ────┘
+          └─ but the formula points here:
+             (0, 1)
 ```
 
 This wrap-around bug is real: shapes that hang off the right edge reappear on the left, one row down. `setPixel` must check bounds itself, and later layers slide things off-screen all the time.
@@ -76,11 +87,20 @@ This wrap-around bug is real: shapes that hang off the right edge reappear on th
 Your frame is just numbers in memory. To see it, `lib/present.js` (provided) wraps them in an [`ImageData`](https://developer.mozilla.org/en-US/docs/Web/API/ImageData) and copies them into a [`<canvas>`](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API) with [`putImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/putImageData):
 
 ```text
-  your frame.data ──► new ImageData(data, w, h) ──► ctx.putImageData(...)
-        (CPU memory)        (browser wrapper)          │
-                                                       ▼
-                     display ◄── GPU ◄── compositor ◄── canvas
-               (refreshes ~60 times a second)
+  your frame.data
+    (CPU memory)
+        │
+        ▼
+  new ImageData(data, w, h)
+    (browser wrapper)
+        │
+        ▼
+  ctx.putImageData(...)
+        │
+        └───────────────────────────────┐
+                                        ▼
+  display ◄── GPU ◄── compositor ◄── canvas
+    (refreshes ~60 times a second)
 ```
 
 You don't need to write that part. The important idea is that the screen only ever shows what's in memory, and drawing just means changing numbers.
