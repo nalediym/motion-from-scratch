@@ -381,7 +381,7 @@
       const MYSTERIES = {};
       MS.mystery = (layerId, def) => { MYSTERIES[layerId] = def; };
       MS.mysteryKit = { shuffle, same, near };
-      MS.CHECKPOINT_MYSTERIES = MYSTERIES;   // used by tools/checkpoint-data.js
+      MS.CHECKPOINT_MYSTERIES = MYSTERIES;   // read when the checkpoint fingerprints are generated
 
       // ------------------------------------------------------------ running one
       // testResults: what MS.runTests(layerId) returned.
@@ -800,7 +800,7 @@
     // draw() runs the learner's functions; check() says which rule went wrong,
     // never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
     (function (MS) {
-      const { shuffle, same, near } = MS.mysteryKit;
+      const { shuffle, same } = MS.mysteryKit;
       MS.mystery("00", {
         draw() {
           const word = "PIXELS", S = 2, M = 3;
@@ -843,11 +843,12 @@
     })(globalThis.MS = globalThis.MS || {});
 
     // lib/mysteries/01-shapes.js — layer 01's checkpoint picture. PROVIDED.
-    // Layer 01: a word made of touching half-transparent squares, painted on
+    // Layer 01: a word made of touching half-transparent squares, painted on a
+    // transparent layer, then blended over a gradient card.
     // draw() runs the learner's functions; check() says which rule went wrong,
     // never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
     (function (MS) {
-      const { shuffle, same, near } = MS.mysteryKit;
+      const { near } = MS.mysteryKit;
       MS.mystery("01", {
         draw() {
           const word = "BLEND", C = 3, M = 4;
@@ -892,7 +893,6 @@
     // draw() runs the learner's functions; check() says which rule went wrong,
     // never how to fix it. See lib/checkpoint.js for how a checkpoint runs.
     (function (MS) {
-      const { shuffle, same, near } = MS.mysteryKit;
       MS.mystery("02", {
         draw() {
           const lines = ["hello, pixels!", "MADE BY ME \u{1F44B}", "· CENTER ·"];
@@ -908,7 +908,7 @@
             }
             return { ink, left, right };
           });
-          return { frame: f, stats, S, record: { lines: stats } };   // checkpoint-data.js stores record
+          return { frame: f, stats, S, record: { lines: stats } };   // record is stored with the fingerprints
         },
         check({ frame, stats, S }, data) {
           const want = data.lines;
@@ -1108,7 +1108,7 @@
               if (y === 0) { A = P; B = [P[0] + o[0], P[1] + o[1]]; }
               else { A = [P[0] + o[0], P[1] + o[1]]; B = [P[0] + o[0] - o[0] / y, P[1] + o[1] - o[1] / y]; }
               let got = NaN;
-              try { if (eases[ci]) got = eases[ci](x); } catch (e) { failed.push(`easing ${ci + 1} of the ${"BEZIER"[j]} threw "${e.message}" at x = ${x}`); }
+              try { if (eases[ci]) got = eases[ci](x); } catch (e) { failed.push(`easing ${ci + 1} of the ${ch} threw "${e.message}" at x = ${x}`); }
               const at = [px(A[0] + (B[0] - A[0]) * got), px(A[1] + (B[1] - A[1]) * got)];
               if (at[0] !== P[0] || at[1] !== P[1]) scattered[j]++;
               if (Number.isFinite(at[0]) && Number.isFinite(at[1])) MS.fillRect(frame, at[0], at[1], C, C, color);
@@ -1161,7 +1161,6 @@
       shuffle(OFFSETS, 6);
       const px = v => Math.floor(v + 0.5 + 1e-7);
       const STOPS = [[255, 92, 138], [91, 140, 255], [234, 240, 250]];
-
 
       MS.mystery("06", {
         draw() {
@@ -1231,7 +1230,8 @@
       const MATS = [[1.5, 0, 0, 0.5, -3, 2], [0, 2, -1, 0, 4, 4], [1, 0.5, -0.25, 1, 0, -6], [-2, 1, 3, 1.5, 7, -1], [0.8, -0.6, 0.6, 0.8, 10, 20]];
       const POINTS = [[0, 0], [3, -2], [-1.5, 4], [10, 7]];
 
-      // Each probe is [rule, () => true when the learner's functions get it right].
+      // One entry per letter: { rule, probes }, where each probe is () => true when
+      // the learner's functions get that rule right.
       const RULES = [
         { // M: where a matrix moves a point
           rule: "a matrix [a, b, c, d, e, f] moves (x, y) to (a·x + c·y + e, b·x + d·y + f); scale with one number scales both directions; a positive rotation turns +x toward +y",
@@ -1409,7 +1409,7 @@
 
       const RULES = [
         { // S: sequence
-          rule: "sequence(n, from, durationInFrames) counts from 0 at frame `from`, and is null before it and from from + durationInFrames on; with no duration it never ends",
+          rule: "sequence(n, from, durationInFrames) counts from 0 at frame `from`, and is null before it and from `from + durationInFrames` on; with no duration it never ends",
           probes: [
             () => MS.sequence(50, 50, 5) === 0, () => MS.sequence(54, 50, 5) === 4, () => MS.sequence(55, 50, 5) === null,
             () => MS.sequence(49, 50, 5) === null, () => MS.sequence(100, 7) === 93, () => MS.sequence(2, -3, 10) === 5,
@@ -2576,7 +2576,7 @@
       const MS = globalThis.MS;
       MS.tests = MS.tests.filter(t => t.layer !== "01");
       MS.visuals = MS.visuals.filter(v => v.layer !== "01");
-    // tests/01-shapes.test.js — PROVIDED.
+    // tests/01-shapes.test.js — PROVIDED. Read a failing test to see what's expected.
     (function (MS) {
       const L = "01";
       const inked = f => { let n = 0; for (let i = 3; i < f.data.length; i += 4) if (f.data[i]) n++; return n; };
@@ -3073,7 +3073,7 @@
       const MS = globalThis.MS;
       MS.tests = MS.tests.filter(t => t.layer !== "02");
       MS.visuals = MS.visuals.filter(v => v.layer !== "02");
-    // tests/02-glyphs.test.js — PROVIDED.
+    // tests/02-glyphs.test.js — PROVIDED. Read a failing test to see what's expected.
     (function (MS) {
       const L = "02";
       const W = [255, 255, 255, 255], EMPTY = [0, 0, 0, 0];
@@ -3546,7 +3546,7 @@
     // tests/03-time.test.js — PROVIDED. Read a failing test to see what's expected.
     (function (MS) {
       const L = "03";
-      const dot = n => (frame, k) => { MS.setPixel(frame, k, 0, [255, 255, 255]); };   // a render that lights pixel (n, 0)
+      const dot = (frame, n) => { MS.setPixel(frame, n, 0, [255, 255, 255]); };   // a render that lights pixel (n, 0) in frame n
       const lit = f => { let c = 0; for (let i = 3; i < f.data.length; i += 4) if (f.data[i]) c++; return c; };
 
       MS.test(L, "secondsToFrames: seconds × fps", t => {
@@ -3595,7 +3595,7 @@
       });
 
       MS.test(L, "renderFrame hands render a new, empty frame each time", t => {
-        const c = MS.createComposition({ width: 8, height: 2, fps: 30, durationInFrames: 8, render: dot() });
+        const c = MS.createComposition({ width: 8, height: 2, fps: 30, durationInFrames: 8, render: dot });
         const a = MS.renderFrame(c, 1), b = MS.renderFrame(c, 3);
         t.eq(b.width, 8, "frame width"); t.eq(b.height, 2, "frame height");
         t.pixel(b, 3, 0, [255, 255, 255, 255], "render got n = 3");
@@ -4996,8 +4996,8 @@
        * Like Remotion's spring(): where is a spring at `frame`, if it starts at
        * rest at `from` on frame 0 and is pulled toward `to`?
        * Simulate it with stepSpring in steps of 1 ms (dt = 0.001). Frame n is
-       * Math.round(1000 × n ÷ fps) steps from the start. from defaults to 0 and
-       * to to 1; config is passed on as it is.
+       * Math.round(1000 × n ÷ fps) steps from the start. `from` defaults to 0 and
+       * `to` to 1; config is passed on as it is.
        */
       function spring({ frame, fps, from = 0, to = 1, config } = {}) {
         throw MS.todo("spring");

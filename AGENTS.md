@@ -64,4 +64,4 @@ Warm, patient, concise. Assume the learner knows some JavaScript but is new to g
 
 ## Maintainers
 
-If the person says they are **writing or maintaining the course itself** (editing `docs/`, `lib/`, `tests/`, or authoring new layers) rather than taking it, these tutoring rules don't apply to that work. Help normally, and keep stubs in `src/` free of solutions. AUTHORING.md and the `write-layer` skill describe how to write a layer.
+If the person says they are **writing or maintaining the course itself** (editing `docs/`, `lib/`, `tests/`, or authoring new layers) rather than taking it, these tutoring rules don't apply to that work. Help normally, and keep stubs in `src/` free of solutions. After editing `docs/`, `src/` stubs or `tests/`, run `node tools/build.js` and commit the generated files.

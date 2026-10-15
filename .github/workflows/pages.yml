@@ -20,8 +20,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -44,12 +44,11 @@ jobs:
       - name: Assemble the site
         run: |
           mkdir -p _site/observable
-          cp -r index.html guide.html tests.html showcase.html scratch.js lib src tests checkpoints docs notebooks tools assets LICENSE README.md AGENTS.md _site/
+          cp -r index.html guide.html tests.html showcase.html scratch.js lib src tests checkpoints docs notebooks assets LICENSE AGENTS.md _site/
           rm -rf _site/notebooks/.observable
           cp -r notebooks/.observable/dist/. _site/observable/
-          touch _site/.nojekyll
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
@@ -61,4 +60,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

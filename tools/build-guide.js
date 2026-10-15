@@ -11,9 +11,8 @@ const read = rel => fs.readFileSync(path.join(root, rel), "utf8");
 
 const ctx = vm.createContext({});
 vm.runInContext(read("lib/course.js"), ctx);
-const COURSE = ctx.MS.COURSE;
-const C = COURSE;
-const ready = COURSE.layers.filter(l => l.ready);
+const C = ctx.MS.COURSE;
+const ready = C.layers.filter(l => l.ready);
 
 // ---------- a small Markdown converter for the subset the chapters use ----------
 const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -117,7 +116,7 @@ function markdown(md, l) {
 
 // ---------- assemble ----------
 const chapters = ready.map(l => {
-  const f = COURSE.files(l);
+  const f = C.files(l);
   const md = chapterText(read(f.doc));
   const lede = (md.match(/^_(.+)_\s*$/m) || [, ""])[1];
   const body = md.replace(/^_(.+)_\s*$/m, "");             // lede rendered in the header
@@ -128,14 +127,14 @@ const embed = (id, text) => `<script type="text/plain" id="${id}">${text.replace
 const sources = [
   embed("lib-course", read("lib/course.js")),
   embed("lib-share", read("lib/share.js")),
-  ...[...COURSE.libs, ...COURSE.browserLibs].map(f => embed("lib:" + f, read(f))),
-  ...ready.map(l => embed(`mystery-${l.id}`, read(COURSE.files(l).mystery))),
-  ...ready.map(l => embed(`stub-${l.id}`, read(COURSE.files(l).src))),
-  ...ready.map(l => embed(`test-${l.id}`, read(COURSE.files(l).test))),
+  ...[...C.libs, ...C.browserLibs].map(f => embed("lib:" + f, read(f))),
+  ...ready.map(l => embed(`mystery-${l.id}`, read(C.files(l).mystery))),
+  ...ready.map(l => embed(`stub-${l.id}`, read(C.files(l).src))),
+  ...ready.map(l => embed(`test-${l.id}`, read(C.files(l).test))),
 ].join("\n");
 
 const style = read("lib/style.css");
-const soon = COURSE.layers.filter(l => !l.ready);
+const soon = C.layers.filter(l => !l.ready);
 const tabs = ready.map(l => `<a class="tab" href="#layer-${l.id}" data-layer="${l.id}"><span class="num">${l.id}</span>${l.title}</a>`).join("") +
   (soon.length ? `<span class="tab soon">${soon[0].id}–${soon[soon.length - 1].id} coming soon</span>` : "");
 const askTip = "Opens a new chat with tutor rules, your code and your test results. Hints and questions, never answers.";
@@ -179,7 +178,7 @@ const page = `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Motion from Scratch · Guide</title>
-<meta name="description" content="${COURSE.subtitle}. An interactive guide: read each layer, write the code beside it, and run the tests in your browser.">
+<meta name="description" content="${C.subtitle}. An interactive guide: read each layer, write the code beside it, and run the tests in your browser.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://nalediym.github.io/motion-from-scratch/guide.html">
 <meta property="og:title" content="Motion from Scratch · Guide">
@@ -280,8 +279,8 @@ body { padding-block: 24px 80px; }
 <div class="top">
   <div class="pegbar" aria-hidden="true"><i></i><i></i><i></i></div>
   <span class="eyebrow">The interactive guide</span>
-  <h1>${COURSE.title}</h1>
-  <p class="lede">${COURSE.subtitle}. Read a layer, then write its code in the workbench. Tests and pictures run in your browser.</p>
+  <h1>${C.title}</h1>
+  <p class="lede">${C.subtitle}. Read a layer, then write its code in the workbench. Tests and pictures run in your browser.</p>
   <details class="howto">
     <summary>How to use this guide</summary>
     <ol>

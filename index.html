@@ -137,7 +137,7 @@
   const map = document.getElementById("map");
   const render = scores => {
     map.innerHTML = MS.COURSE.layers.map(l => {
-      const f = MS.COURSE.files(l), sc = scores[l.id];
+      const sc = scores[l.id];
       let pill = "";
       if (l.ready && sc) pill = sc.cp && sc.cp.complete ? `<span class="pill pass">★ complete</span>`
         : sc.p === sc.n ? `<span class="pill todo">checkpoint unlocked</span>`

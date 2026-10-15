@@ -1,7 +1,7 @@
 // tests/03-time.test.js — PROVIDED. Read a failing test to see what's expected.
 (function (MS) {
   const L = "03";
-  const dot = n => (frame, k) => { MS.setPixel(frame, k, 0, [255, 255, 255]); };   // a render that lights pixel (n, 0)
+  const dot = (frame, n) => { MS.setPixel(frame, n, 0, [255, 255, 255]); };   // a render that lights pixel (n, 0) in frame n
   const lit = f => { let c = 0; for (let i = 3; i < f.data.length; i += 4) if (f.data[i]) c++; return c; };
 
   MS.test(L, "secondsToFrames: seconds × fps", t => {
@@ -50,7 +50,7 @@
   });
 
   MS.test(L, "renderFrame hands render a new, empty frame each time", t => {
-    const c = MS.createComposition({ width: 8, height: 2, fps: 30, durationInFrames: 8, render: dot() });
+    const c = MS.createComposition({ width: 8, height: 2, fps: 30, durationInFrames: 8, render: dot });
     const a = MS.renderFrame(c, 1), b = MS.renderFrame(c, 3);
     t.eq(b.width, 8, "frame width"); t.eq(b.height, 2, "frame height");
     t.pixel(b, 3, 0, [255, 255, 255, 255], "render got n = 3");

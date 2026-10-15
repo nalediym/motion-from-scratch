@@ -3,6 +3,5 @@ node_modules/
 out/
 notebooks/.observable/
 
-# The private authoring kit (solutions, answers, maintainer tools). See AUTHORING.md.
-# It is its own private repository and must never be committed here.
+# A maintainer's private kit (solutions, answers, authoring tools). Never commit it.
 kit/
